@@ -5,59 +5,26 @@ import 'package:genkit/genkit.dart';
 import 'package:genkit_llamadart/genkit_llamadart.dart';
 import 'package:schemantic/schemantic.dart';
 
-final SchemanticType<Map<String, dynamic>> _jsonMapSchema = SchemanticType.map(
-  SchemanticType.string(),
-  SchemanticType.dynamicSchema(),
-);
-
-final SchemanticType<Map<String, dynamic>> _weatherToolInputSchema =
-    JsonObjectSchema(
-      name: 'WeatherToolInput',
-      description: 'Arguments for the get_weather tool.',
-      properties: <String, $Schema>{
-        'location': $Schema.string(
-          description: 'City name such as Seoul or Tokyo.',
-        ),
-        'unit': $Schema.string(
-          description: 'Temperature unit.',
-          enumValues: const <String>['celsius', 'fahrenheit'],
-        ),
-      },
-      requiredProperties: const <String>['location'],
-    );
-
-final SchemanticType<Map<String, dynamic>> _timeToolInputSchema =
-    JsonObjectSchema(
-      name: 'LocalTimeToolInput',
-      description: 'Arguments for the get_local_time tool.',
-      properties: <String, $Schema>{
-        'city': $Schema.string(
-          description: 'City name such as Seoul or Tokyo.',
-        ),
-      },
-      requiredProperties: const <String>['city'],
-    );
-
-final SchemanticType<Map<String, dynamic>> _factToolInputSchema =
-    JsonObjectSchema(
-      name: 'LookupFactToolInput',
-      description: 'Arguments for the lookup_fact tool.',
-      properties: <String, $Schema>{
-        'topic': $Schema.string(description: 'The topic to look up.'),
-      },
-      requiredProperties: const <String>['topic'],
-    );
-
 const String _modelPathEnv = 'LLAMADART_MODEL_PATH';
 const String _mmprojPathEnv = 'LLAMADART_MMPROJ_PATH';
 const String _promptEnv = 'LLAMADART_PROMPT';
 
 const String _agentSystemPrompt =
     'You are a command-line agent. Use tools whenever they are relevant before answering. '
-    'For get_weather you must provide location and may provide unit. '
-    'For get_local_time you must provide city. '
-    'For lookup_fact you must provide topic. '
+    'These tools do not require arguments, so call them with an empty object. '
     'After a tool returns, incorporate the result into a concise final answer.';
+
+final SchemanticType<Map<String, dynamic>> _jsonMapSchema = SchemanticType.map(
+  SchemanticType.string(),
+  SchemanticType.dynamicSchema(),
+);
+
+final SchemanticType<Map<String, dynamic>> _emptyToolInputSchema =
+    JsonObjectSchema(
+      name: 'ToolContextInput',
+      description: 'This tool uses the latest user request from app context.',
+      properties: const <String, $Schema>{},
+    );
 
 const Map<String, Map<String, dynamic>> _weatherByLocation =
     <String, Map<String, dynamic>>{
@@ -220,7 +187,6 @@ Future<List<Message>> _runTurn(
   );
 
   stdout.writeln(response.text.isEmpty ? '<empty>' : response.text);
-
   return response.messages;
 }
 
@@ -228,23 +194,13 @@ Tool<Map<String, dynamic>, Map<String, dynamic>> _defineWeatherTool(Genkit ai) {
   return ai.defineTool<Map<String, dynamic>, Map<String, dynamic>>(
     name: 'get_weather',
     description:
-        'Get current weather for a location. Required input key: location. Optional input key: unit.',
-    inputSchema: _weatherToolInputSchema,
+        'Get current weather for the location mentioned in the latest user request. No arguments are required.',
+    inputSchema: _emptyToolInputSchema,
     outputSchema: _jsonMapSchema,
     fn: (input, context) async {
-      final inferredLocation = _inferLocation(
-        context.context?['latestUserInput'],
-      );
-      final location = _stringArg(
-        input,
-        'location',
-        fallback: inferredLocation ?? 'unknown',
-      );
-      final unit = _stringArg(
-        input,
-        'unit',
-        fallback: _inferUnit(context.context?['latestUserInput']) ?? 'celsius',
-      );
+      final latestUserInput = _latestUserInput(context.context);
+      final location = _extractLocation(latestUserInput) ?? 'unknown';
+      final unit = _extractUnit(latestUserInput) ?? 'celsius';
       final weather =
           _weatherByLocation[location.toLowerCase()] ??
           <String, dynamic>{
@@ -272,16 +228,13 @@ Tool<Map<String, dynamic>, Map<String, dynamic>> _defineLocalTimeTool(
 ) {
   return ai.defineTool<Map<String, dynamic>, Map<String, dynamic>>(
     name: 'get_local_time',
-    description: 'Get the local time for a city. Required input key: city.',
-    inputSchema: _timeToolInputSchema,
+    description:
+        'Get the local time for the city mentioned in the latest user request. No arguments are required.',
+    inputSchema: _emptyToolInputSchema,
     outputSchema: _jsonMapSchema,
     fn: (input, context) async {
-      final city = _stringArg(
-        input,
-        'city',
-        fallback:
-            _inferLocation(context.context?['latestUserInput']) ?? 'unknown',
-      );
+      final city =
+          _extractLocation(_latestUserInput(context.context)) ?? 'unknown';
       final output =
           _timeByCity[city.toLowerCase()] ??
           <String, dynamic>{
@@ -301,15 +254,12 @@ Tool<Map<String, dynamic>, Map<String, dynamic>> _defineKnowledgeTool(
   return ai.defineTool<Map<String, dynamic>, Map<String, dynamic>>(
     name: 'lookup_fact',
     description:
-        'Look up a short stored fact by topic. Required input key: topic.',
-    inputSchema: _factToolInputSchema,
+        'Look up a short stored fact for the topic mentioned in the latest user request. No arguments are required.',
+    inputSchema: _emptyToolInputSchema,
     outputSchema: _jsonMapSchema,
     fn: (input, context) async {
-      final topic = _stringArg(
-        input,
-        'topic',
-        fallback: _inferTopic(context.context?['latestUserInput']) ?? 'unknown',
-      );
+      final latestUserInput = _latestUserInput(context.context);
+      final topic = _extractTopic(latestUserInput) ?? latestUserInput;
       final output =
           _factsByTopic[topic.toLowerCase()] ??
           <String, dynamic>{'topic': topic, 'fact': 'No stored fact found.'};
@@ -319,46 +269,45 @@ Tool<Map<String, dynamic>, Map<String, dynamic>> _defineKnowledgeTool(
   );
 }
 
-String _stringArg(
-  Map<String, dynamic> input,
-  String key, {
-  required String fallback,
-}) {
-  final value = input[key];
-  return value is String && value.trim().isNotEmpty ? value.trim() : fallback;
+String _latestUserInput(Map<String, dynamic>? context) {
+  final query = context?['latestUserInput'];
+  if (query is String && query.trim().isNotEmpty) {
+    return query.trim();
+  }
+  return 'unknown';
 }
 
-String? _inferLocation(Object? rawInput) {
-  final input = rawInput is String ? rawInput.toLowerCase() : '';
-  if (input.contains('san francisco')) {
+String? _extractLocation(String text) {
+  final normalized = text.toLowerCase();
+  if (normalized.contains('san francisco')) {
     return 'San Francisco';
   }
-  if (input.contains('seoul')) {
+  if (normalized.contains('seoul')) {
     return 'Seoul';
   }
-  if (input.contains('tokyo')) {
+  if (normalized.contains('tokyo')) {
     return 'Tokyo';
   }
   return null;
 }
 
-String? _inferUnit(Object? rawInput) {
-  final input = rawInput is String ? rawInput.toLowerCase() : '';
-  if (input.contains('fahrenheit')) {
+String? _extractUnit(String text) {
+  final normalized = text.toLowerCase();
+  if (normalized.contains('fahrenheit')) {
     return 'fahrenheit';
   }
-  if (input.contains('celsius')) {
+  if (normalized.contains('celsius')) {
     return 'celsius';
   }
   return null;
 }
 
-String? _inferTopic(Object? rawInput) {
-  final input = rawInput is String ? rawInput.toLowerCase() : '';
-  if (input.contains('genkit')) {
+String? _extractTopic(String text) {
+  final normalized = text.toLowerCase();
+  if (normalized.contains('genkit')) {
     return 'genkit';
   }
-  if (input.contains('llamadart')) {
+  if (normalized.contains('llamadart')) {
     return 'llamadart';
   }
   return null;

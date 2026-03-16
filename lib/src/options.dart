@@ -1,4 +1,6 @@
+/// Request-time generation options supported by `genkit_llamadart`.
 class LlamaDartGenerationConfig {
+  /// Creates a generation config.
   const LlamaDartGenerationConfig({
     this.temperature,
     this.topP,
@@ -15,6 +17,7 @@ class LlamaDartGenerationConfig {
     this.chatTemplateKwargs,
   });
 
+  /// Builds a config from a Genkit config map.
   factory LlamaDartGenerationConfig.fromJson(Map<String, dynamic>? json) {
     if (json == null) {
       return const LlamaDartGenerationConfig();
@@ -37,20 +40,46 @@ class LlamaDartGenerationConfig {
     );
   }
 
+  /// Sampling temperature.
   final double? temperature;
+
+  /// Top-p nucleus sampling value.
   final double? topP;
+
+  /// Top-k sampling value.
   final int? topK;
+
+  /// Minimum probability cutoff.
   final double? minP;
+
+  /// Repeat penalty value.
   final double? penalty;
+
+  /// Maximum tokens to generate.
   final int? maxTokens;
+
+  /// Stop sequences.
   final List<String>? stop;
+
+  /// Optional deterministic seed.
   final int? seed;
+
+  /// Whether model reasoning should remain enabled.
   final bool? enableThinking;
+
+  /// Whether templates may emit parallel tool calls.
   final bool? parallelToolCalls;
+
+  /// Optional source language hint for translation-style templates.
   final String? sourceLangCode;
+
+  /// Optional target language hint for translation-style templates.
   final String? targetLangCode;
+
+  /// Extra keyword arguments passed through to the chat template.
   final Map<String, dynamic>? chatTemplateKwargs;
 
+  /// Serializes the config to a Genkit-friendly map.
   Map<String, dynamic> toJson() {
     return {
       if (temperature != null) 'temperature': temperature,
@@ -70,9 +99,12 @@ class LlamaDartGenerationConfig {
   }
 }
 
+/// Request-time embedding options supported by `genkit_llamadart`.
 class LlamaDartEmbedConfig {
+  /// Creates an embedding config.
   const LlamaDartEmbedConfig({this.normalize});
 
+  /// Builds an embed config from a Genkit options map.
   factory LlamaDartEmbedConfig.fromJson(Map<String, dynamic>? json) {
     if (json == null) {
       return const LlamaDartEmbedConfig();
@@ -81,8 +113,10 @@ class LlamaDartEmbedConfig {
     return LlamaDartEmbedConfig(normalize: _asBool(json['normalize']));
   }
 
+  /// Whether output vectors should be normalized.
   final bool? normalize;
 
+  /// Serializes the config to a Genkit-friendly map.
   Map<String, dynamic> toJson() {
     return {if (normalize != null) 'normalize': normalize};
   }

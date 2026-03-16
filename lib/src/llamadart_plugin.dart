@@ -8,25 +8,33 @@ import 'model_definition.dart';
 import 'options.dart';
 import 'runtime.dart';
 
+/// Global handle used to configure and reference the `llamadart` plugin.
 const LlamaDartPluginHandle llamaDart = LlamaDartPluginHandle();
 
+/// Factory and typed reference helper for the `llamadart` Genkit plugin.
 class LlamaDartPluginHandle {
+  /// Creates a plugin handle.
   const LlamaDartPluginHandle();
 
+  /// Creates a plugin instance for the provided model definitions.
   LlamaDartPlugin call({required List<LlamaModelDefinition> models}) {
     return LlamaDartPlugin(models: models);
   }
 
+  /// Returns a typed Genkit model reference.
   ModelRef<LlamaDartGenerationConfig> model(String name) {
     return modelRef<LlamaDartGenerationConfig>(actionNameFor(name));
   }
 
+  /// Returns a typed Genkit embedder reference.
   EmbedderRef<LlamaDartEmbedConfig> embedder(String name) {
     return embedderRef<LlamaDartEmbedConfig>(actionNameFor(name));
   }
 }
 
+/// `GenkitPlugin` implementation backed by local `llamadart` runtimes.
 class LlamaDartPlugin extends GenkitPlugin {
+  /// Creates a plugin that registers one model and embedder per definition.
   LlamaDartPlugin({
     required List<LlamaModelDefinition> models,
     LlamaRuntimeFactory? runtimeFactory,
@@ -51,9 +59,11 @@ class LlamaDartPlugin extends GenkitPlugin {
   final EngineRegistry _registry;
   List<Action>? _actions;
 
+  /// Plugin name used when registering actions in Genkit.
   @override
   String get name => llamaDartPluginName;
 
+  /// Disposes all runtimes cached by this plugin instance.
   Future<void> dispose() {
     return _registry.dispose();
   }

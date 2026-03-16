@@ -1,3 +1,4 @@
+/// Native Genkit Dart integration for local `llamadart` models.
 library;
 
 export 'package:llamadart/llamadart.dart' show ModelParams;
