@@ -1,0 +1,301 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:genkit/plugin.dart' as genkit;
+import 'package:llamadart/llamadart.dart' as llama;
+
+import '../options.dart';
+import 'schema_to_tool_params.dart';
+
+List<llama.LlamaChatMessage> toLlamaMessages(List<genkit.Message> messages) {
+  final converted = <llama.LlamaChatMessage>[];
+
+  for (final message in messages) {
+    if (message.role == genkit.Role.tool) {
+      final toolResponses = message.content
+          .where((part) => part.isToolResponse)
+          .map((part) => part.toolResponsePart!)
+          .toList(growable: false);
+
+      if (toolResponses.isEmpty) {
+        throw genkit.GenkitException(
+          'Tool messages must contain at least one tool response part.',
+          status: genkit.StatusCodes.INVALID_ARGUMENT,
+        );
+      }
+
+      for (final part in toolResponses) {
+        converted.add(
+          llama.LlamaChatMessage.withContent(
+            role: llama.LlamaChatRole.tool,
+            content: [
+              llama.LlamaToolResultContent(
+                id: part.toolResponse.ref,
+                name: part.toolResponse.name,
+                result: _normalizeToolResultOutput(part.toolResponse.output),
+              ),
+            ],
+          ),
+        );
+      }
+      continue;
+    }
+
+    final parts = <llama.LlamaContentPart>[];
+    for (final part in message.content) {
+      final convertedPart = _toLlamaPart(part);
+      if (convertedPart != null) {
+        parts.add(convertedPart);
+      }
+    }
+
+    converted.add(
+      llama.LlamaChatMessage.withContent(
+        role: _toLlamaRole(message.role),
+        content: parts.isEmpty
+            ? <llama.LlamaContentPart>[const llama.LlamaTextContent('')]
+            : parts,
+      ),
+    );
+  }
+
+  return converted;
+}
+
+List<llama.ToolDefinition> toLlamaTools(List<genkit.ToolDefinition>? tools) {
+  if (tools == null || tools.isEmpty) {
+    return const <llama.ToolDefinition>[];
+  }
+
+  return tools
+      .map<llama.ToolDefinition>((genkit.ToolDefinition tool) {
+        return llama.ToolDefinition(
+          name: tool.name,
+          description: tool.description,
+          parameters: schemaToToolParams(tool.inputSchema),
+          handler: (_) async {
+            throw UnsupportedError('Tool execution is handled by Genkit.');
+          },
+        );
+      })
+      .toList(growable: false);
+}
+
+llama.GenerationParams toGenerationParams(LlamaDartGenerationConfig config) {
+  return llama.GenerationParams(
+    maxTokens: config.maxTokens ?? 4096,
+    temp: config.temperature ?? 0.8,
+    topK: config.topK ?? 40,
+    topP: config.topP ?? 0.9,
+    minP: config.minP ?? 0.0,
+    penalty: config.penalty ?? 1.1,
+    seed: config.seed,
+    stopSequences: config.stop ?? const <String>[],
+  );
+}
+
+llama.ToolChoice? toLlamaToolChoice(
+  String? toolChoice, {
+  required bool hasTools,
+}) {
+  if (!hasTools) {
+    return null;
+  }
+
+  return switch (toolChoice) {
+    'none' => llama.ToolChoice.none,
+    'required' => llama.ToolChoice.required,
+    _ => llama.ToolChoice.auto,
+  };
+}
+
+Map<String, dynamic>? toResponseFormat(genkit.OutputConfig? output) {
+  if (output == null) {
+    return null;
+  }
+
+  if (output.schema != null) {
+    return {
+      'type': 'json_schema',
+      'json_schema': {'schema': output.schema},
+    };
+  }
+
+  if (output.format == 'json' || output.contentType == 'application/json') {
+    return {'type': 'json_object'};
+  }
+
+  return null;
+}
+
+bool shouldUseStructuredGeneration(genkit.OutputConfig? output) {
+  if (output == null || output.constrained == false) {
+    return false;
+  }
+
+  return output.schema != null ||
+      output.format == 'json' ||
+      output.contentType == 'application/json';
+}
+
+String documentToPlainText(genkit.DocumentData document) {
+  final buffer = StringBuffer();
+
+  for (final part in document.content) {
+    if (part.isText) {
+      buffer.write(part.text);
+      continue;
+    }
+
+    if (part.isReasoning) {
+      continue;
+    }
+
+    throw genkit.GenkitException(
+      'llamadart embeddings currently support text-only documents.',
+      status: genkit.StatusCodes.INVALID_ARGUMENT,
+    );
+  }
+
+  return buffer.toString();
+}
+
+llama.LlamaChatRole _toLlamaRole(genkit.Role role) {
+  return switch (role) {
+    final value when value == genkit.Role.system => llama.LlamaChatRole.system,
+    final value when value == genkit.Role.user => llama.LlamaChatRole.user,
+    final value when value == genkit.Role.tool => llama.LlamaChatRole.tool,
+    _ => llama.LlamaChatRole.assistant,
+  };
+}
+
+llama.LlamaContentPart? _toLlamaPart(genkit.Part part) {
+  if (part.isText) {
+    return llama.LlamaTextContent(part.text!);
+  }
+
+  if (part.isMedia) {
+    return _toLlamaMediaPart(part.media!);
+  }
+
+  if (part.isToolRequest) {
+    final toolRequest = part.toolRequest!;
+    return llama.LlamaToolCallContent(
+      id: toolRequest.ref,
+      name: toolRequest.name,
+      arguments: toolRequest.input ?? const <String, dynamic>{},
+      rawJson: jsonEncode(toolRequest.input ?? const <String, dynamic>{}),
+    );
+  }
+
+  if (part.isToolResponse) {
+    final toolResponse = part.toolResponse!;
+    return llama.LlamaToolResultContent(
+      id: toolResponse.ref,
+      name: toolResponse.name,
+      result: _normalizeToolResultOutput(toolResponse.output),
+    );
+  }
+
+  if (part.isReasoning) {
+    return null;
+  }
+
+  if (part.isData || part.isCustom || part.isResource) {
+    throw genkit.GenkitException(
+      'Unsupported Genkit part type for llamadart requests: ${part.toJson().keys.join(', ')}',
+      status: genkit.StatusCodes.INVALID_ARGUMENT,
+    );
+  }
+
+  return null;
+}
+
+llama.LlamaContentPart _toLlamaMediaPart(genkit.Media media) {
+  final contentType = media.contentType ?? _inferContentType(media.url);
+  final isImage = contentType?.startsWith('image/') ?? false;
+  final isAudio = contentType?.startsWith('audio/') ?? false;
+
+  if (!isImage && !isAudio) {
+    throw genkit.GenkitException(
+      'Unsupported media type for llamadart: ${contentType ?? media.url}',
+      status: genkit.StatusCodes.INVALID_ARGUMENT,
+    );
+  }
+
+  final uri = Uri.tryParse(media.url);
+  if (uri != null && uri.scheme == 'data') {
+    final data = UriData.parse(media.url).contentAsBytes();
+    final bytes = Uint8List.fromList(data);
+    return isImage
+        ? llama.LlamaImageContent(bytes: bytes)
+        : llama.LlamaAudioContent(bytes: bytes);
+  }
+
+  final filePath = _toFilePath(uri, media.url);
+  if (filePath != null) {
+    return isImage
+        ? llama.LlamaImageContent(path: filePath)
+        : llama.LlamaAudioContent(path: filePath);
+  }
+
+  if (isImage && (uri?.scheme == 'http' || uri?.scheme == 'https')) {
+    return llama.LlamaImageContent(url: media.url);
+  }
+
+  throw genkit.GenkitException(
+    'Unsupported media URL for llamadart: ${media.url}',
+    status: genkit.StatusCodes.INVALID_ARGUMENT,
+  );
+}
+
+String? _inferContentType(String url) {
+  final uri = Uri.tryParse(url);
+  if (uri != null && uri.scheme == 'data') {
+    return UriData.parse(url).mimeType;
+  }
+
+  final lowerUrl = url.toLowerCase();
+  if (lowerUrl.endsWith('.png') ||
+      lowerUrl.endsWith('.jpg') ||
+      lowerUrl.endsWith('.jpeg') ||
+      lowerUrl.endsWith('.gif') ||
+      lowerUrl.endsWith('.webp')) {
+    return 'image/*';
+  }
+  if (lowerUrl.endsWith('.wav') ||
+      lowerUrl.endsWith('.mp3') ||
+      lowerUrl.endsWith('.m4a') ||
+      lowerUrl.endsWith('.ogg')) {
+    return 'audio/*';
+  }
+
+  return null;
+}
+
+String? _toFilePath(Uri? uri, String originalUrl) {
+  if (uri == null || uri.scheme.isEmpty) {
+    return originalUrl;
+  }
+
+  if (uri.scheme == 'file') {
+    return uri.toFilePath();
+  }
+
+  return null;
+}
+
+String _normalizeToolResultOutput(Object? output) {
+  if (output == null) {
+    return 'null';
+  }
+  if (output is String) {
+    return output;
+  }
+
+  try {
+    return jsonEncode(output);
+  } catch (_) {
+    return output.toString();
+  }
+}
