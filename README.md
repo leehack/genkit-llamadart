@@ -295,6 +295,11 @@ Supported media inputs:
 
 ## Development
 
+Contributor docs:
+
+- architecture: `ARCHITECTURE.md`
+- contribution workflow: `CONTRIBUTING.md`
+
 Useful local checks before publishing:
 
 ```bash
@@ -303,3 +308,37 @@ dart analyze
 dart test
 dart pub publish --dry-run
 ```
+
+Optional real-model smoke tests are included. You can point them at local GGUF
+files, or let them download tiny public test models from Hugging Face:
+
+```bash
+LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 \
+dart test test/integration/genkit/plugin/real_model_generate_returns_text_test.dart
+
+LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 \
+dart test test/integration/genkit/actions/embedder_action/real_model_embed_returns_vector_test.dart
+
+LLAMADART_INTEGRATION_MODEL_PATH=/models/tiny-chat.gguf \
+dart test -t real-model test/integration/genkit/plugin/real_model_generate_returns_text_test.dart
+
+LLAMADART_INTEGRATION_EMBED_MODEL_PATH=/models/tiny-embed.gguf \
+dart test -t real-model test/integration/genkit/actions/embedder_action/real_model_embed_returns_vector_test.dart
+```
+
+Optional environment variables for smoke tests:
+
+- `LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1` enables auto-download of the bundled tiny test models
+- `LLAMADART_TEST_MODEL_DIR` overrides the local GGUF cache directory
+- `HUGGING_FACE_HUB_TOKEN` is an optional token for authenticated or rate-limited Hugging Face downloads
+
+Default auto-downloaded smoke-test models:
+
+- chat: `unsloth/SmolLM2-135M-Instruct-GGUF` / `SmolLM2-135M-Instruct-Q2_K.gguf` (~88 MB)
+- embeddings: `second-state/jina-embeddings-v2-small-en-GGUF` / `jina-embeddings-v2-small-en-Q2_K.gguf` (~20 MB)
+
+These defaults are meant for CPU-friendly smoke testing on low-end developer
+machines and CI, not as quality benchmarks for application behavior.
+
+The unit test tree mirrors `lib/src/` so API, core, and Genkit integration code
+can evolve independently without mixing concerns.

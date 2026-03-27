@@ -20,6 +20,12 @@ jobs:
       - name: Install dependencies
         run: dart pub get
 
+      - name: Cache real-model test artifacts
+        uses: actions/cache@v4
+        with:
+          path: .dart_tool/llamadart_test_models
+          key: ${{ runner.os }}-llamadart-test-models-${{ hashFiles('test/integration/genkit/test_support/real_model_test_support.dart') }}
+
       - name: Check formatting
         run: dart format --output=none --set-exit-if-changed .
 
@@ -27,7 +33,12 @@ jobs:
         run: dart analyze
 
       - name: Run tests
-        run: dart test
+        run: dart test -x real-model
+
+      - name: Run real-model tests
+        env:
+          LLAMADART_AUTO_DOWNLOAD_TEST_MODELS: '1'
+        run: dart test test/integration/genkit/plugin/real_model_generate_returns_text_test.dart && dart test test/integration/genkit/actions/embedder_action/real_model_embed_returns_vector_test.dart
 
       - name: Verify publish readiness
         run: dart pub publish --dry-run

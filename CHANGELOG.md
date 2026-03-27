@@ -6,6 +6,11 @@
 - Add per-model capability flags for embeddings, tools, and constrained output
 - Harden streamed tool-call accumulation and raw response metadata
 - Add CI and failure-path coverage for plugin, runtime, model, and embedder behavior
+- Reorganize source into api, core, and Genkit integration layers
+- Mirror the test tree to the source layout with one test per file
+- Add optional Hugging Face-backed real-model smoke tests for generation and embeddings
+- Add architecture and contributing guides for maintainers and contributors
+- Cache downloaded real-model GGUF artifacts in CI
 
 ## 1.0.0
 
