@@ -9,6 +9,7 @@ dart pub get
 ```
 
 Make sure the native `llamadart` prerequisites for your platform are installed.
+For runtime setup and platform notes, see https://llamadart.leehack.com/.
 
 ## Project Layout
 
@@ -62,6 +63,9 @@ Optional environment variables for smoke tests:
 - `LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1`: download the default tiny models automatically
 - `LLAMADART_TEST_MODEL_DIR`: override the local GGUF cache directory
 - `HUGGING_FACE_HUB_TOKEN`: optional token for authenticated or rate-limited Hugging Face access
+
+Auto-downloaded smoke-test models are cached under
+`.dart_tool/llamadart_test_models` by default.
 
 ## Test Models
 

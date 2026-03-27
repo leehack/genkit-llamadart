@@ -32,7 +32,7 @@ Future<void> main() async {
   stdout.write('Response: ');
 
   try {
-    final response = await ai.generate(
+    final stream = ai.generateStream<LlamaDartGenerationConfig, Object?>(
       model: llamaDart.model('local-chat'),
       prompt: prompt,
       config: const LlamaDartGenerationConfig(
@@ -40,12 +40,15 @@ Future<void> main() async {
         maxTokens: 96,
         enableThinking: false,
       ),
-      onChunk: (chunk) {
-        if (chunk.text.isNotEmpty) {
-          stdout.write(chunk.text);
-        }
-      },
     );
+
+    await for (final chunk in stream) {
+      if (chunk.text.isNotEmpty) {
+        stdout.write(chunk.text);
+      }
+    }
+
+    final response = await stream.onResult;
 
     if (response.text.isEmpty) {
       stdout.writeln('<empty>');

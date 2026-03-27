@@ -10,6 +10,8 @@ import 'actions/model_action.dart';
 /// `GenkitPlugin` implementation backed by local `llamadart` runtimes.
 class LlamaDartPlugin extends GenkitPlugin {
   /// Creates a plugin that registers one model and embedder per definition.
+  ///
+  /// Model names must be unique within the plugin instance.
   LlamaDartPlugin({
     required List<LlamaModelDefinition> models,
     LlamaRuntimeFactory? runtimeFactory,

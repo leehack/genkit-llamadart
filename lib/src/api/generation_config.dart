@@ -1,6 +1,18 @@
 import 'config_parsing.dart';
 
 /// Request-time generation options supported by `genkit_llamadart`.
+///
+/// ```dart
+/// final response = await ai.generate(
+///   model: llamaDart.model('local-chat'),
+///   prompt: 'Summarize this in one line.',
+///   config: const LlamaDartGenerationConfig(
+///     temperature: 0.2,
+///     maxTokens: 128,
+///     enableThinking: false,
+///   ),
+/// );
+/// ```
 class LlamaDartGenerationConfig {
   /// Default sampling temperature.
   static const double defaultTemperature = 0.8;

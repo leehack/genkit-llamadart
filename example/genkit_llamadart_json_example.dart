@@ -48,8 +48,9 @@ Future<void> main() async {
   final ai = Genkit(plugins: <LlamaDartPlugin>[plugin]);
 
   try {
-    final response = await ai
-        .generate<LlamaDartGenerationConfig, Map<String, dynamic>>(
+    stdout.write('JSON stream: ');
+    final stream = ai
+        .generateStream<LlamaDartGenerationConfig, Map<String, dynamic>>(
           model: llamaDart.model('local-json'),
           prompt: prompt,
           outputSchema: _reviewSchema,
@@ -62,7 +63,16 @@ Future<void> main() async {
           ),
         );
 
-    stdout.writeln(jsonEncode(response.output));
+    await for (final chunk in stream) {
+      if (chunk.text.isNotEmpty) {
+        stdout.write(chunk.text);
+      }
+    }
+
+    stdout.writeln();
+    final response = await stream.onResult;
+
+    stdout.writeln('Parsed output: ${jsonEncode(response.output)}');
   } finally {
     await plugin.dispose();
     await ai.shutdown();

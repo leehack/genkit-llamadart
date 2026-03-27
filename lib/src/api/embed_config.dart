@@ -1,6 +1,16 @@
 import 'config_parsing.dart';
 
 /// Request-time embedding options supported by `genkit_llamadart`.
+///
+/// ```dart
+/// final embeddings = await ai.embed(
+///   embedder: llamaDart.embedder('local-embed'),
+///   document: DocumentData(
+///     content: <Part>[TextPart(text: 'hello world')],
+///   ),
+///   options: const LlamaDartEmbedConfig(normalize: true),
+/// );
+/// ```
 class LlamaDartEmbedConfig {
   /// Default embedding normalization behavior.
   static const bool defaultNormalize = true;

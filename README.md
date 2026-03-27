@@ -40,7 +40,49 @@ dart pub add schemantic
 - an optional multimodal projector file if you want image input support
 
 This package uses the hosted `llamadart` package from pub.dev. Follow the
-`llamadart` installation guidance for native backend and platform support.
+`llamadart` installation guidance for native backend and platform support:
+
+- `llamadart` docs: https://llamadart.leehack.com/
+
+## Finding Models
+
+This package expects local GGUF files on disk. Good places to find models:
+
+- `llamadart` docs: https://llamadart.leehack.com/
+- Hugging Face GGUF search: https://huggingface.co/models?search=gguf
+
+What to look for:
+
+- chat and agent examples: an instruct or chat GGUF model
+- embedding example: an embedding GGUF model
+- multimodal usage: a vision-capable GGUF model and, when required, a matching `mmproj` file
+
+Before downloading a model, check its model card for:
+
+- quantization level and expected RAM or CPU requirements
+- chat template or instruct formatting
+- context length
+- whether tool calling or JSON-style output works well
+- whether a separate projector file is required for image input
+
+If you just want a tiny CPU-friendly smoke-test model, the real-model test
+section later in this README lists the small GGUF files used in CI.
+
+## Try It Fast
+
+If you only want to confirm the plugin works end-to-end, start with the
+streaming chat example and a small instruct/chat GGUF model.
+
+Example and model guide:
+
+- `example/genkit_llamadart_example.dart`: chat or instruct GGUF; streams tokens to stdout
+- `example/genkit_llamadart_agent_example.dart`: chat or instruct GGUF; streams replies and becomes interactive when `LLAMADART_PROMPT` is not set
+- `example/genkit_llamadart_json_example.dart`: chat or instruct GGUF with decent JSON adherence; streams raw JSON tokens before printing parsed output
+- `example/genkit_llamadart_embedding_example.dart`: embedding GGUF; prints vector dimensions and sample values
+- multimodal requests: add `LLAMADART_MMPROJ_PATH` when the selected model requires a projector file
+
+If you still need `llamadart` runtime or platform setup help before trying the
+examples, check https://llamadart.leehack.com/ first.
 
 ## Quickstart
 
@@ -105,38 +147,45 @@ defaults:
 
 ## Examples
 
-- basic chat generation: `example/genkit_llamadart_example.dart`
+- basic streaming chat generation: `example/genkit_llamadart_example.dart`
 - multi-turn tool loop: `example/genkit_llamadart_agent_example.dart`
 - embeddings: `example/genkit_llamadart_embedding_example.dart`
-- constrained JSON output: `example/genkit_llamadart_json_example.dart`
+- constrained JSON output with streaming: `example/genkit_llamadart_json_example.dart`
 
-Run them with a local model path:
+Run the streaming chat example with a local instruct/chat model:
 
 ```bash
 LLAMADART_MODEL_PATH=/models/Qwen_Qwen3.5-9B-Q4_K_M.gguf \
 dart run example/genkit_llamadart_example.dart
 ```
 
-Agent example:
+Run the agent example with a local instruct/chat model:
 
 ```bash
 LLAMADART_MODEL_PATH=/models/Qwen_Qwen3.5-9B-Q4_K_M.gguf \
 dart run example/genkit_llamadart_agent_example.dart
 ```
 
-Embedding example:
+Run the embedding example with a local embedding model:
 
 ```bash
 LLAMADART_MODEL_PATH=/models/nomic-embed-text.gguf \
 dart run example/genkit_llamadart_embedding_example.dart
 ```
 
-Structured JSON example:
+Run the structured JSON streaming example with a local instruct/chat model:
 
 ```bash
 LLAMADART_MODEL_PATH=/models/Qwen_Qwen3.5-9B-Q4_K_M.gguf \
 dart run example/genkit_llamadart_json_example.dart
 ```
+
+Examples are easiest to test in this order:
+
+1. `example/genkit_llamadart_example.dart`
+2. `example/genkit_llamadart_agent_example.dart`
+3. `example/genkit_llamadart_json_example.dart`
+4. `example/genkit_llamadart_embedding_example.dart`
 
 ## Embeddings
 
@@ -331,6 +380,9 @@ Optional environment variables for smoke tests:
 - `LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1` enables auto-download of the bundled tiny test models
 - `LLAMADART_TEST_MODEL_DIR` overrides the local GGUF cache directory
 - `HUGGING_FACE_HUB_TOKEN` is an optional token for authenticated or rate-limited Hugging Face downloads
+
+Auto-downloaded smoke-test models are cached under
+`.dart_tool/llamadart_test_models` by default.
 
 Default auto-downloaded smoke-test models:
 

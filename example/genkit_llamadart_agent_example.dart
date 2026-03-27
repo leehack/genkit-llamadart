@@ -173,7 +173,8 @@ Future<List<Message>> _runTurn(
   ];
 
   stdout.write('assistant> ');
-  final response = await ai.generate(
+  var streamedText = false;
+  final stream = ai.generateStream<LlamaDartGenerationConfig, Object?>(
     model: llamaDart.model('local-agent'),
     messages: requestMessages,
     tools: tools,
@@ -181,13 +182,26 @@ Future<List<Message>> _runTurn(
     context: <String, dynamic>{'latestUserInput': input},
     config: const LlamaDartGenerationConfig(
       temperature: 0.2,
-      maxTokens: 256,
+      maxTokens: 4096,
       enableThinking: false,
       parallelToolCalls: true,
     ),
   );
 
-  stdout.writeln(response.text.isEmpty ? '<empty>' : response.text);
+  await for (final chunk in stream) {
+    if (chunk.text.isNotEmpty) {
+      streamedText = true;
+      stdout.write(chunk.text);
+    }
+  }
+
+  final response = await stream.onResult;
+
+  if (!streamedText && response.text.isEmpty) {
+    stdout.writeln('<empty>');
+  } else {
+    stdout.writeln();
+  }
   return response.messages;
 }
 

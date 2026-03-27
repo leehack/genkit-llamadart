@@ -2,6 +2,20 @@ import 'package:genkit/genkit.dart' show ModelInfo;
 import 'package:llamadart/llamadart.dart' show ModelParams;
 
 /// Static configuration for one `llamadart` model exposed through Genkit.
+///
+/// Use one definition per local GGUF model you want to register. The same
+/// definition controls the model name, native loading parameters, optional
+/// multimodal projector path, and which Genkit capabilities are advertised.
+///
+/// ```dart
+/// const chatModel = LlamaModelDefinition(
+///   name: 'local-chat',
+///   modelPath: '/models/chat.gguf',
+///   modelParams: ModelParams(contextSize: 8192),
+///   supportsTools: true,
+///   supportsConstrainedOutput: true,
+/// );
+/// ```
 class LlamaModelDefinition {
   /// Creates a model definition for a local GGUF-backed model.
   const LlamaModelDefinition({
