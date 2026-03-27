@@ -1,4 +1,4 @@
-## Unreleased
+## 1.1.0
 
 - Expand README with installation, lifecycle, embeddings, JSON output, and multimodal guidance
 - Add standalone embedding and constrained JSON example programs

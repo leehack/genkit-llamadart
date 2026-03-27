@@ -89,3 +89,30 @@ LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 dart test test/integration/genkit/plugin/r
 LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 dart test test/integration/genkit/actions/embedder_action/real_model_embed_returns_vector_test.dart
 dart pub publish --dry-run
 ```
+
+## Releasing
+
+Publishing is automated from GitHub tags.
+
+Before the first automated release, configure pub.dev admin settings for this
+package to allow GitHub Actions publishing from `leehack/genkit-llamadart`
+using the tag pattern `v{{version}}`.
+
+Release flow:
+
+1. update `version:` in `pubspec.yaml`
+2. update `CHANGELOG.md`
+3. merge to `main`
+4. create and push a matching tag like `v1.1.0`
+
+```bash
+git tag v1.1.0
+git push origin v1.1.0
+```
+
+The publish workflow then:
+
+- verifies the tag matches `pubspec.yaml`
+- reruns formatting, analysis, pana, tests, and `dart pub publish --dry-run`
+- publishes to pub.dev using GitHub OIDC trusted publishing
+- creates a GitHub release for the tag after a successful publish

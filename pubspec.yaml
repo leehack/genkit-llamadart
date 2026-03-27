@@ -1,6 +1,6 @@
 name: genkit_llamadart
 description: Genkit Dart plugin for running local models through llamadart.
-version: 1.0.0
+version: 1.1.0
 homepage: https://github.com/leehack/genkit-llamadart
 repository: https://github.com/leehack/genkit-llamadart
 documentation: https://github.com/leehack/genkit-llamadart#readme
