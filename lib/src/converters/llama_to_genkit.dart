@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:convert';
 
 import 'package:genkit/plugin.dart' as genkit;
@@ -71,8 +72,8 @@ genkit.FinishReason mapFinishReason(String? finishReason) {
 class CompletionAccumulator {
   final StringBuffer _text = StringBuffer();
   final StringBuffer _reasoning = StringBuffer();
-  final List<llama.LlamaCompletionChunkToolCall> _toolCalls =
-      <llama.LlamaCompletionChunkToolCall>[];
+  final SplayTreeMap<int, _AccumulatedToolCall> _toolCallsByIndex =
+      SplayTreeMap<int, _AccumulatedToolCall>();
 
   genkit.FinishReason finishReason = genkit.FinishReason.stop;
   String? finishMessage;
@@ -91,9 +92,14 @@ class CompletionAccumulator {
       _reasoning.write(delta.thinking);
     }
     if (delta.toolCalls != null && delta.toolCalls!.isNotEmpty) {
-      _toolCalls
-        ..clear()
-        ..addAll(delta.toolCalls!);
+      for (final toolCall in delta.toolCalls!) {
+        _toolCallsByIndex
+            .putIfAbsent(
+              toolCall.index,
+              () => _AccumulatedToolCall(toolCall.index),
+            )
+            .merge(toolCall);
+      }
     }
     if (choice.finishReason != null) {
       finishReason = mapFinishReason(choice.finishReason);
@@ -104,7 +110,10 @@ class CompletionAccumulator {
     required double latencyMs,
     required Map<String, dynamic> raw,
   }) {
-    final fallback = _toolCalls.isEmpty
+    final toolCalls = _toolCallsByIndex.values
+        .map((toolCall) => toolCall.toToolCall())
+        .toList(growable: false);
+    final fallback = toolCalls.isEmpty
         ? _extractInlineToolCalls(_text.toString())
         : null;
     final fallbackToolRequests =
@@ -116,10 +125,10 @@ class CompletionAccumulator {
       parts.add(genkit.ReasoningPart(reasoning: _reasoning.toString()));
     }
     if (visibleText.isNotEmpty ||
-        (_toolCalls.isEmpty && fallbackToolRequests.isEmpty && parts.isEmpty)) {
+        (toolCalls.isEmpty && fallbackToolRequests.isEmpty && parts.isEmpty)) {
       parts.add(genkit.TextPart(text: visibleText));
     }
-    parts.addAll(_toolCalls.map(toGenkitToolRequestPart));
+    parts.addAll(toolCalls.map(toGenkitToolRequestPart));
     parts.addAll(fallbackToolRequests);
 
     return genkit.ModelResponse(
@@ -128,6 +137,46 @@ class CompletionAccumulator {
       finishMessage: finishMessage,
       latencyMs: latencyMs,
       raw: raw,
+    );
+  }
+}
+
+class _AccumulatedToolCall {
+  _AccumulatedToolCall(this.index);
+
+  final int index;
+  String? _id;
+  String? _type;
+  String? _name;
+  final StringBuffer _arguments = StringBuffer();
+
+  void merge(llama.LlamaCompletionChunkToolCall delta) {
+    _id ??= delta.id;
+    _type ??= delta.type;
+
+    final function = delta.function;
+    if (function == null) {
+      return;
+    }
+
+    _name ??= function.name;
+    if (function.arguments != null && function.arguments!.isNotEmpty) {
+      _arguments.write(function.arguments);
+    }
+  }
+
+  llama.LlamaCompletionChunkToolCall toToolCall() {
+    final arguments = _arguments.isEmpty ? null : _arguments.toString();
+    return llama.LlamaCompletionChunkToolCall(
+      index: index,
+      id: _id,
+      type: _type,
+      function: _name == null && arguments == null
+          ? null
+          : llama.LlamaCompletionChunkFunction(
+              name: _name,
+              arguments: arguments,
+            ),
     );
   }
 }

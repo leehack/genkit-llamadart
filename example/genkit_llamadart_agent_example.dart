@@ -154,6 +154,7 @@ Future<void> main() async {
     }
   } finally {
     await plugin.dispose();
+    await ai.shutdown();
   }
 }
 

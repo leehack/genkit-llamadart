@@ -44,4 +44,86 @@ void main() {
       'id': 'doc-1',
     });
   });
+
+  test('embedder action rejects non-text documents', () async {
+    final runtime = FakeRuntime();
+    final action = buildEmbedderAction(
+      definition: const LlamaModelDefinition(
+        name: 'local',
+        modelPath: '/tmp/model.gguf',
+      ),
+      registry: EngineRegistry(
+        models: const <LlamaModelDefinition>[
+          LlamaModelDefinition(name: 'local', modelPath: '/tmp/model.gguf'),
+        ],
+        runtimeFactory: () => runtime,
+      ),
+    );
+
+    expect(
+      () => action(
+        genkit.EmbedRequest(
+          input: <genkit.DocumentData>[
+            genkit.DocumentData(
+              content: <genkit.Part>[
+                genkit.MediaPart(
+                  media: genkit.Media(
+                    url: 'file:///tmp/example.png',
+                    contentType: 'image/png',
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      throwsA(
+        isA<genkit.GenkitException>().having(
+          (error) => error.status,
+          'status',
+          genkit.StatusCodes.INVALID_ARGUMENT,
+        ),
+      ),
+    );
+  });
+
+  test('embedder action rejects models with embeddings disabled', () async {
+    final runtime = FakeRuntime();
+    final action = buildEmbedderAction(
+      definition: const LlamaModelDefinition(
+        name: 'local',
+        modelPath: '/tmp/model.gguf',
+        supportsEmbeddings: false,
+      ),
+      registry: EngineRegistry(
+        models: const <LlamaModelDefinition>[
+          LlamaModelDefinition(
+            name: 'local',
+            modelPath: '/tmp/model.gguf',
+            supportsEmbeddings: false,
+          ),
+        ],
+        runtimeFactory: () => runtime,
+      ),
+    );
+
+    expect(
+      () => action(
+        genkit.EmbedRequest(
+          input: <genkit.DocumentData>[
+            genkit.DocumentData(
+              content: <genkit.Part>[genkit.TextPart(text: 'hello')],
+            ),
+          ],
+        ),
+      ),
+      throwsA(
+        isA<genkit.GenkitException>().having(
+          (error) => error.status,
+          'status',
+          genkit.StatusCodes.FAILED_PRECONDITION,
+        ),
+      ),
+    );
+  });
 }

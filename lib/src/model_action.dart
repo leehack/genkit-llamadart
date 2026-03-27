@@ -18,7 +18,7 @@ genkit.Model<LlamaDartGenerationConfig> buildModelAction({
   required LlamaModelDefinition definition,
   required EngineRegistry registry,
 }) {
-  final modelInfo = _buildModelInfo(definition);
+  final modelInfo = modelInfoFor(definition);
   final actionName = actionNameFor(definition.name);
 
   return genkit.Model<LlamaDartGenerationConfig>(
@@ -55,6 +55,22 @@ Future<genkit.ModelResponse> _runModel({
     throw genkit.GenkitException(
       'llamadart model actions do not support `docs` yet.',
       status: genkit.StatusCodes.INVALID_ARGUMENT,
+    );
+  }
+
+  final hasTools = request.tools?.isNotEmpty ?? false;
+  if (hasTools && !definition.supportsTools) {
+    throw genkit.GenkitException(
+      'Tool use is disabled for `${definition.name}`.',
+      status: genkit.StatusCodes.FAILED_PRECONDITION,
+    );
+  }
+
+  if (shouldUseStructuredGeneration(request.output) &&
+      !definition.supportsConstrainedOutput) {
+    throw genkit.GenkitException(
+      'Constrained output is disabled for `${definition.name}`.',
+      status: genkit.StatusCodes.FAILED_PRECONDITION,
     );
   }
 
@@ -119,8 +135,12 @@ Future<genkit.ModelResponse> _runStreamingModel({
     params: params,
     tools: tools.isEmpty ? null : tools,
     toolChoice: toolChoice,
-    parallelToolCalls: config.parallelToolCalls ?? false,
-    enableThinking: config.enableThinking ?? false,
+    parallelToolCalls:
+        config.parallelToolCalls ??
+        LlamaDartGenerationConfig.defaultParallelToolCalls,
+    enableThinking:
+        config.enableThinking ??
+        LlamaDartGenerationConfig.defaultEnableThinking,
     sourceLangCode: config.sourceLangCode,
     targetLangCode: config.targetLangCode,
     chatTemplateKwargs: config.chatTemplateKwargs,
@@ -157,7 +177,9 @@ Future<genkit.ModelResponse> _runStructuredModel({
     tools: null,
     toolChoice: llama.ToolChoice.none,
     parallelToolCalls: false,
-    enableThinking: config.enableThinking ?? false,
+    enableThinking:
+        config.enableThinking ??
+        LlamaDartGenerationConfig.defaultEnableThinking,
     responseFormat: responseFormat,
     sourceLangCode: config.sourceLangCode,
     targetLangCode: config.targetLangCode,
@@ -231,26 +253,5 @@ Future<genkit.ModelResponse> _runStructuredModel({
     finishReason: genkit.FinishReason.stop,
     latencyMs: started.elapsedMilliseconds.toDouble(),
     raw: rawResponseMetadata(definition, structured: true),
-  );
-}
-
-genkit.ModelInfo _buildModelInfo(LlamaModelDefinition definition) {
-  final provided = definition.modelInfo;
-  final supports = <String, dynamic>{
-    'multiturn': true,
-    'media': definition.mmprojPath != null,
-    'tools': true,
-    'toolChoice': true,
-    'systemRole': true,
-    'constrained': true,
-    ...?provided?.supports,
-  };
-
-  return genkit.ModelInfo(
-    versions: provided?.versions,
-    label: provided?.label ?? definition.name,
-    configSchema: provided?.configSchema,
-    supports: supports,
-    stage: provided?.stage,
   );
 }

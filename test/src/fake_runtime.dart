@@ -10,6 +10,9 @@ class FakeRuntime implements LlamaRuntime {
   int chatTemplateCallCount = 0;
   int generateCallCount = 0;
   int embedBatchCallCount = 0;
+  int disposeCount = 0;
+
+  Object? initializeError;
 
   bool? lastNormalize;
   List<llama.LlamaChatMessage>? lastMessages;
@@ -30,6 +33,9 @@ class FakeRuntime implements LlamaRuntime {
   @override
   Future<void> initialize(LlamaModelDefinition definition) async {
     initializeCount += 1;
+    if (initializeError != null) {
+      throw initializeError!;
+    }
   }
 
   @override
@@ -98,7 +104,9 @@ class FakeRuntime implements LlamaRuntime {
   }
 
   @override
-  Future<void> dispose() async {}
+  Future<void> dispose() async {
+    disposeCount += 1;
+  }
 }
 
 llama.LlamaCompletionChunk textChunk(String text, {String? finishReason}) {
@@ -136,6 +144,8 @@ llama.LlamaCompletionChunk toolCallChunk({
   required String id,
   required String name,
   required String arguments,
+  int index = 0,
+  String? finishReason = 'tool_calls',
 }) {
   return llama.LlamaCompletionChunk(
     id: 'chunk',
@@ -144,11 +154,11 @@ llama.LlamaCompletionChunk toolCallChunk({
     model: 'model',
     choices: <llama.LlamaCompletionChunkChoice>[
       llama.LlamaCompletionChunkChoice(
-        index: 0,
+        index: index,
         delta: llama.LlamaCompletionChunkDelta(
           toolCalls: <llama.LlamaCompletionChunkToolCall>[
             llama.LlamaCompletionChunkToolCall(
-              index: 0,
+              index: index,
               id: id,
               type: 'function',
               function: llama.LlamaCompletionChunkFunction(
@@ -158,7 +168,41 @@ llama.LlamaCompletionChunk toolCallChunk({
             ),
           ],
         ),
-        finishReason: 'tool_calls',
+        finishReason: finishReason,
+      ),
+    ],
+  );
+}
+
+llama.LlamaCompletionChunk toolCallDeltaChunk({
+  int index = 0,
+  String? id,
+  String? name,
+  String? arguments,
+  String? finishReason,
+}) {
+  return llama.LlamaCompletionChunk(
+    id: 'chunk',
+    object: 'chat.completion.chunk',
+    created: 0,
+    model: 'model',
+    choices: <llama.LlamaCompletionChunkChoice>[
+      llama.LlamaCompletionChunkChoice(
+        index: index,
+        delta: llama.LlamaCompletionChunkDelta(
+          toolCalls: <llama.LlamaCompletionChunkToolCall>[
+            llama.LlamaCompletionChunkToolCall(
+              index: index,
+              id: id,
+              type: 'function',
+              function: llama.LlamaCompletionChunkFunction(
+                name: name,
+                arguments: arguments,
+              ),
+            ),
+          ],
+        ),
+        finishReason: finishReason,
       ),
     ],
   );

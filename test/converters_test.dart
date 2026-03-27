@@ -65,4 +65,43 @@ void main() {
     expect(params[1].name, 'unit');
     expect(params[2].name, 'filters');
   });
+
+  test('documentToPlainText ignores reasoning parts', () {
+    final text = documentToPlainText(
+      genkit.DocumentData(
+        content: <genkit.Part>[
+          genkit.TextPart(text: 'hello'),
+          genkit.ReasoningPart(reasoning: 'internal'),
+          genkit.TextPart(text: ' world'),
+        ],
+      ),
+    );
+
+    expect(text, 'hello world');
+  });
+
+  test('toLlamaMessages rejects unsupported remote audio URLs', () {
+    expect(
+      () => toLlamaMessages(<genkit.Message>[
+        genkit.Message(
+          role: genkit.Role.user,
+          content: <genkit.Part>[
+            genkit.MediaPart(
+              media: genkit.Media(
+                url: 'https://example.com/audio.mp3',
+                contentType: 'audio/mpeg',
+              ),
+            ),
+          ],
+        ),
+      ]),
+      throwsA(
+        isA<genkit.GenkitException>().having(
+          (error) => error.status,
+          'status',
+          genkit.StatusCodes.INVALID_ARGUMENT,
+        ),
+      ),
+    );
+  });
 }

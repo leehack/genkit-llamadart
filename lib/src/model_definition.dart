@@ -9,6 +9,9 @@ class LlamaModelDefinition {
     required this.modelPath,
     this.modelParams = const ModelParams(),
     this.mmprojPath,
+    this.supportsEmbeddings = true,
+    this.supportsTools = true,
+    this.supportsConstrainedOutput = true,
     this.modelInfo,
   }) : assert(name != ''),
        assert(modelPath != '');
@@ -24,6 +27,15 @@ class LlamaModelDefinition {
 
   /// Optional path to a multimodal projector file.
   final String? mmprojPath;
+
+  /// Whether this definition should register a Genkit embedder action.
+  final bool supportsEmbeddings;
+
+  /// Whether this definition should accept Genkit tool requests.
+  final bool supportsTools;
+
+  /// Whether this definition should accept constrained JSON output requests.
+  final bool supportsConstrainedOutput;
 
   /// Optional Genkit model metadata override.
   final ModelInfo? modelInfo;

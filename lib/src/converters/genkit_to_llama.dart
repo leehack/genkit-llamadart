@@ -83,12 +83,12 @@ List<llama.ToolDefinition> toLlamaTools(List<genkit.ToolDefinition>? tools) {
 
 llama.GenerationParams toGenerationParams(LlamaDartGenerationConfig config) {
   return llama.GenerationParams(
-    maxTokens: config.maxTokens ?? 4096,
-    temp: config.temperature ?? 0.8,
-    topK: config.topK ?? 40,
-    topP: config.topP ?? 0.9,
-    minP: config.minP ?? 0.0,
-    penalty: config.penalty ?? 1.1,
+    maxTokens: config.maxTokens ?? LlamaDartGenerationConfig.defaultMaxTokens,
+    temp: config.temperature ?? LlamaDartGenerationConfig.defaultTemperature,
+    topK: config.topK ?? LlamaDartGenerationConfig.defaultTopK,
+    topP: config.topP ?? LlamaDartGenerationConfig.defaultTopP,
+    minP: config.minP ?? LlamaDartGenerationConfig.defaultMinP,
+    penalty: config.penalty ?? LlamaDartGenerationConfig.defaultPenalty,
     seed: config.seed,
     stopSequences: config.stop ?? const <String>[],
   );

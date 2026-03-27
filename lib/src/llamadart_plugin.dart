@@ -78,7 +78,8 @@ class LlamaDartPlugin extends GenkitPlugin {
         .expand((definition) {
           return <Action>[
             buildModelAction(definition: definition, registry: _registry),
-            buildEmbedderAction(definition: definition, registry: _registry),
+            if (definition.supportsEmbeddings)
+              buildEmbedderAction(definition: definition, registry: _registry),
           ];
         })
         .toList(growable: false);
@@ -91,19 +92,21 @@ class LlamaDartPlugin extends GenkitPlugin {
     return _models
         .expand((definition) {
           final actionName = actionNameFor(definition.name);
+          final modelInfo = modelInfoFor(definition);
           return <ActionMetadata>[
             ActionMetadata(
               name: actionName,
               description: definition.name,
               actionType: 'model',
-              metadata: actionMetadataFor(definition),
+              metadata: actionMetadataFor(definition, modelInfo: modelInfo),
             ),
-            ActionMetadata(
-              name: actionName,
-              description: definition.name,
-              actionType: 'embedder',
-              metadata: actionMetadataFor(definition),
-            ),
+            if (definition.supportsEmbeddings)
+              ActionMetadata(
+                name: actionName,
+                description: definition.name,
+                actionType: 'embedder',
+                metadata: actionMetadataFor(definition, modelInfo: modelInfo),
+              ),
           ];
         })
         .toList(growable: false);

@@ -1,5 +1,29 @@
 /// Request-time generation options supported by `genkit_llamadart`.
 class LlamaDartGenerationConfig {
+  /// Default sampling temperature.
+  static const double defaultTemperature = 0.8;
+
+  /// Default nucleus sampling value.
+  static const double defaultTopP = 0.9;
+
+  /// Default top-k sampling value.
+  static const int defaultTopK = 40;
+
+  /// Default minimum probability cutoff.
+  static const double defaultMinP = 0.0;
+
+  /// Default repetition penalty.
+  static const double defaultPenalty = 1.1;
+
+  /// Default maximum generated tokens.
+  static const int defaultMaxTokens = 4096;
+
+  /// Default reasoning visibility.
+  static const bool defaultEnableThinking = false;
+
+  /// Default parallel tool-call behavior.
+  static const bool defaultParallelToolCalls = false;
+
   /// Creates a generation config.
   const LlamaDartGenerationConfig({
     this.temperature,
@@ -101,6 +125,9 @@ class LlamaDartGenerationConfig {
 
 /// Request-time embedding options supported by `genkit_llamadart`.
 class LlamaDartEmbedConfig {
+  /// Default embedding normalization behavior.
+  static const bool defaultNormalize = true;
+
   /// Creates an embedding config.
   const LlamaDartEmbedConfig({this.normalize});
 

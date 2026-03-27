@@ -18,6 +18,29 @@ Map<String, dynamic> actionMetadataFor(
   };
 }
 
+genkit.ModelInfo modelInfoFor(LlamaModelDefinition definition) {
+  final provided = definition.modelInfo;
+  final supports = <String, dynamic>{
+    'multiturn': true,
+    'media': definition.mmprojPath != null,
+    'tools': definition.supportsTools,
+    'toolChoice': definition.supportsTools,
+    'systemRole': true,
+    'constrained': definition.supportsConstrainedOutput,
+    'constrainedWithTools': false,
+    'embeddings': definition.supportsEmbeddings,
+    ...?provided?.supports,
+  };
+
+  return genkit.ModelInfo(
+    versions: provided?.versions,
+    label: provided?.label ?? definition.name,
+    configSchema: provided?.configSchema,
+    supports: supports,
+    stage: provided?.stage,
+  );
+}
+
 Map<String, dynamic> rawResponseMetadata(
   LlamaModelDefinition definition, {
   bool structured = false,
@@ -25,7 +48,6 @@ Map<String, dynamic> rawResponseMetadata(
   return <String, dynamic>{
     'provider': llamaDartPluginName,
     'model': definition.name,
-    'path': definition.modelPath,
     if (structured) 'structured': true,
   };
 }

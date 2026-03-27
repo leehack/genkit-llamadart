@@ -14,8 +14,18 @@ genkit.Embedder<LlamaDartEmbedConfig> buildEmbedderAction({
 
   return genkit.Embedder<LlamaDartEmbedConfig>(
     name: actionName,
-    metadata: actionMetadataFor(definition),
+    metadata: actionMetadataFor(
+      definition,
+      modelInfo: modelInfoFor(definition),
+    ),
     fn: (request, _) async {
+      if (!definition.supportsEmbeddings) {
+        throw genkit.GenkitException(
+          'Embeddings are disabled for `${definition.name}`.',
+          status: genkit.StatusCodes.FAILED_PRECONDITION,
+        );
+      }
+
       if (request == null) {
         throw genkit.GenkitException(
           'Embedder request cannot be null.',
@@ -29,7 +39,10 @@ genkit.Embedder<LlamaDartEmbedConfig> buildEmbedderAction({
           .toList(growable: false);
 
       final embeddings = await registry.withRuntime(definition.name, (runtime) {
-        return runtime.embedBatch(texts, normalize: config.normalize ?? true);
+        return runtime.embedBatch(
+          texts,
+          normalize: config.normalize ?? LlamaDartEmbedConfig.defaultNormalize,
+        );
       });
 
       return genkit.EmbedResponse(
