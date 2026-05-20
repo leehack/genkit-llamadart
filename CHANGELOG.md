@@ -1,4 +1,4 @@
-## Unreleased
+## 1.1.1
 
 - Update the Genkit dependency constraint to `^0.13.2` and verify compatibility with `llamadart` `0.6.14`.
 
