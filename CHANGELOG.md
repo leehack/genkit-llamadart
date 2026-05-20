@@ -1,3 +1,7 @@
+## Unreleased
+
+- Update the Genkit dependency constraint to `^0.13.2` and verify compatibility with `llamadart` `0.6.14`.
+
 ## 1.1.0
 
 - Expand README with installation, lifecycle, embeddings, JSON output, and multimodal guidance
