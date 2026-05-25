@@ -1,3 +1,10 @@
+## Unreleased
+
+- Add source-backed model preparation with `ModelSource`, package-managed cache/download options, optional mmproj resolution, and typed prepared-model refs.
+- Add observable model preparation tasks with progress snapshots, cache-hit states, failure reporting, and cancellation.
+- Add prepared-model `createGenkit`, warm-up, and ownership-aware disposal helpers.
+- Document direct GenUI and `genkit_shelf` integration paths for prepared local models.
+
 ## 1.1.1
 
 - Update the Genkit dependency constraint to `^0.13.2` and verify compatibility with `llamadart` `0.6.14`.

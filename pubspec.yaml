@@ -17,7 +17,7 @@ environment:
 
 dependencies:
   genkit: ^0.13.2
-  llamadart: ^0.6.9
+  llamadart: ^0.6.14
   schemantic: ^0.1.1
 
 dev_dependencies:
