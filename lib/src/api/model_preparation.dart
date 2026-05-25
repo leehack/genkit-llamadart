@@ -244,6 +244,7 @@ class LlamaModelPreparationTask {
           mmprojEntry: _mmprojEntry,
         ),
       );
+      _throwIfCancelled();
 
       final preparedModel = createLlamaPreparedModel(
         name: _name,

@@ -173,6 +173,40 @@ void main() {
     expect(snapshots.last.errorMessage, contains('cancelled'));
   });
 
+  test('prepareModelTask honors cancellation from loading snapshot', () async {
+    final manager = _FakeDownloadManager(cacheHit: true);
+    final task = llamaDart.prepareModelTask(
+      name: 'loading-cancelled',
+      source: ModelSource.url(
+        Uri.parse('https://example.com/loading-cancelled.gguf'),
+      ),
+      downloadManager: manager,
+    );
+    final snapshots = <LlamaModelPreparationSnapshot>[];
+    final subscription = task.snapshots.listen((snapshot) {
+      snapshots.add(snapshot);
+      if (snapshot.stage == LlamaModelPreparationStage.loading) {
+        task.cancel();
+      }
+    });
+    addTearDown(() async {
+      await subscription.cancel();
+      await task.dispose();
+    });
+
+    await expectLater(task.result, throwsA(isA<LlamaStateException>()));
+
+    expect(
+      snapshots.map((snapshot) => snapshot.stage),
+      contains(LlamaModelPreparationStage.loading),
+    );
+    expect(
+      snapshots.map((snapshot) => snapshot.stage),
+      isNot(contains(LlamaModelPreparationStage.ready)),
+    );
+    expect(snapshots.last.stage, LlamaModelPreparationStage.cancelled);
+  });
+
   test(
     'prepareModelTask dispose closes snapshots during in-flight work',
     () async {
