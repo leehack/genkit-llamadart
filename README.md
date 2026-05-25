@@ -122,6 +122,60 @@ Future<void> main() async {
 }
 ```
 
+## Source-backed model preparation
+
+If your app does not already manage GGUF files itself, use
+`llamaDart.prepareModel(...)` with `llamadart`'s `ModelSource` and
+package-managed cache/download options. The helper resolves the source to a
+local file, builds the normal `LlamaModelDefinition`, and returns a plugin plus
+typed model/embedder refs for standard Genkit calls.
+
+```dart
+import 'package:genkit/genkit.dart';
+import 'package:genkit_llamadart/genkit_llamadart.dart';
+
+Future<void> main() async {
+  final prepared = await llamaDart.prepareModel(
+    name: 'local-chat',
+    source: ModelSource.parse(
+      'hf://unsloth/SmolLM2-135M-Instruct-GGUF/SmolLM2-135M-Instruct-Q2_K.gguf',
+    ),
+    modelParams: const ModelParams(contextSize: 4096),
+    options: ModelLoadOptions(
+      cachePolicy: ModelCachePolicy.preferCached,
+      cacheDirectory: '/path/to/app/model-cache',
+      sha256: null, // set to a 64-character SHA-256 digest when available
+      bearerToken: null, // set for private remote sources
+    ),
+  );
+
+  final ai = Genkit(plugins: <LlamaDartPlugin>[prepared.plugin]);
+  try {
+    final response = await ai.generate(
+      model: prepared.modelRef,
+      prompt: 'Say hello in one sentence.',
+    );
+    print(response.text);
+  } finally {
+    await prepared.dispose();
+    await ai.shutdown();
+  }
+}
+```
+
+Use this path for HTTP(S), Hugging Face, or local `ModelSource` values when you
+want `llamadart` to own cache lookup, download, checksum verification, and
+private-token/header plumbing. Keep constructing `LlamaModelDefinition` manually
+when your application already has a local filesystem path and owns all download
+or cache policy itself.
+
+For multimodal models, pass `mmprojSource` and optional `mmprojOptions`; the
+resolved projector file path is wired into `LlamaModelDefinition.mmprojPath`.
+Local `ModelSource.path(...)` values use `llamadart`'s local-path semantics:
+remote-only options such as cache policy overrides, cache directories, bearer
+tokens, headers, resume, and retry settings are rejected instead of silently
+ignored.
+
 ## Model Capability Flags
 
 Use `LlamaModelDefinition` to control what each registered model advertises and

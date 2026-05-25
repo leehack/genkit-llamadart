@@ -34,10 +34,27 @@
 /// https://llamadart.leehack.com/.
 library;
 
-export 'package:llamadart/llamadart.dart' show ModelParams;
+export 'package:llamadart/llamadart.dart'
+    show
+        DefaultModelDownloadManager,
+        LlamaException,
+        LlamaModelException,
+        LlamaStateException,
+        LlamaUnsupportedException,
+        ModelCacheEntry,
+        ModelCachePolicy,
+        ModelDownloadCancelToken,
+        ModelDownloadManager,
+        ModelDownloadProgress,
+        ModelDownloadProgressCallback,
+        ModelLoadOptions,
+        ModelParams,
+        ModelSource,
+        ModelSourceKind;
 
 export 'src/api/embed_config.dart' show LlamaDartEmbedConfig;
 export 'src/api/generation_config.dart' show LlamaDartGenerationConfig;
 export 'src/api/model_definition.dart' show LlamaModelDefinition;
 export 'src/api/plugin_handle.dart' show LlamaDartPluginHandle, llamaDart;
+export 'src/api/prepared_model.dart' show LlamaPreparedModel;
 export 'src/integration/genkit/plugin.dart' show LlamaDartPlugin;

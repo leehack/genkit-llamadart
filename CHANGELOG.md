@@ -1,3 +1,7 @@
+## Unreleased
+
+- Add source-backed model preparation with `ModelSource`, package-managed cache/download options, optional mmproj resolution, and typed prepared-model refs.
+
 ## 1.1.1
 
 - Update the Genkit dependency constraint to `^0.13.2` and verify compatibility with `llamadart` `0.6.14`.
