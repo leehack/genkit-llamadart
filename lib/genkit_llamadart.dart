@@ -54,6 +54,12 @@ export 'package:llamadart/llamadart.dart'
 
 export 'src/api/embed_config.dart' show LlamaDartEmbedConfig;
 export 'src/api/generation_config.dart' show LlamaDartGenerationConfig;
+export 'src/api/model_preparation.dart'
+    show
+        LlamaModelPreparationSnapshot,
+        LlamaModelPreparationSourceRole,
+        LlamaModelPreparationStage,
+        LlamaModelPreparationTask;
 export 'src/api/model_definition.dart' show LlamaModelDefinition;
 export 'src/api/plugin_handle.dart' show LlamaDartPluginHandle, llamaDart;
 export 'src/api/prepared_model.dart' show LlamaPreparedModel;

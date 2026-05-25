@@ -10,6 +10,7 @@ embeddings.
 ## Features
 
 - local filesystem `modelPath` configuration
+- source-backed model preparation with `ModelSource`, cache, download, and progress snapshots
 - lazy model loading
 - queued per-model execution
 - chat generation with streaming
@@ -35,9 +36,9 @@ dart pub add schemantic
 ## Requirements
 
 - Dart SDK `^3.10.7`
-- a local GGUF model file
+- a local GGUF model file, or a `ModelSource` that resolves to one
 - the native `llamadart` runtime prerequisites for your platform
-- an optional multimodal projector file if you want image input support
+- an optional multimodal projector file or source if you want image input support
 
 This package uses the hosted `llamadart` package from pub.dev. Follow the
 `llamadart` installation guidance for native backend and platform support:
@@ -46,7 +47,10 @@ This package uses the hosted `llamadart` package from pub.dev. Follow the
 
 ## Finding Models
 
-This package expects local GGUF files on disk. Good places to find models:
+This package runs GGUF files locally. You can pass an existing local path with
+`LlamaModelDefinition(modelPath: ...)`, or let `llamaDart.prepareModel(...)`
+resolve a local, HTTP(S), or Hugging Face `ModelSource` into the package-managed
+cache. Good places to find models:
 
 - `llamadart` docs: https://llamadart.leehack.com/
 - Hugging Face GGUF search: https://huggingface.co/models?search=gguf
@@ -79,6 +83,8 @@ Example and model guide:
 - `example/genkit_llamadart_agent_example.dart`: chat or instruct GGUF; streams replies and becomes interactive when `LLAMADART_PROMPT` is not set
 - `example/genkit_llamadart_json_example.dart`: chat or instruct GGUF with decent JSON adherence; streams raw JSON tokens before printing parsed output
 - `example/genkit_llamadart_embedding_example.dart`: embedding GGUF; prints vector dimensions and sample values
+- `example/genkit_llamadart_source_prepare_example.dart`: resolves a `ModelSource` through the package-managed cache before generation
+- `example/genkit_llamadart_preparation_task_example.dart`: prints observable preparation snapshots, warms up the model, then generates
 - multimodal requests: add `LLAMADART_MMPROJ_PATH` when the selected model requires a projector file
 
 If you still need `llamadart` runtime or platform setup help before trying the
@@ -176,6 +182,148 @@ remote-only options such as cache policy overrides, cache directories, bearer
 tokens, headers, resume, and retry settings are rejected instead of silently
 ignored.
 
+### Observable preparation and warm-up
+
+Flutter and other client apps can use `prepareModelTask(...)` when they need
+deterministic loading UI for source resolution, cache checks, downloads,
+verification, Genkit setup, failures, and cancellation.
+
+```dart
+import 'package:genkit/genkit.dart';
+import 'package:genkit_llamadart/genkit_llamadart.dart';
+
+Future<void> main() async {
+  final task = llamaDart.prepareModelTask(
+    name: 'local-chat',
+    source: ModelSource.parse(
+      'hf://unsloth/SmolLM2-135M-Instruct-GGUF/SmolLM2-135M-Instruct-Q2_K.gguf',
+    ),
+    modelParams: const ModelParams(contextSize: 4096),
+    options: ModelLoadOptions(
+      cachePolicy: ModelCachePolicy.preferCached,
+      cacheDirectory: '/path/to/app/model-cache',
+    ),
+  );
+
+  final subscription = task.snapshots.listen((snapshot) {
+    // Bind these fields into your UI state, ChangeNotifier, Bloc, Riverpod, etc.
+    final stage = snapshot.stage;
+    final fraction = snapshot.fraction;
+    final modelPath = snapshot.modelEntry?.filePath;
+    final errorText = snapshot.errorMessage;
+    print('$stage ${fraction ?? '-'} ${modelPath ?? errorText ?? ''}');
+  });
+
+  LlamaPreparedModel? prepared;
+  Genkit? ai;
+  try {
+    prepared = await task.result;
+    ai = prepared.createGenkit();
+
+    await prepared.warmUp(
+      ai,
+      systemPrompt: 'Use terse, app-friendly answers.',
+      prompt: 'Reply with one token: ready',
+      config: const LlamaDartGenerationConfig(
+        maxTokens: 1,
+        temperature: 0.0,
+        enableThinking: false,
+      ),
+    );
+
+    final response = await ai.generate(
+      model: prepared.modelRef,
+      prompt: 'Say hello in one sentence.',
+    );
+    print(response.text);
+  } finally {
+    await subscription.cancel();
+    await task.dispose();
+    if (prepared != null) {
+      await prepared.dispose();
+    }
+    if (ai != null) {
+      await ai.shutdown();
+    }
+  }
+}
+```
+
+Call `task.cancel()` to request cooperative cancellation while preparation is in
+flight. Disposing the task closes snapshot resources; disposing the returned
+`LlamaPreparedModel` releases plugin/runtime resources owned by this package.
+`prepared.createGenkit()` is a convenience for registering the plugin, but the
+returned `Genkit` instance remains caller-owned and should still be shut down by
+the app.
+
+### GenUI and server integration
+
+UI frameworks such as GenUI should adapt through normal Genkit model refs and
+backends. Once your app has a prepared model, pass `prepared.modelRef` and
+`prepared.plugin` into the Genkit-facing adapter instead of depending on a
+provider-specific GenUI llamadart bridge:
+
+```dart
+final prepared = await llamaDart.prepareModel(...);
+final ai = prepared.createGenkit();
+
+final session = GenkitGenUiSession(
+  backend: GenkitBackend<LlamaDartGenerationConfig>(
+    ai: ai,
+    model: prepared.modelRef,
+    config: const LlamaDartGenerationConfig(maxTokens: 512),
+  ),
+  catalog: appCatalog,
+);
+```
+
+Use `genkit_llamadart` directly when the app wants source-backed local model
+preparation, progress snapshots, typed Genkit refs, warm-up, and lifecycle
+helpers. Manually construct `LlamaModelDefinition(modelPath: ...)` when another
+part of the app already owns file resolution and caching. Provider-specific
+packages such as `genui_genkit_llamadart` should be treated as transitional UI
+wiring once the GenUI docs can point at the direct Genkit model-ref path above.
+
+The same prepared-model API works in backend/server apps. A server package can
+add `genkit_shelf` and expose a Genkit flow while keeping model preparation in
+one place:
+
+```dart
+import 'package:genkit/genkit.dart';
+import 'package:genkit_llamadart/genkit_llamadart.dart';
+import 'package:genkit_shelf/genkit_shelf.dart';
+
+Future<void> main() async {
+  final prepared = await llamaDart.prepareModel(
+    name: 'server-chat',
+    source: ModelSource.parse('/models/server-chat.gguf'),
+    modelParams: const ModelParams(contextSize: 8192),
+  );
+  final ai = prepared.createGenkit();
+
+  final flow = ai.defineFlow<String, String, String, void>(
+    name: 'localChat',
+    fn: (prompt, context) async {
+      final stream = ai.generateStream<LlamaDartGenerationConfig, Object?>(
+        model: prepared.modelRef,
+        prompt: prompt,
+        config: const LlamaDartGenerationConfig(maxTokens: 512),
+      );
+
+      await for (final chunk in stream) {
+        if (chunk.text.isNotEmpty) {
+          context.sendChunk(chunk.text);
+        }
+      }
+
+      return (await stream.onResult).text;
+    },
+  );
+
+  await startFlowServer(flows: [flow], port: 8080);
+}
+```
+
 ## Model Capability Flags
 
 Use `LlamaModelDefinition` to control what each registered model advertises and
@@ -202,6 +350,8 @@ defaults:
 ## Examples
 
 - basic streaming chat generation: `example/genkit_llamadart_example.dart`
+- source-backed model preparation: `example/genkit_llamadart_source_prepare_example.dart`
+- observable preparation and warm-up: `example/genkit_llamadart_preparation_task_example.dart`
 - multi-turn tool loop: `example/genkit_llamadart_agent_example.dart`
 - embeddings: `example/genkit_llamadart_embedding_example.dart`
 - constrained JSON output with streaming: `example/genkit_llamadart_json_example.dart`
@@ -234,12 +384,22 @@ LLAMADART_MODEL_PATH=/models/Qwen_Qwen3.5-9B-Q4_K_M.gguf \
 dart run example/genkit_llamadart_json_example.dart
 ```
 
+Run the source-backed preparation example from a local path, HTTP(S) URL, or
+Hugging Face source:
+
+```bash
+dart run -D LLAMADART_MODEL_SOURCE=hf://owner/repo/model.gguf \
+  example/genkit_llamadart_source_prepare_example.dart
+```
+
 Examples are easiest to test in this order:
 
 1. `example/genkit_llamadart_example.dart`
-2. `example/genkit_llamadart_agent_example.dart`
-3. `example/genkit_llamadart_json_example.dart`
-4. `example/genkit_llamadart_embedding_example.dart`
+2. `example/genkit_llamadart_source_prepare_example.dart`
+3. `example/genkit_llamadart_preparation_task_example.dart`
+4. `example/genkit_llamadart_agent_example.dart`
+5. `example/genkit_llamadart_json_example.dart`
+6. `example/genkit_llamadart_embedding_example.dart`
 
 ## Embeddings
 

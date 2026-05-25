@@ -5,6 +5,7 @@ import '../integration/genkit/action_support.dart';
 import '../integration/genkit/plugin.dart';
 import 'embed_config.dart';
 import 'generation_config.dart';
+import 'model_preparation.dart';
 import 'model_definition.dart';
 import 'prepared_model.dart';
 
@@ -99,25 +100,50 @@ class LlamaDartPluginHandle {
             onProgress: onMmprojProgress,
           );
 
-    final definition = LlamaModelDefinition(
+    return createLlamaPreparedModel(
       name: name,
-      modelPath: modelEntry.filePath,
+      modelEntry: modelEntry,
       modelParams: modelParams,
-      mmprojPath: mmprojEntry?.filePath,
+      mmprojEntry: mmprojEntry,
       supportsEmbeddings: supportsEmbeddings,
       supportsTools: supportsTools,
       supportsConstrainedOutput: supportsConstrainedOutput,
       modelInfo: modelInfo,
     );
-    final plugin = LlamaDartPlugin(models: <LlamaModelDefinition>[definition]);
+  }
 
-    return LlamaPreparedModel(
-      definition: definition,
-      plugin: plugin,
-      modelRef: model(name),
-      embedderRef: supportsEmbeddings ? embedder(name) : null,
-      modelEntry: modelEntry,
-      mmprojEntry: mmprojEntry,
+  /// Creates an observable task for source-backed model preparation.
+  ///
+  /// The task emits plain Dart snapshots for source resolution, cache checks,
+  /// downloads, verification, Genkit plugin setup, success, failure, and
+  /// cancellation. Use this in Flutter, CLI, and server apps that need
+  /// deterministic progress UI without reaching into lower-level `llamadart`
+  /// download controller internals.
+  LlamaModelPreparationTask prepareModelTask({
+    required String name,
+    required llama.ModelSource source,
+    llama.ModelParams modelParams = const llama.ModelParams(),
+    llama.ModelSource? mmprojSource,
+    llama.ModelLoadOptions options = llama.ModelLoadOptions.defaults,
+    llama.ModelLoadOptions mmprojOptions = llama.ModelLoadOptions.defaults,
+    llama.ModelDownloadManager? downloadManager,
+    bool supportsEmbeddings = true,
+    bool supportsTools = true,
+    bool supportsConstrainedOutput = true,
+    ModelInfo? modelInfo,
+  }) {
+    return createLlamaModelPreparationTask(
+      name: name,
+      source: source,
+      modelParams: modelParams,
+      mmprojSource: mmprojSource,
+      options: options,
+      mmprojOptions: mmprojOptions,
+      downloadManager: downloadManager,
+      supportsEmbeddings: supportsEmbeddings,
+      supportsTools: supportsTools,
+      supportsConstrainedOutput: supportsConstrainedOutput,
+      modelInfo: modelInfo,
     );
   }
 
