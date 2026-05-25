@@ -1,4 +1,4 @@
-## Unreleased
+## 1.2.0 - 2026-05-25
 
 - Add source-backed model preparation with `ModelSource`, package-managed cache/download options, optional mmproj resolution, and typed prepared-model refs.
 - Add observable model preparation tasks with progress snapshots, cache-hit states, failure reporting, and cancellation.

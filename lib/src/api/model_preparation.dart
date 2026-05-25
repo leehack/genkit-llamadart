@@ -87,7 +87,8 @@ class LlamaModelPreparationSnapshot {
   /// Latest byte-level progress from `llamadart`, when available.
   final llama.ModelDownloadProgress? progress;
 
-  /// Prepared Genkit handle, set only when [stage] is [ready].
+  /// Prepared Genkit handle, set only when [stage] is
+  /// [LlamaModelPreparationStage.ready].
   final LlamaPreparedModel? preparedModel;
 
   /// Redacted user-facing failure or cancellation message.
@@ -179,6 +180,8 @@ class LlamaModelPreparationTask {
   final StreamController<LlamaModelPreparationSnapshot> _snapshots =
       StreamController<LlamaModelPreparationSnapshot>.broadcast(sync: true);
 
+  /// Future that completes with the prepared model or rethrows preparation
+  /// failure/cancellation errors.
   late final Future<LlamaPreparedModel> result = _completer.future;
   late final StreamSubscription<llama.ModelDownloadTaskSnapshot>
   _modelSubscription;
