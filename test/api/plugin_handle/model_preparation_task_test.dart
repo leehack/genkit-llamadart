@@ -119,9 +119,12 @@ void main() {
     },
   );
 
-  test('prepareModelTask propagates download failures', () async {
+  test('prepareModelTask propagates redacted download failures', () async {
     final manager = _FakeDownloadManager(
-      error: LlamaModelException('download failed'),
+      error: LlamaModelException(
+        'download failed from https://example.com/broken.gguf?token=secret '
+        'with authorization: Bearer abc123',
+      ),
     );
     final task = llamaDart.prepareModelTask(
       name: 'broken',
@@ -139,6 +142,13 @@ void main() {
 
     expect(snapshots.last.stage, LlamaModelPreparationStage.failed);
     expect(snapshots.last.errorMessage, contains('download failed'));
+    expect(
+      snapshots.last.errorMessage,
+      contains('https://example.com/broken.gguf'),
+    );
+    expect(snapshots.last.errorMessage, isNot(contains('token=')));
+    expect(snapshots.last.errorMessage, isNot(contains('secret')));
+    expect(snapshots.last.errorMessage, isNot(contains('abc123')));
   });
 
   test('prepareModelTask supports cooperative cancellation', () async {

@@ -183,9 +183,23 @@ class _FileServer {
           await Future<void>.delayed(delayPerChunk);
         }
       }
+    } on SocketException {
+      // Expected when cancellation closes the client connection mid-stream.
+    } on HttpException {
+      // Expected when cancellation closes the client connection mid-stream.
     } finally {
       await input.close();
+      await _closeResponse(response);
+    }
+  }
+
+  static Future<void> _closeResponse(HttpResponse response) async {
+    try {
       await response.close();
+    } on SocketException {
+      // The client may have disconnected before the server closes the response.
+    } on HttpException {
+      // The client may have disconnected before the server closes the response.
     }
   }
 }

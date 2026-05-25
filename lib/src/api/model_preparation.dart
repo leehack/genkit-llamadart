@@ -283,7 +283,7 @@ class LlamaModelPreparationTask {
             mmprojEntry: _mmprojEntry,
             errorMessage: _cancelRequested
                 ? 'Model preparation was cancelled.'
-                : error.toString(),
+                : _redactedPreparationErrorMessage(error),
           ),
         );
       }
@@ -306,7 +306,7 @@ class LlamaModelPreparationTask {
             ? snapshot.entry ?? _mmprojEntry
             : _mmprojEntry,
         progress: snapshot.progress,
-        errorMessage: snapshot.errorMessage,
+        errorMessage: _redactedNullableMessage(snapshot.errorMessage),
       ),
     );
   }
@@ -344,6 +344,65 @@ LlamaModelPreparationStage _toPreparationStage(
       LlamaModelPreparationStage.cancelled,
   };
 }
+
+String _redactedPreparationErrorMessage(Object error) {
+  final message = error is llama.LlamaException
+      ? error.message
+      : error.toString();
+  return _redactSensitiveText(message);
+}
+
+String? _redactedNullableMessage(String? message) {
+  if (message == null) {
+    return null;
+  }
+  return _redactSensitiveText(message);
+}
+
+String _redactSensitiveText(String message) {
+  final redactedFields = message
+      .replaceAllMapped(_authorizationFieldPattern, _redactFieldMatch)
+      .replaceAll(_bearerTokenPattern, 'Bearer <redacted>')
+      .replaceAllMapped(_sensitiveFieldPattern, _redactFieldMatch);
+  final redactedUrls = redactedFields.replaceAllMapped(_urlPattern, (match) {
+    final value = match.group(0)!;
+    final trailing = _trailingPunctuation.firstMatch(value)?.group(0) ?? '';
+    final candidate = trailing.isEmpty
+        ? value
+        : value.substring(0, value.length - trailing.length);
+    final uri = Uri.tryParse(candidate);
+    if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
+      return '<redacted-url>$trailing';
+    }
+    final redacted = Uri(
+      scheme: uri.scheme,
+      host: uri.host,
+      port: uri.hasPort ? uri.port : null,
+      path: uri.path,
+    );
+    return '${redacted.toString()}$trailing';
+  });
+  return redactedUrls.isEmpty ? 'Model preparation failed.' : redactedUrls;
+}
+
+String _redactFieldMatch(Match match) {
+  return '${match.group(1)}${match.group(2)}<redacted>';
+}
+
+final RegExp _urlPattern = RegExp(r'https?:\/\/\S+');
+final RegExp _trailingPunctuation = RegExp(r'[.?!:\)\]\}>]+$');
+final RegExp _authorizationFieldPattern = RegExp(
+  r'\b(authorization)\b(\s*[:=]\s*)[^,\]\}\r\n]+',
+  caseSensitive: false,
+);
+final RegExp _bearerTokenPattern = RegExp(
+  r'\bBearer\s+[A-Za-z0-9._~+/=-]+',
+  caseSensitive: false,
+);
+final RegExp _sensitiveFieldPattern = RegExp(
+  r'\b(cookie|set-cookie|x-api-key|api[-_]?key|access[-_]?token|refresh[-_]?token|id[-_]?token|token|sig|signature)\b(\s*[:=]\s*)[^,\s\]\}]+',
+  caseSensitive: false,
+);
 
 /// Creates an observable model preparation task.
 LlamaModelPreparationTask createLlamaModelPreparationTask({
