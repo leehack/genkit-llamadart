@@ -44,5 +44,9 @@ abstract class LlamaRuntime {
     bool normalize = true,
   });
 
+  /// Cancels the generation currently running on this runtime, if any. Returns
+  /// immediately; the in-flight [create] / [generate] stream ends shortly after.
+  void cancelGeneration();
+
   Future<void> dispose();
 }

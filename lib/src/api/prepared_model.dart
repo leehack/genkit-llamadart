@@ -101,6 +101,13 @@ class LlamaPreparedModel {
     );
   }
 
+  /// Cancels the in-flight generation for this prepared model, if any. Lets a
+  /// caller stop a slow or unwanted run (e.g. on a timeout or a user "stop")
+  /// without holding the underlying `LlamaEngine`.
+  void cancelActiveGeneration() {
+    plugin.cancelActiveGeneration(definition.name);
+  }
+
   /// Disposes runtimes owned by [plugin] when [ownsPlugin] is true.
   Future<void> dispose() {
     if (!ownsPlugin) {

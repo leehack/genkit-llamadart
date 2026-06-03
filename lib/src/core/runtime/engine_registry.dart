@@ -31,6 +31,20 @@ class EngineRegistry {
     return entry.run(operation);
   }
 
+  /// Cancels the generation in flight for [modelName] without queueing behind
+  /// it. No-op when the model has no runtime loaded or nothing is generating.
+  void cancelActiveGeneration(String modelName) {
+    _entries[modelName]?.cancelGeneration();
+  }
+
+  /// Cancels every in-flight generation across loaded runtimes, bypassing the
+  /// per-model operation queue so a cancel never waits behind the run it stops.
+  void cancelActiveGenerations() {
+    for (final entry in _entries.values) {
+      entry.cancelGeneration();
+    }
+  }
+
   Future<void> dispose() async {
     final entries = _entries.values.toList(growable: false);
     _entries.clear();
@@ -50,6 +64,13 @@ class _EngineEntry {
   Future<void> _tail = Future<void>.value();
   Future<LlamaRuntime>? _loading;
   LlamaRuntime? _runtime;
+
+  /// Cancels the runtime's in-flight generation directly, without going through
+  /// the operation queue. Reads the loaded runtime field, so it is a no-op while
+  /// the model is still loading or idle.
+  void cancelGeneration() {
+    _runtime?.cancelGeneration();
+  }
 
   Future<T> run<T>(Future<T> Function(LlamaRuntime runtime) operation) {
     final completer = Completer<T>();
