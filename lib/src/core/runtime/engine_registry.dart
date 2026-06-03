@@ -32,8 +32,13 @@ class EngineRegistry {
   }
 
   /// Cancels the generation in flight for [modelName] without queueing behind
-  /// it. No-op when the model has no runtime loaded or nothing is generating.
+  /// it. Throws [StateError] for a model name that was never registered
+  /// (consistent with [withRuntime]); a no-op for a registered model whose
+  /// runtime hasn't loaded yet or isn't generating.
   void cancelActiveGeneration(String modelName) {
+    if (!_definitions.containsKey(modelName)) {
+      throw StateError('Unknown llamadart model: $modelName');
+    }
     _entries[modelName]?.cancelGeneration();
   }
 

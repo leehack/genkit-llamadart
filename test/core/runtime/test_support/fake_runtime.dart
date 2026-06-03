@@ -10,6 +10,7 @@ class FakeRuntime implements LlamaRuntime {
   int chatTemplateCallCount = 0;
   int generateCallCount = 0;
   int embedBatchCallCount = 0;
+  int cancelGenerationCount = 0;
   int disposeCount = 0;
 
   Object? initializeError;
@@ -101,6 +102,11 @@ class FakeRuntime implements LlamaRuntime {
     embedBatchCallCount += 1;
     lastNormalize = normalize;
     return embeddings;
+  }
+
+  @override
+  void cancelGeneration() {
+    cancelGenerationCount += 1;
   }
 
   @override
