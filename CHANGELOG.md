@@ -1,4 +1,4 @@
-## Unreleased
+## 1.3.0 - 2026-06-04
 
 - Add plugin and prepared-model APIs for cancelling active `llamadart` generations without holding the underlying `LlamaEngine`.
 
