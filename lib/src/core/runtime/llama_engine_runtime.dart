@@ -98,6 +98,9 @@ class LlamaEngineRuntime implements LlamaRuntime {
   }
 
   @override
+  void cancelGeneration() => _engine.cancelGeneration();
+
+  @override
   Future<void> dispose() async {
     await _engine.dispose();
   }

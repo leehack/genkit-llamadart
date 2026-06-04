@@ -45,6 +45,18 @@ class LlamaDartPlugin extends GenkitPlugin {
     return _registry.dispose();
   }
 
+  /// Cancels the in-flight generation for [modelName] on this plugin's runtime.
+  /// Bypasses the operation queue, so it stops a running generation instead of
+  /// waiting behind it. No-op when nothing is generating for that model.
+  void cancelActiveGeneration(String modelName) {
+    _registry.cancelActiveGeneration(modelName);
+  }
+
+  /// Cancels every in-flight generation across this plugin's runtimes.
+  void cancelActiveGenerations() {
+    _registry.cancelActiveGenerations();
+  }
+
   @override
   Future<List<Action>> init() async {
     if (_actions != null) {
