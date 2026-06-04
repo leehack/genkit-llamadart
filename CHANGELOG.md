@@ -1,3 +1,7 @@
+## Unreleased
+
+- Add plugin and prepared-model APIs for cancelling active `llamadart` generations without holding the underlying `LlamaEngine`.
+
 ## 1.2.0 - 2026-05-25
 
 - Add source-backed model preparation with `ModelSource`, package-managed cache/download options, optional mmproj resolution, and typed prepared-model refs.
