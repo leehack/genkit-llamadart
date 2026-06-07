@@ -10,16 +10,18 @@ Future<void> main() async {
     'LLAMADART_MODEL_CACHE',
     defaultValue: '',
   );
+  final modelSource = ModelSource.parse(source);
 
   final prepared = await llamaDart.prepareModel(
     name: 'source-chat',
-    source: ModelSource.parse(source),
+    source: modelSource,
     modelParams: const ModelParams(contextSize: 4096),
     options: ModelLoadOptions(
       cachePolicy: ModelCachePolicy.preferCached,
       cacheDirectory: cacheDirectory.isEmpty ? null : cacheDirectory,
     ),
     supportsEmbeddings: false,
+    supportsConstrainedOutput: !_isLiteRtLmSource(modelSource),
   );
   final ai = prepared.createGenkit();
 
@@ -38,4 +40,8 @@ Future<void> main() async {
     await prepared.dispose();
     await ai.shutdown();
   }
+}
+
+bool _isLiteRtLmSource(ModelSource source) {
+  return source.fileName.split('?').first.toLowerCase().endsWith('.litertlm');
 }

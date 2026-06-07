@@ -11,16 +11,18 @@ Future<void> main() async {
     'LLAMADART_MODEL_CACHE',
     defaultValue: '',
   );
+  final modelSource = ModelSource.parse(source);
 
   final task = llamaDart.prepareModelTask(
     name: 'observable-chat',
-    source: ModelSource.parse(source),
+    source: modelSource,
     modelParams: const ModelParams(contextSize: 4096),
     options: ModelLoadOptions(
       cachePolicy: ModelCachePolicy.preferCached,
       cacheDirectory: cacheDirectory.isEmpty ? null : cacheDirectory,
     ),
     supportsEmbeddings: false,
+    supportsConstrainedOutput: !_isLiteRtLmSource(modelSource),
   );
 
   final subscription = task.snapshots.listen((snapshot) {
@@ -65,4 +67,8 @@ Future<void> main() async {
       await ai.shutdown();
     }
   }
+}
+
+bool _isLiteRtLmSource(ModelSource source) {
+  return source.fileName.split('?').first.toLowerCase().endsWith('.litertlm');
 }

@@ -38,7 +38,7 @@ class LlamaPreparedModel {
   final genkit.EmbedderRef<LlamaDartEmbedConfig>? embedderRef;
 
   /// Cache entry returned by the `llamadart` download/cache manager for the
-  /// primary GGUF model source.
+  /// primary model source.
   final llama.ModelCacheEntry modelEntry;
 
   /// Cache entry returned for the optional multimodal projector source.

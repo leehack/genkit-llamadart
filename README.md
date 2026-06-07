@@ -1,6 +1,6 @@
 # genkit_llamadart
 
-`genkit_llamadart` is a Genkit Dart plugin for running local GGUF models through
+`genkit_llamadart` is a Genkit Dart plugin for running local models through
 `llamadart` in-process, without an OpenAI-compatible HTTP server.
 
 It is designed for local-first Genkit applications that want a simple Dart API
@@ -15,7 +15,7 @@ embeddings.
 - queued per-model execution
 - chat generation with streaming
 - Genkit tool request emission
-- constrained JSON output
+- constrained JSON output on grammar-capable backends
 - text embeddings
 - optional multimodal projector support
 
@@ -36,28 +36,32 @@ dart pub add schemantic
 ## Requirements
 
 - Dart SDK `^3.10.7`
-- a local GGUF model file, or a `ModelSource` that resolves to one
+- Flutter SDK `>=3.38.0` for resolving hosted `llamadart ^0.7.1`
+- a local model file supported by `llamadart`, or a `ModelSource` that resolves to one
 - the native `llamadart` runtime prerequisites for your platform
 - an optional multimodal projector file or source if you want image input support
 
-This package uses the hosted `llamadart` package from pub.dev. Follow the
+This package uses the hosted `llamadart` package from pub.dev. Use `flutter pub`
+or Flutter's bundled Dart SDK when resolving dependencies. Follow the
 `llamadart` installation guidance for native backend and platform support:
 
 - `llamadart` docs: https://llamadart.leehack.com/
 
 ## Finding Models
 
-This package runs GGUF files locally. You can pass an existing local path with
+This package runs `llamadart` model files locally. You can pass an existing local path with
 `LlamaModelDefinition(modelPath: ...)`, or let `llamaDart.prepareModel(...)`
 resolve a local, HTTP(S), or Hugging Face `ModelSource` into the package-managed
 cache. Good places to find models:
 
 - `llamadart` docs: https://llamadart.leehack.com/
 - Hugging Face GGUF search: https://huggingface.co/models?search=gguf
+- LiteRT-LM bundles: use `.litertlm` files on `llamadart` targets that support LiteRT-LM
 
 What to look for:
 
 - chat and agent examples: an instruct or chat GGUF model
+- Android LiteRT-LM chat: a `.litertlm` bundle such as Gemma 4 E2B
 - embedding example: an embedding GGUF model
 - multimodal usage: a vision-capable GGUF model and, when required, a matching `mmproj` file
 
@@ -75,13 +79,13 @@ section later in this README lists the small GGUF files used in CI.
 ## Try It Fast
 
 If you only want to confirm the plugin works end-to-end, start with the
-streaming chat example and a small instruct/chat GGUF model.
+streaming chat example and a small instruct/chat model.
 
 Example and model guide:
 
-- `example/genkit_llamadart_example.dart`: chat or instruct GGUF; streams tokens to stdout
-- `example/genkit_llamadart_agent_example.dart`: chat or instruct GGUF; streams replies and becomes interactive when `LLAMADART_PROMPT` is not set
-- `example/genkit_llamadart_json_example.dart`: chat or instruct GGUF with decent JSON adherence; streams raw JSON tokens before printing parsed output
+- `example/genkit_llamadart_example.dart`: chat or instruct model; streams tokens to stdout
+- `example/genkit_llamadart_agent_example.dart`: chat or instruct model; streams replies and becomes interactive when `LLAMADART_PROMPT` is not set
+- `example/genkit_llamadart_json_example.dart`: grammar-capable chat or instruct model with decent JSON adherence; streams raw JSON tokens before printing parsed output
 - `example/genkit_llamadart_embedding_example.dart`: embedding GGUF; prints vector dimensions and sample values
 - `example/genkit_llamadart_source_prepare_example.dart`: resolves a `ModelSource` through the package-managed cache before generation
 - `example/genkit_llamadart_preparation_task_example.dart`: prints observable preparation snapshots, warms up the model, then generates
@@ -130,7 +134,7 @@ Future<void> main() async {
 
 ## Source-backed model preparation
 
-If your app does not already manage GGUF files itself, use
+If your app does not already manage model files itself, use
 `llamaDart.prepareModel(...)` with `llamadart`'s `ModelSource` and
 package-managed cache/download options. The helper resolves the source to a
 local file, builds the normal `LlamaModelDefinition`, and returns a plugin plus
@@ -331,7 +335,7 @@ accepts:
 
 - `supportsEmbeddings`: only register an embedder when the model should expose one
 - `supportsTools`: disable Genkit tool use for models or templates that should not use tools
-- `supportsConstrainedOutput`: disable constrained JSON output for models that should not advertise it
+- `supportsConstrainedOutput`: disable constrained JSON output for models that should not advertise it, including `.litertlm` LiteRT-LM bundles until that backend supports grammar constraints
 
 ## Default Request Settings
 
@@ -389,6 +393,14 @@ Hugging Face source:
 
 ```bash
 dart run -D LLAMADART_MODEL_SOURCE=hf://owner/repo/model.gguf \
+  example/genkit_llamadart_source_prepare_example.dart
+```
+
+Use a `.litertlm` source the same way on supported `llamadart` targets:
+
+```bash
+dart run \
+  -D LLAMADART_MODEL_SOURCE='https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm?download=true' \
   example/genkit_llamadart_source_prepare_example.dart
 ```
 
@@ -550,8 +562,11 @@ Supported media inputs:
 
 ## Limitations
 
-- model paths are local filesystem paths
+- model paths are local filesystem paths after `ModelSource` resolution
 - embeddings are text-only
+- LiteRT-LM `.litertlm` bundles can be used for chat and tool-call flows, but
+  constrained JSON output currently requires a backend with grammar constraints;
+  set `supportsConstrainedOutput: false` for `.litertlm` model definitions.
 - constrained structured output with active tool calling is not supported yet
 - some models may need prompt tuning for reliable tool arguments
 - multimodal requests require a compatible model and projector file
@@ -569,11 +584,11 @@ Useful local checks before publishing:
 dart format --output=none --set-exit-if-changed .
 dart analyze
 dart test
-dart pub publish --dry-run
+flutter pub publish --dry-run
 ```
 
-Optional real-model smoke tests are included. You can point them at local GGUF
-files, or let them download tiny public test models from Hugging Face:
+Optional real-model smoke tests are included. You can point them at local model
+files, or let them download tiny public GGUF test models from Hugging Face:
 
 ```bash
 LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 \
@@ -592,7 +607,7 @@ dart test -t real-model test/integration/genkit/actions/embedder_action/real_mod
 Optional environment variables for smoke tests:
 
 - `LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1` enables auto-download of the bundled tiny test models
-- `LLAMADART_TEST_MODEL_DIR` overrides the local GGUF cache directory
+- `LLAMADART_TEST_MODEL_DIR` overrides the local test-model cache directory
 - `HUGGING_FACE_HUB_TOKEN` is an optional token for authenticated or rate-limited Hugging Face downloads
 
 Auto-downloaded smoke-test models are cached under

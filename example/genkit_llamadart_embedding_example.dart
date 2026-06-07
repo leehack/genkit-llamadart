@@ -10,7 +10,9 @@ Future<void> main() async {
       'hello world from genkit_llamadart';
 
   if (modelPath == null || modelPath.isEmpty) {
-    stderr.writeln('Set LLAMADART_MODEL_PATH to a local GGUF model path.');
+    stderr.writeln(
+      'Set LLAMADART_MODEL_PATH to a local embedding GGUF model path.',
+    );
     exitCode = 64;
     return;
   }

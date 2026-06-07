@@ -1,3 +1,9 @@
+## 1.3.1 - 2026-06-06
+
+- Update the `llamadart` dependency constraint to `^0.7.1` so Genkit models can use `.litertlm` LiteRT-LM bundles on supported `llamadart` targets.
+- Re-export LiteRT-LM and advanced `ModelParams` option enums from the top-level package API.
+- Clarify README and API docs that model paths are not GGUF-only, and that this release resolves through the Flutter SDK required by hosted `llamadart`.
+
 ## 1.3.0 - 2026-06-04
 
 - Add plugin and prepared-model APIs for cancelling active `llamadart` generations without holding the underlying `LlamaEngine`.

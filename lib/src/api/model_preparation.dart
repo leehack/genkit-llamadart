@@ -37,7 +37,7 @@ enum LlamaModelPreparationStage {
 
 /// Identifies which source a preparation snapshot is currently describing.
 enum LlamaModelPreparationSourceRole {
-  /// Primary GGUF model source.
+  /// Primary model source.
   model,
 
   /// Optional multimodal projector source.
