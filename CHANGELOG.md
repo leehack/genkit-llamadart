@@ -1,3 +1,7 @@
+## 1.3.2 - 2026-06-07
+
+- Add explicit pub.dev platform metadata for Android, iOS, Linux, macOS, web, and Windows so the package listing reflects the cross-platform support inherited from `llamadart`.
+
 ## 1.3.1 - 2026-06-06
 
 - Update the `llamadart` dependency constraint to `^0.7.1` so Genkit models can use `.litertlm` LiteRT-LM bundles on supported `llamadart` targets.
