@@ -34,7 +34,9 @@ Future<void> main() async {
       'Summarize this review as JSON: The battery lasts all day, but the speakers are weak.';
 
   if (modelPath == null || modelPath.isEmpty) {
-    stderr.writeln('Set LLAMADART_MODEL_PATH to a local GGUF model path.');
+    stderr.writeln(
+      'Set LLAMADART_MODEL_PATH to a local grammar-capable model path.',
+    );
     exitCode = 64;
     return;
   }

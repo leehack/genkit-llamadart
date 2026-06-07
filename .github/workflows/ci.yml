@@ -14,14 +14,20 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Dart
-        uses: dart-lang/setup-dart@v1
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
 
       - name: Install dependencies
-        run: dart pub get
+        run: flutter pub get
 
       - name: Install pana
-        run: dart pub global activate pana
+        run: flutter pub global activate pana
 
       - name: Cache real-model test artifacts
         uses: actions/cache@v4
@@ -36,7 +42,7 @@ jobs:
         run: dart analyze
 
       - name: Verify pana score
-        run: export PATH="$PATH:$HOME/.pub-cache/bin" && pana . --exit-code-threshold 0
+        run: flutter pub global run pana . --exit-code-threshold 0
 
       - name: Run tests
         run: dart test -x real-model
@@ -47,4 +53,4 @@ jobs:
         run: dart test test/integration/genkit/plugin/real_model_generate_returns_text_test.dart && dart test test/integration/genkit/actions/embedder_action/real_model_embed_returns_vector_test.dart
 
       - name: Verify publish readiness
-        run: dart pub publish --dry-run
+        run: flutter pub publish --dry-run

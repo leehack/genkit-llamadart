@@ -46,6 +46,33 @@ void main() {
     },
   );
 
+  test(
+    'warmUp initializes LiteRT-LM model paths through the runtime',
+    () async {
+      final runtime = FakeRuntime()
+        ..createChunks = <llama.LlamaCompletionChunk>[
+          textChunk('ready', finishReason: 'stop'),
+        ];
+      final prepared = _preparedModel(
+        runtime: runtime,
+        modelPath: '/cache/gemma-4-E2B-it.litertlm',
+      );
+      final ai = prepared.createGenkit(isDevEnv: false);
+      addTearDown(() async {
+        await prepared.dispose();
+        await ai.shutdown();
+      });
+
+      await prepared.warmUp<Object?>(ai);
+
+      expect(runtime.initializeCount, 1);
+      expect(
+        runtime.lastInitializedDefinition?.modelPath,
+        '/cache/gemma-4-E2B-it.litertlm',
+      );
+    },
+  );
+
   test('dispose releases owned plugin runtimes', () async {
     final runtime = FakeRuntime()
       ..createChunks = <llama.LlamaCompletionChunk>[
@@ -111,8 +138,11 @@ void main() {
   });
 }
 
-LlamaPreparedModel _preparedModel({required FakeRuntime runtime}) {
-  final definition = _definition();
+LlamaPreparedModel _preparedModel({
+  required FakeRuntime runtime,
+  String modelPath = '/cache/local.gguf',
+}) {
+  final definition = _definition(modelPath);
   final plugin = LlamaDartPlugin(
     models: <LlamaModelDefinition>[definition],
     runtimeFactory: () => runtime,
@@ -122,20 +152,17 @@ LlamaPreparedModel _preparedModel({required FakeRuntime runtime}) {
     plugin: plugin,
     modelRef: llamaDart.model(definition.name),
     embedderRef: llamaDart.embedder(definition.name),
-    modelEntry: _entry(),
+    modelEntry: _entry(modelPath),
   );
 }
 
-LlamaModelDefinition _definition() {
-  return const LlamaModelDefinition(
-    name: 'local',
-    modelPath: '/cache/local.gguf',
-  );
+LlamaModelDefinition _definition([String modelPath = '/cache/local.gguf']) {
+  return LlamaModelDefinition(name: 'local', modelPath: modelPath);
 }
 
-llama.ModelCacheEntry _entry() {
+llama.ModelCacheEntry _entry([String modelPath = '/cache/local.gguf']) {
   final now = DateTime.utc(2026);
-  final source = llama.ModelSource.path('/cache/local.gguf');
+  final source = llama.ModelSource.path(modelPath);
   return llama.ModelCacheEntry(
     sourceCanonicalKey: source.metadataSourceKey,
     cacheKey: source.cacheKey,

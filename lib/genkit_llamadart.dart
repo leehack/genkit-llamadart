@@ -1,4 +1,4 @@
-/// Genkit integration for local `llamadart` GGUF models.
+/// Genkit integration for local `llamadart` models.
 ///
 /// This package lets Genkit applications run local models in-process through
 /// `llamadart`, without needing an OpenAI-compatible HTTP server.
@@ -37,10 +37,15 @@ library;
 export 'package:llamadart/llamadart.dart'
     show
         DefaultModelDownloadManager,
+        FlashAttention,
+        GpuBackend,
+        KvCacheType,
+        LiteRtLmBackendPreference,
         LlamaException,
         LlamaModelException,
         LlamaStateException,
         LlamaUnsupportedException,
+        LoraAdapterConfig,
         ModelCacheEntry,
         ModelCachePolicy,
         ModelDownloadCancelToken,
@@ -49,6 +54,7 @@ export 'package:llamadart/llamadart.dart'
         ModelDownloadProgressCallback,
         ModelLoadOptions,
         ModelParams,
+        ModelSplitMode,
         ModelSource,
         ModelSourceKind;
 

@@ -77,7 +77,7 @@ _factsByTopic = <String, Map<String, dynamic>>{
   'llamadart': <String, dynamic>{
     'topic': 'llamadart',
     'fact':
-        'llamadart runs GGUF models locally from Dart and Flutter applications.',
+        'llamadart runs local GGUF and LiteRT-LM models from Dart and Flutter applications.',
   },
 };
 
@@ -87,7 +87,7 @@ Future<void> main() async {
   final initialPrompt = Platform.environment[_promptEnv];
 
   if (modelPath == null || modelPath.isEmpty) {
-    stderr.writeln('Set $_modelPathEnv to a local GGUF model path.');
+    stderr.writeln('Set $_modelPathEnv to a local model path.');
     exitCode = 64;
     return;
   }

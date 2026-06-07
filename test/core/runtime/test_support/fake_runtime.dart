@@ -14,6 +14,7 @@ class FakeRuntime implements LlamaRuntime {
   int disposeCount = 0;
 
   Object? initializeError;
+  LlamaModelDefinition? lastInitializedDefinition;
 
   bool? lastNormalize;
   List<llama.LlamaChatMessage>? lastMessages;
@@ -34,6 +35,7 @@ class FakeRuntime implements LlamaRuntime {
   @override
   Future<void> initialize(LlamaModelDefinition definition) async {
     initializeCount += 1;
+    lastInitializedDefinition = definition;
     if (initializeError != null) {
       throw initializeError!;
     }

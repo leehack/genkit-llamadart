@@ -11,7 +11,7 @@ Future<void> main() async {
       'Say hello in one short sentence.';
 
   if (modelPath == null || modelPath.isEmpty) {
-    stderr.writeln('Set LLAMADART_MODEL_PATH to a local GGUF model path.');
+    stderr.writeln('Set LLAMADART_MODEL_PATH to a local model path.');
     exitCode = 64;
     return;
   }

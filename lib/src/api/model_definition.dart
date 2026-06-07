@@ -3,7 +3,7 @@ import 'package:llamadart/llamadart.dart' show ModelParams;
 
 /// Static configuration for one `llamadart` model exposed through Genkit.
 ///
-/// Use one definition per local GGUF model you want to register. The same
+/// Use one definition per local model you want to register. The same
 /// definition controls the model name, native loading parameters, optional
 /// multimodal projector path, and which Genkit capabilities are advertised.
 ///
@@ -17,7 +17,7 @@ import 'package:llamadart/llamadart.dart' show ModelParams;
 /// );
 /// ```
 class LlamaModelDefinition {
-  /// Creates a model definition for a local GGUF-backed model.
+  /// Creates a model definition for a local model file.
   const LlamaModelDefinition({
     required this.name,
     required this.modelPath,
@@ -33,7 +33,10 @@ class LlamaModelDefinition {
   /// Unique model name used in Genkit refs like `llamadart/<name>`.
   final String name;
 
-  /// Filesystem path to the GGUF model file.
+  /// Filesystem path to a model file supported by `llamadart`.
+  ///
+  /// This can be a GGUF file or a `.litertlm` LiteRT-LM bundle on supported
+  /// `llamadart` platforms.
   final String modelPath;
 
   /// Native engine parameters used while loading the model.
@@ -49,6 +52,9 @@ class LlamaModelDefinition {
   final bool supportsTools;
 
   /// Whether this definition should accept constrained JSON output requests.
+  ///
+  /// Disable this for `.litertlm` LiteRT-LM bundles until `llamadart` exposes
+  /// grammar constraints for that backend.
   final bool supportsConstrainedOutput;
 
   /// Optional Genkit model metadata override.
