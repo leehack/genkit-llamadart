@@ -2,6 +2,7 @@
 
 - Widen the Genkit and Schemantic dependency constraints to allow `genkit` `0.14.x` while keeping compatibility with `0.13.x`.
 - Widen the `llamadart` dependency constraint to allow `llamadart` `0.8.x` while keeping compatibility with `0.7.x`.
+- Remove the unnecessary Flutter SDK environment constraint from the package metadata.
 
 ## 1.3.2 - 2026-06-07
 
