@@ -10,9 +10,11 @@ const String _mmprojPathEnv = 'LLAMADART_MMPROJ_PATH';
 const String _promptEnv = 'LLAMADART_PROMPT';
 
 const String _agentSystemPrompt =
-    'You are a command-line agent. Use tools whenever they are relevant before answering. '
+    'You are a command-line agent. Answer directly when tools are not relevant. '
+    'Use tools whenever they are relevant before answering. '
     'These tools do not require arguments, so call them with an empty object. '
-    'After a tool returns, incorporate the result into a concise final answer.';
+    'Call each relevant tool at most once per user request. '
+    'After a tool returns, incorporate the result into a concise final answer instead of calling it again.';
 
 final SchemanticType<Map<String, dynamic>> _jsonMapSchema = SchemanticType.map(
   SchemanticType.string(),
@@ -188,21 +190,34 @@ Future<List<Message>> _runTurn(
     ),
   );
 
-  await for (final chunk in stream) {
-    if (chunk.text.isNotEmpty) {
-      streamedText = true;
-      stdout.write(chunk.text);
+  try {
+    await for (final chunk in stream) {
+      if (chunk.text.isNotEmpty) {
+        streamedText = true;
+        stdout.write(chunk.text);
+      }
     }
-  }
 
-  final response = await stream.onResult;
+    final response = await stream.onResult;
 
-  if (!streamedText && response.text.isEmpty) {
-    stdout.writeln('<empty>');
-  } else {
-    stdout.writeln();
+    if (!streamedText && response.text.isEmpty) {
+      stdout.writeln('<empty>');
+    } else {
+      stdout.writeln();
+    }
+    return response.messages;
+  } on GenkitException catch (error) {
+    if (streamedText) {
+      stdout.writeln();
+    }
+    stderr.writeln(
+      'Generation stopped before a final answer: ${error.message}',
+    );
+    stderr.writeln(
+      'Try a stronger tool-capable model, a simpler prompt, or a higher maxTurns value.',
+    );
+    return requestMessages;
   }
-  return response.messages;
 }
 
 Tool<Map<String, dynamic>, Map<String, dynamic>> _defineWeatherTool(Genkit ai) {
