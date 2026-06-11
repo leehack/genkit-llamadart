@@ -33,19 +33,34 @@ If you want structured outputs, also add `schemantic`:
 dart pub add schemantic
 ```
 
+Flutter iOS/macOS apps that want Swift Package Manager-linked Apple
+XCFrameworks should also add the `llamadart` runtime companion packages for
+the model families they ship:
+
+```bash
+flutter pub add llamadart_llama_cpp_flutter # GGUF / llama.cpp
+flutter pub add llamadart_litert_lm_flutter # .litertlm / LiteRT-LM
+```
+
+These companion packages provide Apple runtime packaging only. Keep importing
+and using `package:genkit_llamadart/genkit_llamadart.dart` for Genkit APIs.
+
 ## Requirements
 
 - Dart SDK `^3.10.7`
-- Flutter SDK `>=3.38.0` for resolving hosted `llamadart ^0.7.1`
 - a local model file supported by `llamadart`, or a `ModelSource` that resolves to one
 - the native `llamadart` runtime prerequisites for your platform
 - an optional multimodal projector file or source if you want image input support
 
-This package uses the hosted `llamadart` package from pub.dev. Use `flutter pub`
-or Flutter's bundled Dart SDK when resolving dependencies. Follow the
-`llamadart` installation guidance for native backend and platform support:
+This package uses the hosted `llamadart` package from pub.dev. Follow the
+`llamadart` installation guidance for native backend, Apple SwiftPM companion
+packages, and platform support:
 
 - `llamadart` docs: https://llamadart.leehack.com/
+
+Flutter Apple builds that use the companion SwiftPM packages require deployment
+targets of iOS `16.4` or newer and macOS `14.0` or newer. If an iOS app still
+uses CocoaPods, set the Podfile platform to `16.4` or newer too.
 
 ## Finding Models
 

@@ -3,6 +3,7 @@
 - Widen the Genkit and Schemantic dependency constraints to allow `genkit` `0.14.x` while keeping compatibility with `0.13.x`.
 - Raise the `llamadart` dependency floor to `0.8.0` so the package depends on the Dart-only top-level `llamadart` package metadata.
 - Remove the unnecessary Flutter SDK environment constraint from the package metadata.
+- Document `llamadart` Flutter Apple SwiftPM companion packages for iOS and macOS apps.
 
 ## 1.3.2 - 2026-06-07
 
