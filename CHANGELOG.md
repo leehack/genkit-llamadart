@@ -8,13 +8,14 @@
   backends that support remote images, and accept Windows drive-letter media
   paths.
 - Reject unsupported primitive and list tool-input schemas before advertising a
-  mismatched zero-argument tool.
+  mismatched zero-argument tool, while resolving valid reference-wrapped object
+  schemas emitted by Genkit.
 - Exercise latest-compatible dependencies in the full CI job and lower-bound
   dependencies in a focused compatibility job.
 - Run every `real-model`-tagged test in CI and release verification using
   serialized, immutable, SHA-256-verified Hugging Face fixtures without
   stealing stale cache locks.
-- Correct source-example commands and refresh lifecycle, capability,
+- Correct source and agent example behavior, and refresh lifecycle, capability,
   architecture, testing, and advanced configuration documentation.
 
 ## 1.3.3 - 2026-06-10

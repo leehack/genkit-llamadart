@@ -613,6 +613,8 @@ Local `file://` URLs cannot include query parameters or fragments. Provide
 - Tool input schemas and tool-request inputs must be JSON objects. Primitive or
   list root inputs cannot be represented by `llamadart`'s map argument API and
   fail with `INVALID_ARGUMENT`.
+- Named Schemantic object schemas are supported; local `$ref` and `$defs`
+  wrappers emitted by Genkit are resolved before tool parameters are mapped.
 - Local models may vary in how reliably they emit structured tool arguments.
 - If a model emits empty or weak tool arguments, use strong tool descriptions,
   prompt guidance, and app context to stabilize behavior.

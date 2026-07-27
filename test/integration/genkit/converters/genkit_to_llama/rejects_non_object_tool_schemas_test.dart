@@ -12,6 +12,12 @@ void main() {
       },
       <String, dynamic>{'type': 'number'},
       <String, dynamic>{},
+      <String, dynamic>{
+        r'$ref': r'#/$defs/PrimitiveInput',
+        r'$defs': <String, dynamic>{
+          'PrimitiveInput': <String, dynamic>{'type': 'string'},
+        },
+      },
     ]) {
       expect(
         () => toLlamaTools(<genkit.ToolDefinition>[

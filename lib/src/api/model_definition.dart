@@ -52,7 +52,9 @@ class LlamaModelDefinition {
   /// Whether this definition should accept Genkit tool requests.
   ///
   /// Enabled tools must use object-shaped input schemas and arguments because
-  /// `llamadart` represents tool arguments as `Map<String, dynamic>`.
+  /// `llamadart` represents tool arguments as `Map<String, dynamic>`. Local
+  /// `$ref` wrappers emitted for named Schemantic object schemas are resolved
+  /// before their parameters are mapped.
   final bool supportsTools;
 
   /// Whether this definition should accept constrained JSON output requests.

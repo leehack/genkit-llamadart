@@ -1,12 +1,24 @@
 import 'package:genkit/plugin.dart' as genkit;
 import 'package:llamadart/llamadart.dart' as llama;
+import 'package:schemantic/schemantic.dart';
 
 List<llama.ToolParam> schemaToToolParams(Map<String, dynamic>? schema) {
   if (schema == null) {
     return const <llama.ToolParam>[];
   }
 
-  final normalized = Map<String, dynamic>.from(schema);
+  final Map<String, dynamic> normalized;
+  try {
+    normalized = Map<String, dynamic>.from(
+      Map<String, Object?>.from(schema).flatten(),
+    );
+  } on FormatException catch (error) {
+    throw genkit.GenkitException(
+      'llamadart tool input schema references could not be resolved: '
+      '${error.message}',
+      status: genkit.StatusCodes.INVALID_ARGUMENT,
+    );
+  }
   final propertiesRaw = normalized['properties'];
   if (!_isObjectRootSchema(normalized)) {
     throw genkit.GenkitException(
