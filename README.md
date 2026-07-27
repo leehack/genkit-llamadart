@@ -628,6 +628,8 @@ Local `file://` URLs cannot include query parameters or fragments. Provide
 - cancellation targets only the active generation; a separately queued request can still start afterward
 - call `await plugin.dispose()` before process shutdown to release native state
 - plugin disposal is terminal; create a new plugin or prepared-model handle instead of reusing it
+- if multiple runtimes fail during disposal, the returned `ParallelWaitError`
+  retains every underlying failure
 - call `await ai.shutdown()` when your Genkit app is done
 
 ## Limitations

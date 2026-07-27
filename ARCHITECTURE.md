@@ -92,7 +92,8 @@ mode in CI and on low-end developer machines.
 Auto-downloaded fixtures use immutable Hugging Face revisions and are verified
 by size and SHA-256 before loading, so warm and cold caches exercise identical
 model bytes. Downloads are serialized per fixture across test isolates to
-protect a shared cold cache.
+protect a shared cold cache. A stale lock fails with a diagnostic instead of
+being evicted while its original owner might still be active.
 
 Current defaults:
 

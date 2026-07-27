@@ -3,7 +3,7 @@
 - Add compatibility with Genkit `0.15.x` while retaining the `0.13.2` lower
   bound.
 - Reject new runtime work once plugin disposal starts and dispose independent
-  model runtimes concurrently.
+  model runtimes concurrently while preserving every disposal failure.
 - Infer media types from URI paths, including signed HTTP(S) image URLs on
   backends that support remote images, and accept Windows drive-letter media
   paths.
@@ -12,7 +12,8 @@
 - Exercise latest-compatible dependencies in the full CI job and lower-bound
   dependencies in a focused compatibility job.
 - Run every `real-model`-tagged test in CI and release verification using
-  serialized, immutable, SHA-256-verified Hugging Face fixtures.
+  serialized, immutable, SHA-256-verified Hugging Face fixtures without
+  stealing stale cache locks.
 - Correct source-example commands and refresh lifecycle, capability,
   architecture, testing, and advanced configuration documentation.
 

@@ -62,7 +62,7 @@ class EngineRegistry {
   Future<void> _disposeEntries() async {
     final entries = _entries.values.toList(growable: false);
     try {
-      await Future.wait(entries.map((entry) => entry.dispose()));
+      await entries.map((entry) => entry.dispose()).wait;
     } finally {
       _entries.clear();
     }

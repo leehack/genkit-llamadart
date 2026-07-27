@@ -44,6 +44,7 @@ class LlamaDartPlugin extends GenkitPlugin {
   ///
   /// Disposal is terminal. Create a new plugin instance instead of submitting
   /// model or embedding requests after this future has been requested.
+  /// Multiple runtime disposal failures are retained in a `ParallelWaitError`.
   Future<void> dispose() {
     return _registry.dispose();
   }

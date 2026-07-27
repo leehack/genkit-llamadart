@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:genkit/genkit.dart';
@@ -118,8 +119,9 @@ Future<String> _resolveModelPath({
   await modelDir.create(recursive: true);
 
   final targetFile = File('${modelDir.path}/${spec.cacheFileName}');
-  final cacheLock = File('${targetFile.path}.lock');
-  await _acquireCacheLock(cacheLock);
+  final cacheLock = await ModelCacheLock.acquire(
+    File('${targetFile.path}.lock'),
+  );
   try {
     if (await targetFile.exists()) {
       if (await _hasExpectedModelContents(targetFile, spec)) {
@@ -168,44 +170,91 @@ Future<String> _resolveModelPath({
       client.close(force: true);
     }
   } finally {
-    await cacheLock.delete();
+    await cacheLock.release();
   }
 }
 
-Future<void> _acquireCacheLock(File lockFile) async {
-  final deadline = DateTime.now().add(const Duration(minutes: 15));
-  var missingLockFailures = 0;
-  while (true) {
-    try {
-      await lockFile.create(exclusive: true);
-      return;
-    } on FileSystemException {
-      if (!await lockFile.exists()) {
-        missingLockFailures += 1;
-        if (missingLockFailures >= 3) {
+class ModelCacheLock {
+  ModelCacheLock._(this._file, this._ownerToken);
+
+  final File _file;
+  final String _ownerToken;
+
+  static Future<ModelCacheLock> acquire(
+    File lockFile, {
+    Duration timeout = const Duration(minutes: 15),
+    Duration staleAfter = const Duration(minutes: 30),
+    Duration retryDelay = const Duration(milliseconds: 100),
+  }) async {
+    final deadline = DateTime.now().add(timeout);
+    var missingLockFailures = 0;
+    while (true) {
+      final ownerToken =
+          '$pid:${DateTime.now().microsecondsSinceEpoch}:'
+          '${Random.secure().nextInt(1 << 32)}';
+      try {
+        await lockFile.create(exclusive: true);
+        try {
+          await lockFile.writeAsString(ownerToken, flush: true);
+        } catch (_) {
+          await lockFile.delete();
           rethrow;
         }
-        await Future<void>.delayed(const Duration(milliseconds: 10));
-        continue;
-      }
-      missingLockFailures = 0;
-
-      try {
-        final age = DateTime.now().difference(await lockFile.lastModified());
-        if (age > const Duration(minutes: 30)) {
-          await lockFile.delete();
+        return ModelCacheLock._(lockFile, ownerToken);
+      } on FileSystemException {
+        if (!await lockFile.exists()) {
+          missingLockFailures += 1;
+          if (missingLockFailures >= 3) {
+            rethrow;
+          }
+          await Future<void>.delayed(const Duration(milliseconds: 10));
           continue;
         }
-      } on FileSystemException {
-        // The owner may have replaced or removed the lock while it was checked.
-      }
+        missingLockFailures = 0;
 
-      if (DateTime.now().isAfter(deadline)) {
-        throw TimeoutException(
-          'Timed out waiting for model cache lock ${lockFile.path}.',
-        );
+        try {
+          final reportedOwner = await lockFile.readAsString();
+          final age = DateTime.now().difference(await lockFile.lastModified());
+          if (age > staleAfter) {
+            throw StateError(
+              'Model cache lock ${lockFile.path} is stale '
+              '(reported owner: ${reportedOwner.isEmpty ? 'unknown' : reportedOwner}). '
+              'Remove it only '
+              'after confirming that no test process is downloading this '
+              'fixture.',
+            );
+          }
+        } on FileSystemException {
+          // The owner may have removed the lock while it was checked.
+        }
+
+        if (DateTime.now().isAfter(deadline)) {
+          throw TimeoutException(
+            'Timed out waiting for model cache lock ${lockFile.path}.',
+          );
+        }
+        await Future<void>.delayed(retryDelay);
       }
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+  }
+
+  Future<void> release() async {
+    if (!await _file.exists()) {
+      return;
+    }
+
+    String currentOwner;
+    try {
+      currentOwner = await _file.readAsString();
+    } on FileSystemException {
+      if (!await _file.exists()) {
+        return;
+      }
+      rethrow;
+    }
+
+    if (currentOwner == _ownerToken) {
+      await _file.delete();
     }
   }
 }
