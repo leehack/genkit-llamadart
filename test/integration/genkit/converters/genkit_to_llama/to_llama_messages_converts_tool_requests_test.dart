@@ -29,15 +29,32 @@ void main() {
   });
 
   test('tool request conversion rejects non-object input', () {
-    expect(
-      () => toLlamaToolArguments('Seoul'),
-      throwsA(
-        isA<genkit.GenkitException>().having(
-          (error) => error.status,
-          'status',
-          genkit.StatusCodes.INVALID_ARGUMENT,
+    for (final input in <Object?>[
+      'Seoul',
+      7,
+      true,
+      <Object?>['Seoul'],
+    ]) {
+      expect(
+        () => toLlamaToolArguments(input),
+        throwsA(
+          isA<genkit.GenkitException>().having(
+            (error) => error.status,
+            'status',
+            genkit.StatusCodes.INVALID_ARGUMENT,
+          ),
         ),
-      ),
-    );
+        reason: 'Expected ${input.runtimeType} input to be rejected.',
+      );
+    }
+  });
+
+  test('tool request conversion normalizes loose string-keyed maps', () {
+    final input = <Object?, Object?>{'city': 'Seoul', 'days': 2};
+
+    expect(toLlamaToolArguments(input), <String, dynamic>{
+      'city': 'Seoul',
+      'days': 2,
+    });
   });
 }

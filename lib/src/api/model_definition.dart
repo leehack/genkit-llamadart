@@ -50,6 +50,9 @@ class LlamaModelDefinition {
   final bool supportsEmbeddings;
 
   /// Whether this definition should accept Genkit tool requests.
+  ///
+  /// Enabled tools must use object-shaped input schemas and arguments because
+  /// `llamadart` represents tool arguments as `Map<String, dynamic>`.
   final bool supportsTools;
 
   /// Whether this definition should accept constrained JSON output requests.

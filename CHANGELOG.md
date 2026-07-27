@@ -4,10 +4,15 @@
   bound.
 - Reject new runtime work once plugin disposal starts and dispose independent
   model runtimes concurrently.
-- Infer media types from URI paths so signed image URLs work without an explicit
-  content type, and accept Windows drive-letter media paths.
-- Test both dependency bounds in CI and run every `real-model`-tagged test in
-  CI and release verification.
+- Infer media types from URI paths, including signed HTTP(S) image URLs on
+  backends that support remote images, and accept Windows drive-letter media
+  paths.
+- Reject unsupported primitive and list tool-input schemas before advertising a
+  mismatched zero-argument tool.
+- Exercise latest-compatible dependencies in the full CI job and lower-bound
+  dependencies in a focused compatibility job.
+- Run every `real-model`-tagged test in CI and release verification using
+  serialized, immutable, SHA-256-verified Hugging Face fixtures.
 - Correct source-example commands and refresh lifecycle, capability,
   architecture, testing, and advanced configuration documentation.
 

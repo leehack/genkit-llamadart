@@ -303,7 +303,20 @@ String? _toFilePath(Uri? uri, String originalUrl) {
   }
 
   if (uri.scheme == 'file') {
-    return uri.toFilePath();
+    if (uri.hasQuery || uri.hasFragment) {
+      throw genkit.GenkitException(
+        'Local file media URLs cannot contain query parameters or fragments.',
+        status: genkit.StatusCodes.INVALID_ARGUMENT,
+      );
+    }
+    try {
+      return uri.toFilePath();
+    } on UnsupportedError {
+      throw genkit.GenkitException(
+        'Invalid local file media URL: $originalUrl',
+        status: genkit.StatusCodes.INVALID_ARGUMENT,
+      );
+    }
   }
 
   return null;

@@ -23,8 +23,8 @@ jobs:
       - name: Flutter version
         run: flutter --version
 
-      - name: Install dependencies
-        run: flutter pub get
+      - name: Resolve latest compatible dependencies
+        run: flutter pub upgrade
 
       - name: Install pana
         run: flutter pub global activate pana
@@ -56,15 +56,8 @@ jobs:
         run: flutter pub publish --dry-run
 
   dependency-compatibility:
-    name: Dependency compatibility (${{ matrix.resolution }})
+    name: Dependency compatibility (lower bounds)
     runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        resolution:
-          - lower-bounds
-          - latest
 
     steps:
       - name: Check out repository
@@ -77,12 +70,7 @@ jobs:
           cache: true
 
       - name: Resolve lower-bound runtime dependencies
-        if: matrix.resolution == 'lower-bounds'
         run: dart pub add genkit@0.13.2 llamadart@0.8.0 schemantic@0.1.3
-
-      - name: Resolve latest compatible dependencies
-        if: matrix.resolution == 'latest'
-        run: dart pub upgrade
 
       - name: Analyze package
         run: dart analyze

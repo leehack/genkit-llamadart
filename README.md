@@ -580,7 +580,12 @@ final response = await ai.generate(
       role: Role.user,
       content: <Part>[
         TextPart(text: 'Describe this image in one sentence.'),
-        Media(url: 'file:///tmp/example.png', contentType: 'image/png'),
+        MediaPart(
+          media: Media(
+            url: 'file:///tmp/example.png',
+            contentType: 'image/png',
+          ),
+        ),
       ],
     ),
   ],
@@ -589,17 +594,25 @@ final response = await ai.generate(
 
 Supported media inputs:
 
-- images from local paths, `file://`, `data:`, and `http(s)` URLs
+- images from local paths, `file://`, and `data:` URLs on compatible
+  multimodal backends
+- `http(s)` image URLs on backends that consume remote URLs directly
+  (currently WebGPU)
 - audio from local paths, `file://`, and `data:` URLs
 
-For local files and URLs with a recognized extension, the media type is inferred
-from the URI path, including signed URLs with query parameters or fragments.
-Provide `contentType` when the path has no recognizable media extension.
+For local files and HTTP(S) URLs with a recognized extension, the media type is
+inferred from the URI path. This includes signed HTTP(S) URLs with query
+parameters or fragments, although remote fetching remains backend-dependent.
+Local `file://` URLs cannot include query parameters or fragments. Provide
+`contentType` when the path has no recognizable media extension.
 
 ## Tool Calling Notes
 
 - Genkit can drive multi-turn tool loops through this plugin.
 - `example/genkit_llamadart_agent_example.dart` shows a local agent flow.
+- Tool input schemas and tool-request inputs must be JSON objects. Primitive or
+  list root inputs cannot be represented by `llamadart`'s map argument API and
+  fail with `INVALID_ARGUMENT`.
 - Local models may vary in how reliably they emit structured tool arguments.
 - If a model emits empty or weak tool arguments, use strong tool descriptions,
   prompt guidance, and app context to stabilize behavior.
@@ -627,6 +640,9 @@ Provide `contentType` when the path has no recognizable media extension.
 - constrained structured output with active tool calling is not supported yet
 - some models may need prompt tuning for reliable tool arguments
 - multimodal requests require a compatible model and projector file
+- direct HTTP(S) image inputs are backend-dependent and currently supported by
+  WebGPU; download the image to a local path or provide `data:` bytes for other
+  compatible multimodal backends
 
 ## Development
 
@@ -663,7 +679,9 @@ Optional environment variables for smoke tests:
 - `HUGGING_FACE_HUB_TOKEN` is an optional token for authenticated or rate-limited Hugging Face downloads
 
 Auto-downloaded smoke-test models are cached under
-`.dart_tool/llamadart_test_models` by default.
+`.dart_tool/llamadart_test_models` by default. Their Hugging Face revisions are
+pinned, and cached or downloaded files are verified against their expected size
+and SHA-256 digest before use.
 
 Default auto-downloaded smoke-test models:
 

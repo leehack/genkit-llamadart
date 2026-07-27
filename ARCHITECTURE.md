@@ -89,6 +89,10 @@ Conventions:
 
 The real-model tests intentionally use tiny GGUF files so they can run in CPU
 mode in CI and on low-end developer machines.
+Auto-downloaded fixtures use immutable Hugging Face revisions and are verified
+by size and SHA-256 before loading, so warm and cold caches exercise identical
+model bytes. Downloads are serialized per fixture across test isolates to
+protect a shared cold cache.
 
 Current defaults:
 

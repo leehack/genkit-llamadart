@@ -1,3 +1,4 @@
+import 'package:genkit/plugin.dart' as genkit;
 import 'package:llamadart/llamadart.dart' as llama;
 
 List<llama.ToolParam> schemaToToolParams(Map<String, dynamic>? schema) {
@@ -7,8 +8,20 @@ List<llama.ToolParam> schemaToToolParams(Map<String, dynamic>? schema) {
 
   final normalized = Map<String, dynamic>.from(schema);
   final propertiesRaw = normalized['properties'];
-  if (propertiesRaw is! Map) {
+  if (!_isObjectRootSchema(normalized)) {
+    throw genkit.GenkitException(
+      'llamadart tool input schemas must be object-shaped.',
+      status: genkit.StatusCodes.INVALID_ARGUMENT,
+    );
+  }
+  if (propertiesRaw == null) {
     return const <llama.ToolParam>[];
+  }
+  if (propertiesRaw is! Map) {
+    throw genkit.GenkitException(
+      'llamadart tool input schema properties must be an object.',
+      status: genkit.StatusCodes.INVALID_ARGUMENT,
+    );
   }
 
   final requiredNames = _parseRequiredSet(normalized['required']);
@@ -25,6 +38,21 @@ List<llama.ToolParam> schemaToToolParams(Map<String, dynamic>? schema) {
         );
       })
       .toList(growable: false);
+}
+
+bool _isObjectRootSchema(Map<String, dynamic> schema) {
+  final rawType = schema['type'];
+  if (rawType is String) {
+    return rawType == 'object';
+  }
+  if (rawType is List) {
+    final types = rawType
+        .whereType<String>()
+        .where((type) => type != 'null')
+        .toList(growable: false);
+    return types.isNotEmpty && types.every((type) => type == 'object');
+  }
+  return schema['properties'] is Map;
 }
 
 llama.ToolParam _mapSchemaToToolParam(
