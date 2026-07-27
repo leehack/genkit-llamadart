@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -45,7 +45,7 @@ jobs:
         run: flutter pub global activate pana
 
       - name: Cache real-model test artifacts
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .dart_tool/llamadart_test_models
           key: ${{ runner.os }}-llamadart-test-models-${{ hashFiles('test/integration/genkit/test_support/real_model_test_support.dart') }}
@@ -83,7 +83,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
