@@ -43,7 +43,12 @@ Future<void> main() async {
 
   final plugin = llamaDart(
     models: <LlamaModelDefinition>[
-      LlamaModelDefinition(name: 'local-json', modelPath: modelPath),
+      LlamaModelDefinition(
+        name: 'local-json',
+        modelPath: modelPath,
+        supportsEmbeddings: false,
+        supportsTools: false,
+      ),
     ],
   );
 

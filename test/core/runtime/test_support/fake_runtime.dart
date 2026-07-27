@@ -14,6 +14,7 @@ class FakeRuntime implements LlamaRuntime {
   int disposeCount = 0;
 
   Object? initializeError;
+  Object? disposeError;
   LlamaModelDefinition? lastInitializedDefinition;
 
   bool? lastNormalize;
@@ -114,6 +115,9 @@ class FakeRuntime implements LlamaRuntime {
   @override
   Future<void> dispose() async {
     disposeCount += 1;
+    if (disposeError != null) {
+      throw disposeError!;
+    }
   }
 }
 

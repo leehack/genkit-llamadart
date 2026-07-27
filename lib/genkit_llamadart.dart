@@ -18,6 +18,7 @@
 ///     LlamaModelDefinition(
 ///       name: 'local-chat',
 ///       modelPath: '/models/chat.gguf',
+///       supportsEmbeddings: false,
 ///     ),
 ///   ],
 /// );

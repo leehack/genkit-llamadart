@@ -22,6 +22,7 @@ Future<void> main() async {
         name: 'local-chat',
         modelPath: modelPath,
         mmprojPath: mmprojPath,
+        supportsEmbeddings: false,
       ),
     ],
   );

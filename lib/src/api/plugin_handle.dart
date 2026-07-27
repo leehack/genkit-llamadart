@@ -17,6 +17,7 @@ import 'prepared_model.dart';
 ///     LlamaModelDefinition(
 ///       name: 'local-chat',
 ///       modelPath: '/models/chat.gguf',
+///       supportsEmbeddings: false,
 ///     ),
 ///   ],
 /// );
@@ -34,6 +35,7 @@ const LlamaDartPluginHandle llamaDart = LlamaDartPluginHandle();
 ///     LlamaModelDefinition(
 ///       name: 'local-chat',
 ///       modelPath: '/models/chat.gguf',
+///       supportsEmbeddings: false,
 ///     ),
 ///   ],
 /// );

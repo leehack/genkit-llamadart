@@ -101,15 +101,17 @@ Future<void> main() async {
         modelPath: modelPath,
         mmprojPath: mmprojPath,
         modelParams: const ModelParams(contextSize: 8192),
+        supportsEmbeddings: false,
       ),
     ],
   );
 
   final ai = Genkit(plugins: <LlamaDartPlugin>[plugin]);
+  final requestContext = _AgentRequestContext();
   final tools = <Tool<dynamic, dynamic>>[
-    _defineWeatherTool(ai),
-    _defineLocalTimeTool(ai),
-    _defineKnowledgeTool(ai),
+    _defineWeatherTool(ai, requestContext),
+    _defineLocalTimeTool(ai, requestContext),
+    _defineKnowledgeTool(ai, requestContext),
   ];
 
   var history = <Message>[
@@ -121,7 +123,13 @@ Future<void> main() async {
 
   try {
     if (initialPrompt != null && initialPrompt.trim().isNotEmpty) {
-      history = await _runTurn(ai, history, tools, initialPrompt.trim());
+      history = await _runTurn(
+        ai,
+        history,
+        tools,
+        requestContext,
+        initialPrompt.trim(),
+      );
       return;
     }
 
@@ -152,7 +160,7 @@ Future<void> main() async {
         continue;
       }
 
-      history = await _runTurn(ai, history, tools, trimmed);
+      history = await _runTurn(ai, history, tools, requestContext, trimmed);
     }
   } finally {
     await plugin.dispose();
@@ -164,8 +172,10 @@ Future<List<Message>> _runTurn(
   Genkit ai,
   List<Message> history,
   List<Tool<dynamic, dynamic>> tools,
+  _AgentRequestContext requestContext,
   String input,
 ) async {
+  requestContext.latestUserInput = input;
   final requestMessages = <Message>[
     ...history,
     Message(
@@ -220,7 +230,10 @@ Future<List<Message>> _runTurn(
   }
 }
 
-Tool<Map<String, dynamic>, Map<String, dynamic>> _defineWeatherTool(Genkit ai) {
+Tool<Map<String, dynamic>, Map<String, dynamic>> _defineWeatherTool(
+  Genkit ai,
+  _AgentRequestContext requestContext,
+) {
   return ai.defineTool<Map<String, dynamic>, Map<String, dynamic>>(
     name: 'get_weather',
     description:
@@ -228,7 +241,8 @@ Tool<Map<String, dynamic>, Map<String, dynamic>> _defineWeatherTool(Genkit ai) {
     inputSchema: _emptyToolInputSchema,
     outputSchema: _jsonMapSchema,
     fn: (input, context) async {
-      final latestUserInput = _latestUserInput(context.context);
+      final latestUserInput =
+          _latestUserInput(context.context) ?? requestContext.latestUserInput;
       final location = _extractLocation(latestUserInput) ?? 'unknown';
       final unit = _extractUnit(latestUserInput) ?? 'celsius';
       final weather =
@@ -255,6 +269,7 @@ Tool<Map<String, dynamic>, Map<String, dynamic>> _defineWeatherTool(Genkit ai) {
 
 Tool<Map<String, dynamic>, Map<String, dynamic>> _defineLocalTimeTool(
   Genkit ai,
+  _AgentRequestContext requestContext,
 ) {
   return ai.defineTool<Map<String, dynamic>, Map<String, dynamic>>(
     name: 'get_local_time',
@@ -263,8 +278,9 @@ Tool<Map<String, dynamic>, Map<String, dynamic>> _defineLocalTimeTool(
     inputSchema: _emptyToolInputSchema,
     outputSchema: _jsonMapSchema,
     fn: (input, context) async {
-      final city =
-          _extractLocation(_latestUserInput(context.context)) ?? 'unknown';
+      final latestUserInput =
+          _latestUserInput(context.context) ?? requestContext.latestUserInput;
+      final city = _extractLocation(latestUserInput) ?? 'unknown';
       final output =
           _timeByCity[city.toLowerCase()] ??
           <String, dynamic>{
@@ -280,6 +296,7 @@ Tool<Map<String, dynamic>, Map<String, dynamic>> _defineLocalTimeTool(
 
 Tool<Map<String, dynamic>, Map<String, dynamic>> _defineKnowledgeTool(
   Genkit ai,
+  _AgentRequestContext requestContext,
 ) {
   return ai.defineTool<Map<String, dynamic>, Map<String, dynamic>>(
     name: 'lookup_fact',
@@ -288,7 +305,8 @@ Tool<Map<String, dynamic>, Map<String, dynamic>> _defineKnowledgeTool(
     inputSchema: _emptyToolInputSchema,
     outputSchema: _jsonMapSchema,
     fn: (input, context) async {
-      final latestUserInput = _latestUserInput(context.context);
+      final latestUserInput =
+          _latestUserInput(context.context) ?? requestContext.latestUserInput;
       final topic = _extractTopic(latestUserInput) ?? latestUserInput;
       final output =
           _factsByTopic[topic.toLowerCase()] ??
@@ -299,12 +317,12 @@ Tool<Map<String, dynamic>, Map<String, dynamic>> _defineKnowledgeTool(
   );
 }
 
-String _latestUserInput(Map<String, dynamic>? context) {
+String? _latestUserInput(Map<String, dynamic>? context) {
   final query = context?['latestUserInput'];
   if (query is String && query.trim().isNotEmpty) {
     return query.trim();
   }
-  return 'unknown';
+  return null;
 }
 
 String? _extractLocation(String text) {
@@ -347,6 +365,12 @@ void _logTool(String name, Map<String, dynamic> input, Object output) {
   stderr.writeln(
     '[tool:$name] input=${jsonEncode(input)} output=${jsonEncode(output)}',
   );
+}
+
+final class _AgentRequestContext {
+  // Streaming context forwarding varies across supported Genkit versions, so
+  // keep the current turn available as a fallback for these no-argument tools.
+  String latestUserInput = 'unknown';
 }
 
 final class JsonObjectSchema extends SchemanticType<Map<String, dynamic>> {

@@ -24,7 +24,8 @@ The test tree mirrors this layout.
 ## Testing Conventions
 
 - mirror `lib/src/` under `test/`
-- keep one `test()` per file
+- keep each test file focused on one behavior or a tightly related lifecycle
+- group related cases when they benefit from shared setup
 - place shared helpers in a nearby `test_support/` directory
 - prefer unit tests first, then Genkit integration tests, then real-model smoke tests
 
@@ -42,20 +43,15 @@ Real-model smoke tests with auto-download:
 
 ```bash
 LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 \
-dart test test/integration/genkit/plugin/real_model_generate_returns_text_test.dart
-
-LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 \
-dart test test/integration/genkit/actions/embedder_action/real_model_embed_returns_vector_test.dart
+dart test -t real-model
 ```
 
 Real-model smoke tests with local files:
 
 ```bash
 LLAMADART_INTEGRATION_MODEL_PATH=/models/tiny-chat.gguf \
-dart test -t real-model test/integration/genkit/plugin/real_model_generate_returns_text_test.dart
-
 LLAMADART_INTEGRATION_EMBED_MODEL_PATH=/models/tiny-embed.gguf \
-dart test -t real-model test/integration/genkit/actions/embedder_action/real_model_embed_returns_vector_test.dart
+dart test -t real-model
 ```
 
 Optional environment variables for smoke tests:
@@ -85,10 +81,15 @@ Run:
 dart format --output=none --set-exit-if-changed .
 dart analyze
 dart test -x real-model
-LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 dart test test/integration/genkit/plugin/real_model_generate_returns_text_test.dart
-LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 dart test test/integration/genkit/actions/embedder_action/real_model_embed_returns_vector_test.dart
+LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 dart test -t real-model
 dart pub publish --dry-run
 ```
+
+The full CI job runs after `flutter pub upgrade`, so it exercises the latest
+compatible dependency set. A focused compatibility job pins the direct runtime
+dependencies to their supported lower bounds, then runs analysis and the fast
+test suite. This keeps both ends executable without duplicating the latest
+dependency checks.
 
 ## Releasing
 
@@ -113,6 +114,9 @@ git push origin v1.1.0
 The publish workflow then:
 
 - verifies the tag matches `pubspec.yaml`
-- reruns formatting, analysis, pana, tests, and `dart pub publish --dry-run`
+- verifies latest-compatible dependencies in the full job and lower-bound
+  dependencies in a focused compatibility job
+- reruns formatting, analysis, pana, all tagged real-model tests, and
+  `dart pub publish --dry-run`
 - publishes to pub.dev using GitHub OIDC trusted publishing
 - creates a GitHub release for the tag after a successful publish

@@ -122,6 +122,7 @@ Future<void> main() async {
         name: 'local-chat',
         modelPath: '/models/qwen3.gguf',
         modelParams: ModelParams(contextSize: 8192),
+        supportsEmbeddings: false,
       ),
     ],
   );
@@ -172,6 +173,7 @@ Future<void> main() async {
       sha256: null, // set to a 64-character SHA-256 digest when available
       bearerToken: null, // set for private remote sources
     ),
+    supportsEmbeddings: false,
   );
 
   final ai = Genkit(plugins: <LlamaDartPlugin>[prepared.plugin]);
@@ -222,6 +224,7 @@ Future<void> main() async {
       cachePolicy: ModelCachePolicy.preferCached,
       cacheDirectory: '/path/to/app/model-cache',
     ),
+    supportsEmbeddings: false,
   );
 
   final subscription = task.snapshots.listen((snapshot) {
@@ -317,6 +320,7 @@ Future<void> main() async {
     name: 'server-chat',
     source: ModelSource.parse('/models/server-chat.gguf'),
     modelParams: const ModelParams(contextSize: 8192),
+    supportsEmbeddings: false,
   );
   final ai = prepared.createGenkit();
 
@@ -352,6 +356,17 @@ accepts:
 - `supportsTools`: disable Genkit tool use for models or templates that should not use tools
 - `supportsConstrainedOutput`: disable constrained JSON output for models that should not advertise it, including `.litertlm` LiteRT-LM bundles until that backend supports grammar constraints
 
+These flags default to `true` for backward compatibility. Set them explicitly
+for single-purpose chat, embedding, and structured-output models so Genkit does
+not advertise actions the selected model should not serve.
+
+Use `modelInfo` to customize Genkit metadata such as the label, versions,
+configuration schema, stage, or additional support metadata.
+`modelInfo.supports` is merged after the derived capability flags and therefore
+overrides advertised metadata only; it does not bypass runtime enforcement by
+`supportsTools`, `supportsConstrainedOutput`, or `supportsEmbeddings`. Keep
+overridden metadata aligned with those flags.
+
 ## Default Request Settings
 
 Unless you override them in `LlamaDartGenerationConfig`, the plugin uses these
@@ -365,6 +380,13 @@ defaults:
 - `maxTokens: 4096`
 - `enableThinking: false`
 - `parallelToolCalls: false`
+
+Additional request controls include:
+
+- `stop`: custom stop sequences
+- `seed`: an optional deterministic sampling seed
+- `sourceLangCode` and `targetLangCode`: language hints for translation-style templates
+- `chatTemplateKwargs`: extra globals passed through to the model chat template
 
 ## Examples
 
@@ -407,7 +429,7 @@ Run the source-backed preparation example from a local path, HTTP(S) URL, or
 Hugging Face source:
 
 ```bash
-dart run -D LLAMADART_MODEL_SOURCE=hf://owner/repo/model.gguf \
+dart run -DLLAMADART_MODEL_SOURCE=hf://owner/repo/model.gguf \
   example/genkit_llamadart_source_prepare_example.dart
 ```
 
@@ -415,7 +437,7 @@ Use a `.litertlm` source the same way on supported `llamadart` targets:
 
 ```bash
 dart run \
-  -D LLAMADART_MODEL_SOURCE='https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm?download=true' \
+  -DLLAMADART_MODEL_SOURCE='https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm?download=true' \
   example/genkit_llamadart_source_prepare_example.dart
 ```
 
@@ -440,7 +462,12 @@ import 'package:genkit_llamadart/genkit_llamadart.dart';
 Future<void> main() async {
   final plugin = llamaDart(
     models: const <LlamaModelDefinition>[
-      LlamaModelDefinition(name: 'local-embed', modelPath: '/models/embed.gguf'),
+      LlamaModelDefinition(
+        name: 'local-embed',
+        modelPath: '/models/embed.gguf',
+        supportsTools: false,
+        supportsConstrainedOutput: false,
+      ),
     ],
   );
   final ai = Genkit(plugins: <LlamaDartPlugin>[plugin]);
@@ -498,7 +525,12 @@ final answerSchema = SchemanticType.from<Map<String, dynamic>>(
 Future<void> main() async {
   final plugin = llamaDart(
     models: const <LlamaModelDefinition>[
-      LlamaModelDefinition(name: 'local-json', modelPath: '/models/chat.gguf'),
+      LlamaModelDefinition(
+        name: 'local-json',
+        modelPath: '/models/chat.gguf',
+        supportsEmbeddings: false,
+        supportsTools: false,
+      ),
     ],
   );
   final ai = Genkit(plugins: <LlamaDartPlugin>[plugin]);
@@ -536,6 +568,7 @@ final plugin = llamaDart(
       name: 'local-vision',
       modelPath: '/models/vision.gguf',
       mmprojPath: '/models/mmproj.gguf',
+      supportsEmbeddings: false,
     ),
   ],
 );
@@ -547,7 +580,12 @@ final response = await ai.generate(
       role: Role.user,
       content: <Part>[
         TextPart(text: 'Describe this image in one sentence.'),
-        Media(url: 'file:///tmp/example.png', contentType: 'image/png'),
+        MediaPart(
+          media: Media(
+            url: 'file:///tmp/example.png',
+            contentType: 'image/png',
+          ),
+        ),
       ],
     ),
   ],
@@ -556,13 +594,27 @@ final response = await ai.generate(
 
 Supported media inputs:
 
-- images from local paths, `file://`, `data:`, and `http(s)` URLs
+- images from local paths, `file://`, and `data:` URLs on compatible
+  multimodal backends
+- `http(s)` image URLs on backends that consume remote URLs directly
+  (currently WebGPU)
 - audio from local paths, `file://`, and `data:` URLs
+
+For local files and HTTP(S) URLs with a recognized extension, the media type is
+inferred from the URI path. This includes signed HTTP(S) URLs with query
+parameters or fragments, although remote fetching remains backend-dependent.
+Local `file://` URLs cannot include query parameters or fragments. Provide
+`contentType` when the path has no recognizable media extension.
 
 ## Tool Calling Notes
 
 - Genkit can drive multi-turn tool loops through this plugin.
 - `example/genkit_llamadart_agent_example.dart` shows a local agent flow.
+- Tool input schemas and tool-request inputs must be JSON objects. Primitive or
+  list root inputs cannot be represented by `llamadart`'s map argument API and
+  fail with `INVALID_ARGUMENT`.
+- Named Schemantic object schemas are supported; local `$ref` and `$defs`
+  wrappers emitted by Genkit are resolved before tool parameters are mapped.
 - Local models may vary in how reliably they emit structured tool arguments.
 - If a model emits empty or weak tool arguments, use strong tool descriptions,
   prompt guidance, and app context to stabilize behavior.
@@ -572,7 +624,14 @@ Supported media inputs:
 - models load lazily on first use
 - requests for the same model are queued through a single runtime instance
 - different model names get separate runtime instances
+- call `prepared.cancelActiveGeneration()` to implement a stop button for a prepared model
+- call `plugin.cancelActiveGeneration(name)` for one registered model, or
+  `plugin.cancelActiveGenerations()` to stop all currently loaded models
+- cancellation targets only the active generation; a separately queued request can still start afterward
 - call `await plugin.dispose()` before process shutdown to release native state
+- plugin disposal is terminal; create a new plugin or prepared-model handle instead of reusing it
+- if multiple runtimes fail during disposal, the returned `ParallelWaitError`
+  retains every underlying failure
 - call `await ai.shutdown()` when your Genkit app is done
 
 ## Limitations
@@ -585,6 +644,9 @@ Supported media inputs:
 - constrained structured output with active tool calling is not supported yet
 - some models may need prompt tuning for reliable tool arguments
 - multimodal requests require a compatible model and projector file
+- direct HTTP(S) image inputs are backend-dependent and currently supported by
+  WebGPU; download the image to a local path or provide `data:` bytes for other
+  compatible multimodal backends
 
 ## Development
 
@@ -607,16 +669,11 @@ files, or let them download tiny public GGUF test models from Hugging Face:
 
 ```bash
 LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 \
-dart test test/integration/genkit/plugin/real_model_generate_returns_text_test.dart
-
-LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 \
-dart test test/integration/genkit/actions/embedder_action/real_model_embed_returns_vector_test.dart
+dart test -t real-model
 
 LLAMADART_INTEGRATION_MODEL_PATH=/models/tiny-chat.gguf \
-dart test -t real-model test/integration/genkit/plugin/real_model_generate_returns_text_test.dart
-
 LLAMADART_INTEGRATION_EMBED_MODEL_PATH=/models/tiny-embed.gguf \
-dart test -t real-model test/integration/genkit/actions/embedder_action/real_model_embed_returns_vector_test.dart
+dart test -t real-model
 ```
 
 Optional environment variables for smoke tests:
@@ -626,7 +683,9 @@ Optional environment variables for smoke tests:
 - `HUGGING_FACE_HUB_TOKEN` is an optional token for authenticated or rate-limited Hugging Face downloads
 
 Auto-downloaded smoke-test models are cached under
-`.dart_tool/llamadart_test_models` by default.
+`.dart_tool/llamadart_test_models` by default. Their Hugging Face revisions are
+pinned, and cached or downloaded files are verified against their expected size
+and SHA-256 digest before use.
 
 Default auto-downloaded smoke-test models:
 

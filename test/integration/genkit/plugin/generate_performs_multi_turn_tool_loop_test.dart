@@ -6,10 +6,8 @@ import 'package:test/test.dart';
 
 import '../../../core/runtime/test_support/fake_runtime.dart';
 
-final SchemanticType<Map<String, dynamic>> _jsonMapSchema = SchemanticType.map(
-  SchemanticType.string(),
-  SchemanticType.dynamicSchema(),
-);
+final SchemanticType<Map<String, dynamic>> _weatherInputSchema =
+    _WeatherInputSchema();
 
 void main() {
   test('Genkit generate performs a multi-turn tool loop', () async {
@@ -43,7 +41,7 @@ void main() {
       name: 'get_weather',
       description:
           'Get current weather for a location. Input JSON key: location.',
-      inputSchema: _jsonMapSchema,
+      inputSchema: _weatherInputSchema,
       outputSchema: SchemanticType.string(),
       fn: (input, _) async {
         return 'Seoul is clear and 19C.';
@@ -96,4 +94,30 @@ void main() {
     await plugin.dispose();
     await ai.shutdown();
   });
+}
+
+final class _WeatherInputSchema extends SchemanticType<Map<String, dynamic>> {
+  @override
+  Map<String, dynamic> parse(Object? json) {
+    if (json is Map<String, dynamic>) {
+      return json;
+    }
+    if (json is Map) {
+      return json.cast<String, dynamic>();
+    }
+    throw const FormatException('Expected a JSON object.');
+  }
+
+  @override
+  JsonSchemaMetadata get schemaMetadata => JsonSchemaMetadata(
+    name: 'WeatherInput',
+    definition: $Schema
+        .object(
+          properties: <String, $Schema>{
+            'location': $Schema.string(description: 'Location to look up.'),
+          },
+          required: const <String>['location'],
+        )
+        .value,
+  );
 }

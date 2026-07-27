@@ -14,11 +14,16 @@ class EngineRegistry {
   final Map<String, LlamaModelDefinition> _definitions;
   final LlamaRuntimeFactory _runtimeFactory;
   final Map<String, _EngineEntry> _entries = {};
+  Future<void>? _disposeFuture;
 
   Future<T> withRuntime<T>(
     String modelName,
     Future<T> Function(LlamaRuntime runtime) operation,
   ) {
+    if (_disposeFuture != null) {
+      throw StateError('The llamadart engine registry has been disposed.');
+    }
+
     final definition = _definitions[modelName];
     if (definition == null) {
       throw StateError('Unknown llamadart model: $modelName');
@@ -50,12 +55,16 @@ class EngineRegistry {
     }
   }
 
-  Future<void> dispose() async {
-    final entries = _entries.values.toList(growable: false);
-    _entries.clear();
+  Future<void> dispose() {
+    return _disposeFuture ??= _disposeEntries();
+  }
 
-    for (final entry in entries) {
-      await entry.dispose();
+  Future<void> _disposeEntries() async {
+    final entries = _entries.values.toList(growable: false);
+    try {
+      await entries.map((entry) => entry.dispose()).wait;
+    } finally {
+      _entries.clear();
     }
   }
 }

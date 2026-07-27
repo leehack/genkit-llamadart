@@ -12,6 +12,7 @@ import 'package:llamadart/llamadart.dart' show ModelParams;
 ///   name: 'local-chat',
 ///   modelPath: '/models/chat.gguf',
 ///   modelParams: ModelParams(contextSize: 8192),
+///   supportsEmbeddings: false,
 ///   supportsTools: true,
 ///   supportsConstrainedOutput: true,
 /// );
@@ -49,6 +50,11 @@ class LlamaModelDefinition {
   final bool supportsEmbeddings;
 
   /// Whether this definition should accept Genkit tool requests.
+  ///
+  /// Enabled tools must use object-shaped input schemas and arguments because
+  /// `llamadart` represents tool arguments as `Map<String, dynamic>`. Local
+  /// `$ref` wrappers emitted for named Schemantic object schemas are resolved
+  /// before their parameters are mapped.
   final bool supportsTools;
 
   /// Whether this definition should accept constrained JSON output requests.
@@ -58,5 +64,9 @@ class LlamaModelDefinition {
   final bool supportsConstrainedOutput;
 
   /// Optional Genkit model metadata override.
+  ///
+  /// Values in `modelInfo.supports` override advertised capability metadata,
+  /// but do not bypass request enforcement by [supportsEmbeddings],
+  /// [supportsTools], or [supportsConstrainedOutput].
   final ModelInfo? modelInfo;
 }

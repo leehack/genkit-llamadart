@@ -180,11 +180,12 @@ llama.LlamaContentPart? _toLlamaPart(genkit.Part part) {
 
   if (part.isToolRequest) {
     final toolRequest = part.toolRequest!;
+    final arguments = toLlamaToolArguments(toolRequest.input);
     return llama.LlamaToolCallContent(
       id: toolRequest.ref,
       name: toolRequest.name,
-      arguments: toolRequest.input ?? const <String, dynamic>{},
-      rawJson: jsonEncode(toolRequest.input ?? const <String, dynamic>{}),
+      arguments: arguments,
+      rawJson: jsonEncode(arguments),
     );
   }
 
@@ -209,6 +210,24 @@ llama.LlamaContentPart? _toLlamaPart(genkit.Part part) {
   }
 
   return null;
+}
+
+Map<String, dynamic> toLlamaToolArguments(Object? input) {
+  if (input == null) {
+    return const <String, dynamic>{};
+  }
+  if (input is Map<String, dynamic>) {
+    return input;
+  }
+  if (input is Map && input.keys.every((key) => key is String)) {
+    return <String, dynamic>{
+      for (final entry in input.entries) entry.key as String: entry.value,
+    };
+  }
+  throw genkit.GenkitException(
+    'llamadart tool requests require object-shaped input.',
+    status: genkit.StatusCodes.INVALID_ARGUMENT,
+  );
 }
 
 llama.LlamaContentPart _toLlamaMediaPart(genkit.Media media) {
@@ -255,18 +274,20 @@ String? _inferContentType(String url) {
     return UriData.parse(url).mimeType;
   }
 
-  final lowerUrl = url.toLowerCase();
-  if (lowerUrl.endsWith('.png') ||
-      lowerUrl.endsWith('.jpg') ||
-      lowerUrl.endsWith('.jpeg') ||
-      lowerUrl.endsWith('.gif') ||
-      lowerUrl.endsWith('.webp')) {
+  final lowerPath = (uri?.path.isNotEmpty ?? false)
+      ? uri!.path.toLowerCase()
+      : url.toLowerCase();
+  if (lowerPath.endsWith('.png') ||
+      lowerPath.endsWith('.jpg') ||
+      lowerPath.endsWith('.jpeg') ||
+      lowerPath.endsWith('.gif') ||
+      lowerPath.endsWith('.webp')) {
     return 'image/*';
   }
-  if (lowerUrl.endsWith('.wav') ||
-      lowerUrl.endsWith('.mp3') ||
-      lowerUrl.endsWith('.m4a') ||
-      lowerUrl.endsWith('.ogg')) {
+  if (lowerPath.endsWith('.wav') ||
+      lowerPath.endsWith('.mp3') ||
+      lowerPath.endsWith('.m4a') ||
+      lowerPath.endsWith('.ogg')) {
     return 'audio/*';
   }
 
@@ -274,16 +295,34 @@ String? _inferContentType(String url) {
 }
 
 String? _toFilePath(Uri? uri, String originalUrl) {
+  if (_windowsDrivePath.hasMatch(originalUrl)) {
+    return originalUrl;
+  }
   if (uri == null || uri.scheme.isEmpty) {
     return originalUrl;
   }
 
   if (uri.scheme == 'file') {
-    return uri.toFilePath();
+    if (uri.hasQuery || uri.hasFragment) {
+      throw genkit.GenkitException(
+        'Local file media URLs cannot contain query parameters or fragments.',
+        status: genkit.StatusCodes.INVALID_ARGUMENT,
+      );
+    }
+    try {
+      return uri.toFilePath();
+    } on UnsupportedError {
+      throw genkit.GenkitException(
+        'Invalid local file media URL: $originalUrl',
+        status: genkit.StatusCodes.INVALID_ARGUMENT,
+      );
+    }
   }
 
   return null;
 }
+
+final RegExp _windowsDrivePath = RegExp(r'^[A-Za-z]:[\\/]');
 
 String _normalizeToolResultOutput(Object? output) {
   if (output == null) {
