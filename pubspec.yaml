@@ -24,7 +24,7 @@ environment:
   sdk: ^3.10.7
 
 dependencies:
-  genkit: ">=0.13.2 <0.15.0"
+  genkit: ">=0.13.2 <0.16.0"
   llamadart: ^0.8.0
   schemantic: ">=0.1.1 <0.3.0"
 

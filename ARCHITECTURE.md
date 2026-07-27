@@ -12,11 +12,14 @@ Public package surface and stable user-facing types.
 - `model_definition.dart`: static model registration config
 - `generation_config.dart`: request-time model options
 - `embed_config.dart`: request-time embed options
+- `model_preparation.dart`: observable source preparation state and tasks
+- `prepared_model.dart`: prepared model ownership and lifecycle helpers
 
 Rules:
 
 - safe to export from `lib/genkit_llamadart.dart`
-- should not depend on Genkit action internals or runtime orchestration
+- configuration and value types should not depend on Genkit action internals
+- facade and ownership helpers may construct the Genkit integration plugin
 - should stay small, stable, and easy to document
 
 ### `lib/src/core/`
@@ -48,17 +51,19 @@ Rules:
 - request validation that is specific to Genkit belongs here
 - it can depend on both `api` and `core`
 
-## Dependency Direction
+## Dependency Relationships
 
-Dependencies should flow inward in this direction:
-
-`api` <- `core` <- `integration`
+Configuration and model-definition types in `api` are the shared dependency
+surface for `core` and `integration`. The public facade helpers then construct
+the integration plugin so package users do not need to import internal paths.
 
 More concretely:
 
-- `api` must not import `integration`
 - `core` must not import `integration`
-- `integration` may import `api` and `core`
+- `integration` may import API value types and `core`
+- API configuration and model-definition files must not import `integration`
+- API facade and ownership files may import stable integration entrypoints, but
+  must not reach into actions or converters
 
 `lib/genkit_llamadart.dart` re-exports the supported public API without exposing
 the internal layout to package consumers.
@@ -73,10 +78,12 @@ The `test/` tree mirrors `lib/src/`.
 
 Conventions:
 
-- one `test()` per file
+- keep each file focused on one behavior or a tightly related lifecycle
+- group related cases when shared setup makes the behavior easier to understand
 - shared helpers live in nearby `test_support/` directories
 - fake runtimes and harnesses should stay out of production code
-- real-model smoke tests live under `test/integration/genkit/`
+- real-model smoke tests use the `real-model` tag and live beside the layer they
+  exercise
 
 ## Real-Model Smoke Tests
 

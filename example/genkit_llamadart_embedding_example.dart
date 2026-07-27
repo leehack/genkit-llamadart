@@ -19,7 +19,12 @@ Future<void> main() async {
 
   final plugin = llamaDart(
     models: <LlamaModelDefinition>[
-      LlamaModelDefinition(name: 'local-embed', modelPath: modelPath),
+      LlamaModelDefinition(
+        name: 'local-embed',
+        modelPath: modelPath,
+        supportsTools: false,
+        supportsConstrainedOutput: false,
+      ),
     ],
   );
 

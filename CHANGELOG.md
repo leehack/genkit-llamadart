@@ -1,3 +1,16 @@
+## Unreleased
+
+- Add compatibility with Genkit `0.15.x` while retaining the `0.13.2` lower
+  bound.
+- Reject new runtime work once plugin disposal starts and dispose independent
+  model runtimes concurrently.
+- Infer media types from URI paths so signed image URLs work without an explicit
+  content type, and accept Windows drive-letter media paths.
+- Test both dependency bounds in CI and run every `real-model`-tagged test in
+  CI and release verification.
+- Correct source-example commands and refresh lifecycle, capability,
+  architecture, testing, and advanced configuration documentation.
+
 ## 1.3.3 - 2026-06-10
 
 - Widen the Genkit and Schemantic dependency constraints to allow `genkit` `0.14.x` while keeping compatibility with `0.13.x`.

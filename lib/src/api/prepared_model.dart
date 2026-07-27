@@ -109,6 +109,9 @@ class LlamaPreparedModel {
   }
 
   /// Disposes runtimes owned by [plugin] when [ownsPlugin] is true.
+  ///
+  /// Disposal is terminal for an owned plugin. Prepare a new model handle
+  /// instead of reusing this handle afterward.
   Future<void> dispose() {
     if (!ownsPlugin) {
       return Future<void>.value();

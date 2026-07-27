@@ -101,6 +101,7 @@ Future<void> main() async {
         modelPath: modelPath,
         mmprojPath: mmprojPath,
         modelParams: const ModelParams(contextSize: 8192),
+        supportsEmbeddings: false,
       ),
     ],
   );

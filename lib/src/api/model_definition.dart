@@ -12,6 +12,7 @@ import 'package:llamadart/llamadart.dart' show ModelParams;
 ///   name: 'local-chat',
 ///   modelPath: '/models/chat.gguf',
 ///   modelParams: ModelParams(contextSize: 8192),
+///   supportsEmbeddings: false,
 ///   supportsTools: true,
 ///   supportsConstrainedOutput: true,
 /// );
@@ -58,5 +59,9 @@ class LlamaModelDefinition {
   final bool supportsConstrainedOutput;
 
   /// Optional Genkit model metadata override.
+  ///
+  /// Values in `modelInfo.supports` override advertised capability metadata,
+  /// but do not bypass request enforcement by [supportsEmbeddings],
+  /// [supportsTools], or [supportsConstrainedOutput].
   final ModelInfo? modelInfo;
 }
