@@ -286,7 +286,9 @@ jobs:
             fi
 
             echo "Waiting for release surfaces ($attempt/$RELEASE_WAIT_ATTEMPTS): pub.dev=$pub_live GitHub=$release_live"
-            sleep "$RELEASE_WAIT_INTERVAL_SECONDS"
+            if [[ "$attempt" -lt "$RELEASE_WAIT_ATTEMPTS" ]]; then
+              sleep "$RELEASE_WAIT_INTERVAL_SECONDS"
+            fi
           done
 
           echo "$PACKAGE_NAME $VERSION did not finish publishing before the wait limit." >&2
