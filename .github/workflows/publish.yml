@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
 
 jobs:
   verify:
@@ -28,6 +29,17 @@ jobs:
       - name: Verify tag matches pubspec version
         id: version
         run: |
+          set -euo pipefail
+
+          if [ "$GITHUB_REF_TYPE" != "tag" ]; then
+            echo "Publish must run from a vX.Y.Z tag, not $GITHUB_REF." >&2
+            exit 1
+          fi
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Publish tag must use the stable vX.Y.Z format: $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+
           TAG_VERSION="${GITHUB_REF_NAME#v}"
           PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
 
