@@ -1,3 +1,8 @@
+## Unreleased
+
+- Automatically tag and publish a release after its guarded release-preparation
+  PR is merged.
+
 ## 1.4.0 - 2026-07-27
 
 - Add compatibility with Genkit `0.15.x` while retaining the `0.13.2` lower
