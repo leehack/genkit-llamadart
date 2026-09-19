@@ -1,3 +1,8 @@
+## Unreleased
+
+- Skip runtime and lower-bound CI for known prose-only pull requests while
+  retaining package validation; cancel superseded pull-request runs.
+
 ## 1.4.0 - 2026-07-27
 
 - Add compatibility with Genkit `0.15.x` while retaining the `0.13.2` lower
