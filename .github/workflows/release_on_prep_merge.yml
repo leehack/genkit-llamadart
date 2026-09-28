@@ -12,7 +12,7 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: release-on-prep-merge
+  group: release-on-prep-merge-${{ github.event.pull_request.number }}
   cancel-in-progress: false
 
 jobs:
@@ -73,31 +73,16 @@ jobs:
         run: |
           set -euo pipefail
 
-          saw_changelog=false
-          saw_pubspec=false
-          unexpected=false
-
-          while IFS= read -r file; do
-            case "$file" in
-              CHANGELOG.md)
-                saw_changelog=true
-                ;;
-              pubspec.yaml)
-                saw_pubspec=true
-                ;;
-              *)
-                echo "Release-prep PRs may not change $file." >&2
-                unexpected=true
-                ;;
-            esac
-          done < <(
-            gh api --paginate \
-              "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" \
-              --jq '.[].filename'
-          )
-
-          if [[ "$saw_changelog" != true || "$saw_pubspec" != true || "$unexpected" == true ]]; then
-            echo "Release-prep PRs must change only CHANGELOG.md and pubspec.yaml." >&2
+          # Capture the API result directly so a failed page cannot be hidden
+          # by process substitution after returning the two expected files.
+          files="$(gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files")"
+          if ! jq -e '
+            [.[][]] as $files |
+            ($files | map(.filename) | sort) == ["CHANGELOG.md", "pubspec.yaml"] and
+            ($files | all(.status == "modified"))
+          ' <<< "$files" >/dev/null; then
+            echo "Release-prep PRs must modify only CHANGELOG.md and pubspec.yaml." >&2
             exit 1
           fi
 
@@ -131,6 +116,8 @@ jobs:
         run: |
           set -euo pipefail
 
+          source .github/release_helpers.sh
+
           package_name="$(awk '/^name:[[:space:]]*/ {print $2; exit}' pubspec.yaml)"
           version="$(awk '/^version:[[:space:]]*/ {print $2; exit}' pubspec.yaml)"
           if [[ ! "$package_name" =~ ^[a-z0-9_]+$ ]]; then
@@ -161,23 +148,19 @@ jobs:
           tag="v$version"
           release_sha="$(git rev-parse HEAD)"
           tag_sha="$(
-            git ls-remote --refs --tags origin "refs/tags/$tag" |
-              awk 'NR == 1 {print $1}'
+            git ls-remote --tags origin "refs/tags/$tag" "refs/tags/$tag^{}" |
+              awk '$2 ~ /\^\{\}$/ {peeled=$1} $2 !~ /\^\{\}$/ {direct=$1}
+                   END {print (peeled != "" ? peeled : direct)}'
           )"
           if [[ -n "$tag_sha" && "$tag_sha" != "$release_sha" ]]; then
             echo "Release tag $tag already points to $tag_sha, not $release_sha." >&2
             exit 1
           fi
 
-          pub_live=false
-          if curl -fsSL "https://pub.dev/api/packages/$package_name/versions/$version" >/dev/null; then
-            pub_live=true
-          fi
-
-          release_live=false
-          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            release_live=true
-          fi
+          pub_live="$(release_url_exists "https://pub.dev/api/packages/$package_name/versions/$version")"
+          release_live="$(release_url_exists \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/tags/$tag" \
+            --header "Authorization: Bearer $GH_TOKEN")"
 
           if [[ "$pub_live" == true && -z "$tag_sha" ]]; then
             echo "$package_name $version exists on pub.dev without the expected $tag tag." >&2
@@ -228,7 +211,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_SHA: ${{ steps.release.outputs.release_sha }}
         run: |
+          # A retry must wait for an existing publisher, not enqueue another.
+          runs="$(gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/actions/workflows/publish.yml/runs?head_sha=$RELEASE_SHA&per_page=100")"
+          active="$(jq --arg tag "$TAG" '[.[] | .workflow_runs[] |
+            select(.head_branch == $tag and .status != "completed")] | length' <<< "$runs")"
+          if [[ "$active" != 0 ]]; then
+            echo "A publish run for $TAG is already active; waiting for its result."
+            exit 0
+          fi
           gh api \
             --method POST \
             "repos/$GITHUB_REPOSITORY/actions/workflows/publish.yml/dispatches" \
@@ -268,17 +261,13 @@ jobs:
             exit 1
           fi
 
+          source .github/release_helpers.sh
           version_url="https://pub.dev/api/packages/$PACKAGE_NAME/versions/$VERSION"
           for attempt in $(seq 1 "$RELEASE_WAIT_ATTEMPTS"); do
-            pub_live=false
-            release_live=false
-
-            if curl -fsSL "$version_url" >/dev/null; then
-              pub_live=true
-            fi
-            if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-              release_live=true
-            fi
+            pub_live="$(release_url_exists "$version_url")"
+            release_live="$(release_url_exists \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/tags/$TAG" \
+              --header "Authorization: Bearer $GH_TOKEN")"
 
             if [[ "$pub_live" == true && "$release_live" == true ]]; then
               echo "$PACKAGE_NAME $VERSION and GitHub Release $TAG are live."

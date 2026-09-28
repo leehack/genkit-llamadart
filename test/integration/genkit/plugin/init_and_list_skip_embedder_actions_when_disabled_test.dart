@@ -1,3 +1,4 @@
+import 'package:genkit/plugin.dart';
 import 'package:genkit_llamadart/genkit_llamadart.dart';
 import 'package:test/test.dart';
 
@@ -19,9 +20,9 @@ void main() {
     final metadata = await plugin.list();
 
     expect(actions, hasLength(1));
-    expect(actions.single.actionType, 'model');
+    expect(actions.single.actionType, ActionType.model);
     expect(metadata, hasLength(1));
-    expect(metadata.single.actionType, 'model');
+    expect(metadata.single.actionType, ActionType.model);
 
     final model = metadata.single.metadata['model']! as Map<String, dynamic>;
     final supports = model['supports']! as Map<String, dynamic>;

@@ -7,6 +7,7 @@ import '../../../api/generation_config.dart';
 import '../../../api/model_definition.dart';
 import '../../../core/runtime/engine_registry.dart';
 import '../../../core/runtime/llama_runtime.dart';
+import '../../../core/runtime/operation_usage.dart';
 import '../../../core/streaming/completion_accumulator.dart';
 import '../action_support.dart';
 import '../converters/genkit_to_llama.dart';
@@ -33,15 +34,40 @@ genkit.Model<LlamaDartGenerationConfig> buildModelAction({
         );
       }
 
-      return registry.withRuntime(
-        definition.name,
-        (runtime) => _runModel(
-          definition: definition,
-          runtime: runtime,
-          request: request,
-          context: context,
-        ),
-      );
+      final capture = OperationUsage();
+      final total = Stopwatch()..start();
+      return runZoned(() async {
+        final response = await registry.withRuntime(definition.name, (
+          runtime,
+        ) async {
+          context.cancel?.throwIfCancelled();
+          final unregister = context.cancel?.onCancel(runtime.cancelGeneration);
+          try {
+            final response = await _runModel(
+              definition: definition,
+              runtime: runtime,
+              request: request,
+              context: context,
+            );
+            context.cancel?.throwIfCancelled();
+            return response;
+          } finally {
+            unregister?.call();
+          }
+        }, beforeInitialize: context.cancel?.throwIfCancelled);
+        response.usage ??= toGenkitUsage(capture.usage);
+        if (capture.finishReason != null) {
+          response.finishReason = mapFinishReason(capture.finishReason);
+        }
+        response.raw = {
+          ...?response.raw,
+          'queueMs': capture.queueMs,
+          'initializationMs': capture.initializationMs,
+          'totalLatencyMs': total.elapsedMicroseconds / 1000,
+          if (capture.usage != null) 'usage': capture.usage!.toJson(),
+        };
+        return response;
+      }, zoneValues: {operationUsageKey: capture});
     },
   );
 }
@@ -189,6 +215,7 @@ Future<genkit.ModelResponse> _runStructuredModel({
     chatTemplateKwargs: config.chatTemplateKwargs,
   );
 
+  context.cancel?.throwIfCancelled();
   final stops = <String>{
     ...template.additionalStops,
     ...params.stopSequences,
@@ -233,6 +260,7 @@ Future<genkit.ModelResponse> _runStructuredModel({
     }
   }
 
+  context.cancel?.throwIfCancelled();
   final parsed = llama.ChatTemplateEngine.parse(
     template.format,
     rawOutput.toString(),

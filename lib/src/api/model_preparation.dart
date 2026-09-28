@@ -123,27 +123,20 @@ class LlamaModelPreparationSnapshot {
 /// the resulting [LlamaPreparedModel] when the app is done using it.
 class LlamaModelPreparationTask {
   LlamaModelPreparationTask._({
-    required String name,
-    required llama.ModelSource source,
-    required llama.ModelParams modelParams,
+    required this._name,
+    required this._source,
+    required this._modelParams,
     required llama.ModelSource? mmprojSource,
-    required llama.ModelLoadOptions options,
-    required llama.ModelLoadOptions mmprojOptions,
+    required this._options,
+    required this._mmprojOptions,
     required llama.ModelDownloadManager manager,
-    required bool supportsEmbeddings,
-    required bool supportsTools,
-    required bool supportsConstrainedOutput,
-    required genkit.ModelInfo? modelInfo,
-  }) : _name = name,
-       _source = source,
-       _modelParams = modelParams,
-       _mmprojSource = mmprojSource,
-       _options = options,
-       _mmprojOptions = mmprojOptions,
-       _supportsEmbeddings = supportsEmbeddings,
-       _supportsTools = supportsTools,
-       _supportsConstrainedOutput = supportsConstrainedOutput,
-       _modelInfo = modelInfo,
+    required this._supportsEmbeddings,
+    required this._supportsTools,
+    required this._supportsConstrainedOutput,
+    required this._modelInfo,
+    required Iterable<llama.LlamaEngineObserver> observers,
+  }) : _mmprojSource = mmprojSource,
+       _observers = List<llama.LlamaEngineObserver>.unmodifiable(observers),
        _modelController = llama.ModelDownloadController(manager: manager),
        _mmprojController = mmprojSource == null
            ? null
@@ -173,6 +166,7 @@ class LlamaModelPreparationTask {
   final bool _supportsTools;
   final bool _supportsConstrainedOutput;
   final genkit.ModelInfo? _modelInfo;
+  final List<llama.LlamaEngineObserver> _observers;
   final llama.ModelDownloadController _modelController;
   final llama.ModelDownloadController? _mmprojController;
   final Completer<LlamaPreparedModel> _completer =
@@ -258,6 +252,7 @@ class LlamaModelPreparationTask {
         supportsTools: _supportsTools,
         supportsConstrainedOutput: _supportsConstrainedOutput,
         modelInfo: _modelInfo,
+        observers: _observers,
       );
 
       _emit(
@@ -421,6 +416,7 @@ LlamaModelPreparationTask createLlamaModelPreparationTask({
   bool supportsTools = true,
   bool supportsConstrainedOutput = true,
   genkit.ModelInfo? modelInfo,
+  Iterable<llama.LlamaEngineObserver> observers = const [],
 }) {
   if (name.isEmpty) {
     throw ArgumentError.value(name, 'name', 'Model name must not be empty.');
@@ -438,5 +434,6 @@ LlamaModelPreparationTask createLlamaModelPreparationTask({
     supportsTools: supportsTools,
     supportsConstrainedOutput: supportsConstrainedOutput,
     modelInfo: modelInfo,
+    observers: observers,
   );
 }

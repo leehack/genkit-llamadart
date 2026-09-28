@@ -125,7 +125,29 @@ After a qualifying merge, the release-on-prep workflow:
 The explicit dispatch lets the repository's short-lived `GITHUB_TOKEN` trigger
 the downstream workflow without a personal access token. Rerunning a failed
 release-on-prep job safely reuses a matching tag, and repairs a missing GitHub
-Release when the pub.dev version is already live.
+Release when the pub.dev version is already live. Matching lightweight and
+annotated tags are accepted; a tag pointing at another commit is rejected.
+An active publish run for the same tag is allowed to finish before a retry
+attempts another dispatch. Release runs are serialized per PR and publish runs
+per tag, so an ordinary PR cannot displace a queued release.
+
+Lookup errors stop automation: only HTTP 404 means a release surface is absent.
+Authentication, rate-limit, network, and server errors require investigation
+before retrying. A failed workflow dispatch can be retried after fixing its
+cause; the matching tag is reused. The workflow still requires both public
+release surfaces before reporting success.
+
+The release-gate replay tests run the workflow's actual shell snippets against
+fake external commands. Run them with:
+
+```bash
+python3 -B -m unittest discover -s .github -p 'test_*.py'
+actionlint .github/workflows/*.yml
+shellcheck -s bash .github/release_helpers.sh
+```
+
+These tests do not create tags or publish packages. The first approved release
+will validate GitHub token dispatch and pub.dev OIDC end to end.
 
 The publish workflow then:
 

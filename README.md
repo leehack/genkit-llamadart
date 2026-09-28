@@ -47,7 +47,7 @@ and using `package:genkit_llamadart/genkit_llamadart.dart` for Genkit APIs.
 
 ## Requirements
 
-- Dart SDK `^3.10.7`
+- Dart SDK `^3.12.0`
 - a local model file supported by `llamadart`, or a `ModelSource` that resolves to one
 - the native `llamadart` runtime prerequisites for your platform
 - an optional multimodal projector file or source if you want image input support
@@ -61,6 +61,68 @@ packages, and platform support:
 Flutter Apple builds that use the companion SwiftPM packages require deployment
 targets of iOS `16.4` or newer and macOS `14.0` or newer. If an iOS app still
 uses CocoaPods, set the Podfile platform to `16.4` or newer too.
+
+## Observability
+
+Requires Genkit `0.17.x` and llamadart `0.9.x`. Configure a production
+instrumentation provider with `configureInstrumentation(...)` from
+`package:genkit/telemetry.dart` before creating `Genkit`. Genkit's development
+provider activates when a telemetry server is configured; installing this plugin
+alone does not export telemetry.
+
+The model response supplies backend-reported `usage.inputTokens`, `outputTokens`,
+`totalTokens`, and `cachedContentTokens`. Missing measurements remain absent;
+zero counts remain zero. Native llama.cpp and capable WebGPU bridges report
+usage; do not assume every backend provides it.
+
+`response.raw` additionally includes:
+
+- `usage`: llamadart's usage map, with `time_to_first_token_ms` and `duration_ms`
+  when reported. These backend timings exclude the plugin queue and model load.
+- `queueMs`: time waiting for the model's serialized execution slot.
+- `initializationMs`: time obtaining the runtime, including lazy model/projector
+  loading on its first request.
+- `totalLatencyMs`: elapsed time in the model action, including queue and setup.
+
+`response.latencyMs` retains its existing generation-path timing after runtime
+initialization. Usage is captured for ordinary chat and constrained JSON output.
+These are per-model-call measurements; Genkit handles multi-turn aggregation.
+
+Pass `observers: [yourObserver]` to `llamaDart(...)`, `prepareModel(...)`, or
+`prepareModelTask(...)` to observe engine model loads, chat/text generation,
+and embeddings, including failures and cancellation. Extend
+`LlamaEngineObserver` and `LlamaOperationObserver`. Callbacks execute in the
+request's Dart zone, allowing your instrumentation provider to correlate them
+with the surrounding Genkit span, including after queue waits. Observer errors
+are logged by llamadart without breaking inference. With a custom runtime
+factory, that factory is responsible for installing its observers.
+
+Observers receive request content. Export prompts, responses and tool data only
+with an explicit application opt-in. Count token usage once at the model level;
+engine diagnostics can carry the same measurements and should not increment a
+second model-usage counter.
+
+See [the observability example](example/genkit_llamadart_observability_example.dart)
+for a runnable Genkit provider and correlated engine observer that print only
+measurements:
+
+```bash
+LLAMADART_MODEL_PATH=/models/chat.gguf dart run example/genkit_llamadart_observability_example.dart
+```
+
+### Migrating from Genkit 0.15
+
+- Tool callbacks return `ToolResult.response(value)` in Genkit 0.17.
+  Multipart tool-result content is currently rejected with `UNIMPLEMENTED`;
+  return text or structured `output` instead.
+- Genkit `ai.generate()` can return `finishReason: failed` or `aborted`;
+  inspect the outcome and `error`/`cause` before using the result.
+  `LlamaPreparedModel.warmUp()` continues to throw on failure or cancellation.
+- Pass `cancel: controller.token` to Genkit generation for cooperative
+  cancellation. Queued cancelled requests are checked before loading or
+  generation, without interrupting another active request. They settle when
+  their queue slot is reached. The existing plugin cancellation helpers remain
+  available for stopping the active generation directly.
 
 ## Finding Models
 

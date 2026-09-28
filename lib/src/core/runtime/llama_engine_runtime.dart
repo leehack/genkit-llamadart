@@ -2,10 +2,18 @@ import 'package:llamadart/llamadart.dart' as llama;
 
 import '../../api/model_definition.dart';
 import 'llama_runtime.dart';
+import 'operation_usage.dart';
 
 class LlamaEngineRuntime implements LlamaRuntime {
-  LlamaEngineRuntime({llama.LlamaEngine? engine})
-    : _engine = engine ?? llama.LlamaEngine(llama.LlamaBackend());
+  LlamaEngineRuntime({
+    llama.LlamaEngine? engine,
+    Iterable<llama.LlamaEngineObserver> observers = const [],
+  }) : _engine =
+           engine ??
+           llama.LlamaEngine(
+             llama.LlamaBackend(),
+             observers: [const UsageObserver(), ...observers],
+           );
 
   final llama.LlamaEngine _engine;
   bool _initialized = false;

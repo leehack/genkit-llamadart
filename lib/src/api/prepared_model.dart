@@ -70,6 +70,8 @@ class LlamaPreparedModel {
   /// [systemPrompt] can prime an expensive instruction prefix before the first
   /// user-visible turn. Override [config] to control max tokens, temperature,
   /// thinking behavior, and other `llamadart` generation settings.
+  /// Failed or aborted Genkit responses throw their original cause when present,
+  /// otherwise a [genkit.GenkitException].
   Future<genkit.GenerateResponseHelper<Output>> warmUp<Output>(
     genkit.Genkit ai, {
     String? systemPrompt,
@@ -79,7 +81,7 @@ class LlamaPreparedModel {
       temperature: 0.0,
       enableThinking: false,
     ),
-  }) {
+  }) async {
     final messages = systemPrompt == null
         ? null
         : <genkit.Message>[
@@ -93,12 +95,20 @@ class LlamaPreparedModel {
             ),
           ];
 
-    return ai.generate<LlamaDartGenerationConfig, Output>(
+    final response = await ai.generate<LlamaDartGenerationConfig, Output>(
       model: modelRef,
       prompt: messages == null ? prompt : null,
       messages: messages,
       config: config,
     );
+    if (response.finishReason == genkit.FinishReason.failed ||
+        response.finishReason == genkit.FinishReason.aborted) {
+      throw response.cause ??
+          genkit.GenkitException(
+            response.finishMessage ?? 'Model warm-up failed.',
+          );
+    }
+    return response;
   }
 
   /// Cancels the in-flight generation for this prepared model, if any. Lets a
@@ -130,6 +140,7 @@ LlamaPreparedModel createLlamaPreparedModel({
   bool supportsTools = true,
   bool supportsConstrainedOutput = true,
   genkit.ModelInfo? modelInfo,
+  Iterable<llama.LlamaEngineObserver> observers = const [],
 }) {
   final definition = LlamaModelDefinition(
     name: name,
@@ -141,7 +152,10 @@ LlamaPreparedModel createLlamaPreparedModel({
     supportsConstrainedOutput: supportsConstrainedOutput,
     modelInfo: modelInfo,
   );
-  final plugin = LlamaDartPlugin(models: <LlamaModelDefinition>[definition]);
+  final plugin = LlamaDartPlugin(
+    models: <LlamaModelDefinition>[definition],
+    observers: observers,
+  );
 
   return LlamaPreparedModel(
     definition: definition,

@@ -1,4 +1,5 @@
 import 'package:genkit/plugin.dart';
+import 'package:llamadart/llamadart.dart' as llama;
 
 import '../../api/model_definition.dart';
 import '../../core/runtime/engine_registry.dart';
@@ -11,14 +12,20 @@ import 'actions/model_action.dart';
 class LlamaDartPlugin extends GenkitPlugin {
   /// Creates a plugin that registers one model and embedder per definition.
   ///
+  /// [observers] are copied and attached to default engines. Callbacks inherit
+  /// the request zone and observer errors do not fail inference. When supplying
+  /// [runtimeFactory], the factory owns observer installation instead.
+  ///
   /// Model names must be unique within the plugin instance.
   LlamaDartPlugin({
     required List<LlamaModelDefinition> models,
     LlamaRuntimeFactory? runtimeFactory,
+    Iterable<llama.LlamaEngineObserver> observers = const [],
   }) : _models = List<LlamaModelDefinition>.unmodifiable(models),
        _registry = EngineRegistry(
          models: models,
          runtimeFactory: runtimeFactory,
+         observers: observers,
        ) {
     final names = <String>{};
     for (final model in models) {
@@ -90,14 +97,14 @@ class LlamaDartPlugin extends GenkitPlugin {
             ActionMetadata(
               name: actionName,
               description: definition.name,
-              actionType: 'model',
+              actionType: ActionType.model,
               metadata: actionMetadataFor(definition, modelInfo: modelInfo),
             ),
             if (definition.supportsEmbeddings)
               ActionMetadata(
                 name: actionName,
                 description: definition.name,
-                actionType: 'embedder',
+                actionType: ActionType.embedder,
                 metadata: actionMetadataFor(definition, modelInfo: modelInfo),
               ),
           ];

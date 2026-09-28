@@ -54,8 +54,14 @@ class LlamaDartPluginHandle {
   ///
   /// Each definition registers a Genkit model action, plus an embedder action
   /// when `supportsEmbeddings` is enabled.
-  LlamaDartPlugin call({required List<LlamaModelDefinition> models}) {
-    return LlamaDartPlugin(models: models);
+  /// [observers] observe every default engine in the caller's request zone.
+  /// They may receive sensitive content; exporting it requires app opt-in.
+  /// Observer failures are isolated by llamadart.
+  LlamaDartPlugin call({
+    required List<LlamaModelDefinition> models,
+    Iterable<llama.LlamaEngineObserver> observers = const [],
+  }) {
+    return LlamaDartPlugin(models: models, observers: observers);
   }
 
   /// Resolves a `llamadart` [llama.ModelSource] into a Genkit-ready model.
@@ -66,6 +72,8 @@ class LlamaDartPluginHandle {
   /// sources are validated by the manager and remain subject to `llamadart`'s
   /// local-source option checks. When [mmprojSource] is provided, it is resolved
   /// with [mmprojOptions] and wired into the produced [LlamaModelDefinition].
+  ///
+  /// [observers] are copied before preparation and attached to the engine.
   ///
   /// The returned [LlamaPreparedModel] exposes the normal plugin and typed refs,
   /// so generation still uses `Genkit.generate` with `llamaDart.model(name)`.
@@ -83,11 +91,15 @@ class LlamaDartPluginHandle {
     bool supportsTools = true,
     bool supportsConstrainedOutput = true,
     ModelInfo? modelInfo,
+    Iterable<llama.LlamaEngineObserver> observers = const [],
   }) async {
     if (name.isEmpty) {
       throw ArgumentError.value(name, 'name', 'Model name must not be empty.');
     }
 
+    final observerSnapshot = List<llama.LlamaEngineObserver>.unmodifiable(
+      observers,
+    );
     final manager = downloadManager ?? llama.DefaultModelDownloadManager();
     final modelEntry = await manager.ensureModel(
       source,
@@ -111,6 +123,7 @@ class LlamaDartPluginHandle {
       supportsTools: supportsTools,
       supportsConstrainedOutput: supportsConstrainedOutput,
       modelInfo: modelInfo,
+      observers: observerSnapshot,
     );
   }
 
@@ -121,6 +134,9 @@ class LlamaDartPluginHandle {
   /// cancellation. Use this in Flutter, CLI, and server apps that need
   /// deterministic progress UI without reaching into lower-level `llamadart`
   /// download controller internals.
+  ///
+  /// [observers] are copied and attached to the prepared engine for telemetry
+  /// alongside download progress.
   LlamaModelPreparationTask prepareModelTask({
     required String name,
     required llama.ModelSource source,
@@ -133,6 +149,7 @@ class LlamaDartPluginHandle {
     bool supportsTools = true,
     bool supportsConstrainedOutput = true,
     ModelInfo? modelInfo,
+    Iterable<llama.LlamaEngineObserver> observers = const [],
   }) {
     return createLlamaModelPreparationTask(
       name: name,
@@ -146,6 +163,7 @@ class LlamaDartPluginHandle {
       supportsTools: supportsTools,
       supportsConstrainedOutput: supportsConstrainedOutput,
       modelInfo: modelInfo,
+      observers: observers,
     );
   }
 

@@ -99,8 +99,9 @@ genkit.ModelResponse toGenkitModelResponse(
     message: genkit.Message(role: genkit.Role.model, content: parts),
     finishReason: mapFinishReason(result.finishReason),
     finishMessage: result.finishMessage,
+    usage: toGenkitUsage(result.usage),
     latencyMs: latencyMs,
-    raw: raw,
+    raw: {...raw, if (result.usage != null) 'usage': result.usage!.toJson()},
   );
 }
 
@@ -208,3 +209,13 @@ Map<String, dynamic> _decodeToolArguments(String? rawArguments) {
     return <String, dynamic>{'_raw': rawArguments};
   }
 }
+
+genkit.GenerationUsage? toGenkitUsage(llama.LlamaGenerationUsage? usage) =>
+    usage == null
+    ? null
+    : genkit.GenerationUsage(
+        inputTokens: usage.promptTokens.toDouble(),
+        outputTokens: usage.completionTokens.toDouble(),
+        totalTokens: usage.totalTokens.toDouble(),
+        cachedContentTokens: usage.cachedPromptTokens?.toDouble(),
+      );
