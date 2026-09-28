@@ -1,5 +1,20 @@
 ## Unreleased
 
+- Require Dart 3.12, Genkit 0.17, llamadart 0.9, and Schemantic 0.2.3;
+  migrate action metadata and tool examples to the new Genkit APIs.
+- Report actual token usage (including cached tokens) and backend timings for
+  chat and constrained JSON responses, plus queue, initialization and total
+  model-action timings. Keep unknown usage absent.
+- Accept engine observers on direct and source-prepared plugins for trace
+  correlation, model-load and inference diagnostics; add a runnable
+  observability example and production instrumentation guidance.
+- Connect Genkit request cancellation to active inference and skip cancelled
+  queued work before initialization. Preserve warm-up failure exceptions despite
+  Genkit's new failed-response behavior.
+- Preserve backend token-limit finish reasons for constrained JSON output.
+- Reject unsupported multipart tool-result content instead of dropping it.
+- Update the lower-bound dependency compatibility lane.
+
 - Skip runtime and lower-bound CI for known prose-only pull requests while
   retaining package validation; cancel superseded pull-request runs.
 

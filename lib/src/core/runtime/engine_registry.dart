@@ -1,15 +1,26 @@
 import 'dart:async';
 
+import 'package:llamadart/llamadart.dart' as llama;
+
 import '../../api/model_definition.dart';
 import 'llama_engine_runtime.dart';
 import 'llama_runtime.dart';
+import 'operation_usage.dart';
 
 class EngineRegistry {
   EngineRegistry({
     required Iterable<LlamaModelDefinition> models,
     LlamaRuntimeFactory? runtimeFactory,
+    Iterable<llama.LlamaEngineObserver> observers = const [],
   }) : _definitions = {for (final model in models) model.name: model},
-       _runtimeFactory = runtimeFactory ?? (() => LlamaEngineRuntime());
+       _runtimeFactory = runtimeFactory ?? _defaultFactory(observers);
+
+  static LlamaRuntimeFactory _defaultFactory(
+    Iterable<llama.LlamaEngineObserver> observers,
+  ) {
+    final snapshot = List<llama.LlamaEngineObserver>.unmodifiable(observers);
+    return () => LlamaEngineRuntime(observers: snapshot);
+  }
 
   final Map<String, LlamaModelDefinition> _definitions;
   final LlamaRuntimeFactory _runtimeFactory;
@@ -18,8 +29,9 @@ class EngineRegistry {
 
   Future<T> withRuntime<T>(
     String modelName,
-    Future<T> Function(LlamaRuntime runtime) operation,
-  ) {
+    Future<T> Function(LlamaRuntime runtime) operation, {
+    void Function()? beforeInitialize,
+  }) {
     if (_disposeFuture != null) {
       throw StateError('The llamadart engine registry has been disposed.');
     }
@@ -33,7 +45,7 @@ class EngineRegistry {
       modelName,
       () => _EngineEntry(definition, _runtimeFactory),
     );
-    return entry.run(operation);
+    return entry.run(operation, beforeInitialize: beforeInitialize);
   }
 
   /// Cancels the generation in flight for [modelName] without queueing behind
@@ -86,12 +98,21 @@ class _EngineEntry {
     _runtime?.cancelGeneration();
   }
 
-  Future<T> run<T>(Future<T> Function(LlamaRuntime runtime) operation) {
+  Future<T> run<T>(
+    Future<T> Function(LlamaRuntime runtime) operation, {
+    void Function()? beforeInitialize,
+  }) {
     final completer = Completer<T>();
+    final capture = Zone.current[operationUsageKey] as OperationUsage?;
+    final queued = capture == null ? null : (Stopwatch()..start());
 
     _tail = _tail.catchError((Object _) {}).then((_) async {
       try {
+        capture?.queueMs = queued!.elapsedMicroseconds / 1000;
+        beforeInitialize?.call();
+        final loading = capture == null ? null : (Stopwatch()..start());
         final runtime = await _ensureRuntime();
+        capture?.initializationMs = loading!.elapsedMicroseconds / 1000;
         final result = await operation(runtime);
         completer.complete(result);
       } catch (error, stackTrace) {

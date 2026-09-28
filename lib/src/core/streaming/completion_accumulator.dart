@@ -7,6 +7,7 @@ final class CompletionResult {
     required this.text,
     required this.reasoning,
     required this.toolCalls,
+    this.usage,
     this.finishReason,
     this.finishMessage,
   });
@@ -14,6 +15,7 @@ final class CompletionResult {
   final String text;
   final String reasoning;
   final List<llama.LlamaCompletionChunkToolCall> toolCalls;
+  final llama.LlamaGenerationUsage? usage;
   final String? finishReason;
   final String? finishMessage;
 }
@@ -24,10 +26,12 @@ class CompletionAccumulator {
   final SplayTreeMap<int, _AccumulatedToolCall> _toolCallsByIndex =
       SplayTreeMap<int, _AccumulatedToolCall>();
 
+  llama.LlamaGenerationUsage? usage;
   String? finishReason;
   String? finishMessage;
 
   void addChunk(llama.LlamaCompletionChunk chunk) {
+    usage = chunk.usage ?? usage;
     if (chunk.choices.isEmpty) {
       return;
     }
@@ -58,6 +62,7 @@ class CompletionAccumulator {
 
   CompletionResult toResult() {
     return CompletionResult(
+      usage: usage,
       text: _text.toString(),
       reasoning: _reasoning.toString(),
       toolCalls: _toolCallsByIndex.values

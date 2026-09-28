@@ -44,7 +44,7 @@ void main() {
       inputSchema: _weatherInputSchema,
       outputSchema: SchemanticType.string(),
       fn: (input, _) async {
-        return 'Seoul is clear and 19C.';
+        return ToolResult.response('Seoul is clear and 19C.');
       },
     );
 
