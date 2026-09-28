@@ -93,7 +93,9 @@ dependency checks.
 
 ## Releasing
 
-Publishing is automated from GitHub tags.
+Merging a guarded release-preparation PR is the publication approval boundary.
+The merge creates the matching GitHub tag, dispatches the existing publish
+workflow, and waits for both pub.dev and the GitHub Release.
 
 Before the first automated release, configure pub.dev admin settings for this
 package to allow GitHub Actions publishing from `leehack/genkit-llamadart`
@@ -101,15 +103,52 @@ using the tag pattern `v{{version}}`.
 
 Release flow:
 
-1. update `version:` in `pubspec.yaml`
-2. update `CHANGELOG.md`
-3. merge to `main`
-4. create and push a matching tag like `v1.1.0`
+1. create a same-repository branch named `release/vX.Y.Z`
+2. update `version:` in `pubspec.yaml`
+3. promote `CHANGELOG.md` so its first heading is
+   `## X.Y.Z - YYYY-MM-DD`
+4. open a release-preparation PR that changes only `pubspec.yaml` and
+   `CHANGELOG.md`
+5. complete review and CI, then merge the PR
+
+The optional `release-prep` label can authorize a nonstandard same-repository
+branch. Ordinary merged PRs are detected and skipped.
+
+After a qualifying merge, the release-on-prep workflow:
+
+- verifies the branch or label gate and the two-file release diff
+- verifies the branch, package, and changelog versions agree
+- creates `vX.Y.Z` at the exact merge commit
+- explicitly dispatches the publish workflow using the tag
+- waits until the package version and GitHub Release are public
+
+The explicit dispatch lets the repository's short-lived `GITHUB_TOKEN` trigger
+the downstream workflow without a personal access token. Rerunning a failed
+release-on-prep job safely reuses a matching tag, and repairs a missing GitHub
+Release when the pub.dev version is already live. Matching lightweight and
+annotated tags are accepted; a tag pointing at another commit is rejected.
+An active publish run for the same tag is allowed to finish before a retry
+attempts another dispatch. Release runs are serialized per PR and publish runs
+per tag, so an ordinary PR cannot displace a queued release.
+
+Lookup errors stop automation: only HTTP 404 means a release surface is absent.
+Authentication, rate-limit, network, and server errors require investigation
+before retrying. Polling settings are checked before tag creation or dispatch.
+A failed workflow dispatch can be retried after fixing its
+cause; the matching tag is reused. The workflow still requires both public
+release surfaces before reporting success.
+
+The release-gate replay tests run the workflow's actual shell snippets against
+fake external commands. Run them with:
 
 ```bash
-git tag v1.1.0
-git push origin v1.1.0
+python3 -B -m unittest discover -s .github -p 'test_*.py'
+actionlint .github/workflows/*.yml
+shellcheck -s bash .github/release_helpers.sh
 ```
+
+These tests do not create tags or publish packages. The first approved release
+will validate GitHub token dispatch and pub.dev OIDC end to end.
 
 The publish workflow then:
 

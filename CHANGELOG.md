@@ -1,5 +1,8 @@
 ## Unreleased
 
+- Automatically tag and publish a release after its guarded release-preparation
+  PR is merged, with strict lookup failures, tag collision checks, and retry
+  handling that avoids dispatching over an active publisher.
 - Require Dart 3.12, Genkit 0.17, llamadart 0.9, and Schemantic 0.2.3;
   migrate action metadata and tool examples to the new Genkit APIs.
 - Report actual token usage (including cached tokens) and backend timings for

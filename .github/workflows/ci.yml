@@ -31,7 +31,7 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          python3 -B -m unittest discover -s .github -p "test_select_ci.py"
+          python3 -B -m unittest discover -s .github -p "test_*.py"
           python3 .github/select_ci.py
 
       - name: Set up Flutter
