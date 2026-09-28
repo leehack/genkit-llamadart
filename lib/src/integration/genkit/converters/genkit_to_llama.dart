@@ -25,6 +25,7 @@ List<llama.LlamaChatMessage> toLlamaMessages(List<genkit.Message> messages) {
       }
 
       for (final part in toolResponses) {
+        _validateToolResponse(part.toolResponse);
         converted.add(
           llama.LlamaChatMessage.withContent(
             role: llama.LlamaChatRole.tool,
@@ -191,6 +192,7 @@ llama.LlamaContentPart? _toLlamaPart(genkit.Part part) {
 
   if (part.isToolResponse) {
     final toolResponse = part.toolResponse!;
+    _validateToolResponse(toolResponse);
     return llama.LlamaToolResultContent(
       id: toolResponse.ref,
       name: toolResponse.name,
@@ -336,5 +338,14 @@ String _normalizeToolResultOutput(Object? output) {
     return jsonEncode(output);
   } catch (_) {
     return output.toString();
+  }
+}
+
+void _validateToolResponse(genkit.ToolResponse response) {
+  if (response.content?.isNotEmpty ?? false) {
+    throw genkit.GenkitException(
+      'Multipart tool results are not supported by llamadart; return structured output or text.',
+      status: genkit.StatusCodes.UNIMPLEMENTED,
+    );
   }
 }

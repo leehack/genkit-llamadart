@@ -262,7 +262,7 @@ Tool<Map<String, dynamic>, Map<String, dynamic>> _defineWeatherTool(
             : weather['temperatureC'],
       };
       _logTool('get_weather', input, output);
-      return output;
+      return ToolResult.response(output);
     },
   );
 }
@@ -289,7 +289,7 @@ Tool<Map<String, dynamic>, Map<String, dynamic>> _defineLocalTimeTool(
             'timezone': 'UTC',
           };
       _logTool('get_local_time', input, output);
-      return output;
+      return ToolResult.response(output);
     },
   );
 }
@@ -312,7 +312,7 @@ Tool<Map<String, dynamic>, Map<String, dynamic>> _defineKnowledgeTool(
           _factsByTopic[topic.toLowerCase()] ??
           <String, dynamic>{'topic': topic, 'fact': 'No stored fact found.'};
       _logTool('lookup_fact', input, output);
-      return output;
+      return ToolResult.response(output);
     },
   );
 }
