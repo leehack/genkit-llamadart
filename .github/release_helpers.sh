@@ -10,3 +10,16 @@ release_url_exists() {
     *) echo "Release lookup failed (HTTP $status)." >&2; return 1 ;;
   esac
 }
+
+# Check configuration before creating tags or starting publication, and also
+# when the wait step is replayed on its own.
+release_validate_wait_settings() {
+  if [[ ! "$RELEASE_WAIT_ATTEMPTS" =~ ^[1-9][0-9]*$ ]]; then
+    echo "RELEASE_WAIT_ATTEMPTS must be a positive integer." >&2
+    return 1
+  fi
+  if [[ ! "$RELEASE_WAIT_INTERVAL_SECONDS" =~ ^[1-9][0-9]*$ ]]; then
+    echo "RELEASE_WAIT_INTERVAL_SECONDS must be a positive integer." >&2
+    return 1
+  fi
+}

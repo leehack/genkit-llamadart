@@ -133,7 +133,8 @@ per tag, so an ordinary PR cannot displace a queued release.
 
 Lookup errors stop automation: only HTTP 404 means a release surface is absent.
 Authentication, rate-limit, network, and server errors require investigation
-before retrying. A failed workflow dispatch can be retried after fixing its
+before retrying. Polling settings are checked before tag creation or dispatch.
+A failed workflow dispatch can be retried after fixing its
 cause; the matching tag is reused. The workflow still requires both public
 release surfaces before reporting success.
 

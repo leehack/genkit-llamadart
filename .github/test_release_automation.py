@@ -214,10 +214,16 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.scenario["release_http"] = "200"
         self.run_step("Wait for publication")
 
-    def test_wait_rejects_invalid_bounds(self):
-        for value in ["0", "-1", "oops"]:
-            self.env["RELEASE_WAIT_ATTEMPTS"] = value
-            self.run_step("Wait for publication", success=False)
+    def test_invalid_polling_settings_fail_before_dispatch_and_during_wait(self):
+        for key in ["RELEASE_WAIT_ATTEMPTS", "RELEASE_WAIT_INTERVAL_SECONDS"]:
+            for value in ["0", "-1", "oops", "1.5", ""]:
+                with self.subTest(key=key, value=value):
+                    self.env[key] = value
+                    output = self.run_step("Validate release state", success=False)
+                    self.assertNotIn("should_dispatch", output)
+                    self.run_step("Wait for publication", success=False)
+            self.env[key] = "1"
+        self.assertEqual(self.mutations(), [])
 
     def test_publish_only_accepts_matching_stable_tag(self):
         self.env.update(GITHUB_REF_TYPE="tag", GITHUB_REF_NAME="v1.5.0", GITHUB_REF="refs/tags/v1.5.0")
