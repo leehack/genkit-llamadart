@@ -1,33 +1,39 @@
 # genkit_llamadart
 
-`genkit_llamadart` is a Genkit Dart plugin for running local models through
-`llamadart` in-process, without an OpenAI-compatible HTTP server.
+[![pub package](https://img.shields.io/pub/v/genkit_llamadart.svg)](https://pub.dev/packages/genkit_llamadart)
+[![pub points](https://img.shields.io/pub/points/genkit_llamadart)](https://pub.dev/packages/genkit_llamadart/score)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-It is designed for local-first Genkit applications that want a simple Dart API
-for chat generation, streaming, tool loops, constrained JSON output, and text
-embeddings.
+Run local LLMs in [Genkit Dart](https://pub.dev/packages/genkit) apps. This
+plugin runs llama.cpp GGUF models and LiteRT-LM bundles in-process through
+[`llamadart`](https://pub.dev/packages/llamadart), so Dart and Flutter apps get
+offline, on-device chat, streaming, tool calling, structured JSON output, and
+embeddings without an OpenAI-compatible HTTP server.
 
 ## Features
 
-- local filesystem `modelPath` configuration
-- source-backed model preparation with `ModelSource`, cache, download, and progress snapshots
-- lazy model loading
-- queued per-model execution
-- chat generation with streaming
-- Genkit tool request emission
-- constrained JSON output on grammar-capable backends
-- text embeddings
-- optional multimodal projector support
+- Chat generation with token streaming
+- Genkit tool calling for multi-turn agent loops
+- Constrained JSON output on grammar-capable backends
+- Text embeddings
+- Image and audio input with an optional multimodal projector
+- Local model paths, or source-backed preparation from local, HTTP(S), and
+  Hugging Face `ModelSource` values with caching, downloads, checksums, and
+  progress snapshots
+- Lazy model loading with queued per-model execution
+- Genkit request cancellation, token usage, timings, and engine observers for
+  OpenTelemetry instrumentation
+- Android, iOS, macOS, Linux, Windows, and web
 
-## Install
+## Installation
 
-Add both Genkit and the plugin to your app:
+Add Genkit and the plugin to your app:
 
 ```bash
 dart pub add genkit genkit_llamadart
 ```
 
-If you want structured outputs, also add `schemantic`:
+For structured output, also add `schemantic`:
 
 ```bash
 dart pub add schemantic
@@ -43,145 +49,22 @@ flutter pub add llamadart_litert_lm_flutter # .litertlm / LiteRT-LM
 ```
 
 These companion packages provide Apple runtime packaging only. Keep importing
-and using `package:genkit_llamadart/genkit_llamadart.dart` for Genkit APIs.
+`package:genkit_llamadart/genkit_llamadart.dart` for Genkit APIs.
 
-## Requirements
+### Requirements
 
-- Dart SDK `^3.12.0`
-- a local model file supported by `llamadart`, or a `ModelSource` that resolves to one
+- Dart SDK `^3.12.0`, Genkit `0.17.x`, and llamadart `0.9.x`
+- a local model file supported by `llamadart`, or a `ModelSource` that
+  resolves to one
 - the native `llamadart` runtime prerequisites for your platform
-- an optional multimodal projector file or source if you want image input support
+- optionally, a multimodal projector file or source for image or audio input
 
-This package uses the hosted `llamadart` package from pub.dev. Follow the
-`llamadart` installation guidance for native backend, Apple SwiftPM companion
-packages, and platform support:
-
-- `llamadart` docs: https://llamadart.leehack.com/
+Follow the [`llamadart` documentation](https://llamadart.leehack.com/) for
+native backends, Apple SwiftPM companion packages, and platform support.
 
 Flutter Apple builds that use the companion SwiftPM packages require deployment
 targets of iOS `16.4` or newer and macOS `14.0` or newer. If an iOS app still
 uses CocoaPods, set the Podfile platform to `16.4` or newer too.
-
-## Observability
-
-Requires Genkit `0.17.x` and llamadart `0.9.x`. Configure a production
-instrumentation provider with `configureInstrumentation(...)` from
-`package:genkit/telemetry.dart` before creating `Genkit`. Genkit's development
-provider activates when a telemetry server is configured; installing this plugin
-alone does not export telemetry.
-
-The model response supplies backend-reported `usage.inputTokens`, `outputTokens`,
-`totalTokens`, and `cachedContentTokens`. Missing measurements remain absent;
-zero counts remain zero. Native llama.cpp and capable WebGPU bridges report
-usage; do not assume every backend provides it.
-
-`response.raw` additionally includes:
-
-- `usage`: llamadart's usage map, with `time_to_first_token_ms` and `duration_ms`
-  when reported. These backend timings exclude the plugin queue and model load.
-- `queueMs`: time waiting for the model's serialized execution slot.
-- `initializationMs`: time obtaining the runtime, including lazy model/projector
-  loading on its first request.
-- `totalLatencyMs`: elapsed time in the model action, including queue and setup.
-
-`response.latencyMs` retains its existing generation-path timing after runtime
-initialization. Usage is captured for ordinary chat and constrained JSON output.
-These are per-model-call measurements; Genkit handles multi-turn aggregation.
-
-Pass `observers: [yourObserver]` to `llamaDart(...)`, `prepareModel(...)`, or
-`prepareModelTask(...)` to observe engine model loads, chat/text generation,
-and embeddings, including failures and cancellation. Extend
-`LlamaEngineObserver` and `LlamaOperationObserver`. Callbacks execute in the
-request's Dart zone, allowing your instrumentation provider to correlate them
-with the surrounding Genkit span, including after queue waits. Observer errors
-are logged by llamadart without breaking inference. With a custom runtime
-factory, that factory is responsible for installing its observers.
-
-Observers receive request content. Export prompts, responses and tool data only
-with an explicit application opt-in. Count token usage once at the model level;
-engine diagnostics can carry the same measurements and should not increment a
-second model-usage counter.
-
-See [the observability example](example/genkit_llamadart_observability_example.dart)
-for `genkit_otel`'s `GenAiInstrumentation` and correlated engine spans. The
-example initializes and shuts down the OpenTelemetry SDK, exporting model token
-and duration metrics once. Message capture and raw action I/O are explicitly
-disabled. Engine spans include only operation names and outcomes; upstream
-instrumentation may still export exception details on failures.
-
-The telemetry packages are development dependencies here; applications adopting
-this example should add `genkit_otel` and `dartastic_opentelemetry` to their own
-dependencies. They are not required by the plugin itself.
-
-Start an OpenTelemetry collector accepting OTLP HTTP on port 4318, then run:
-
-```bash
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 \
-OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf \
-LLAMADART_MODEL_PATH=/models/chat.gguf \
-dart run example/genkit_llamadart_observability_example.dart
-```
-
-### Migrating from Genkit 0.15
-
-- Tool callbacks return `ToolResult.response(value)` in Genkit 0.17.
-  Multipart tool-result content is currently rejected with `UNIMPLEMENTED`;
-  return text or structured `output` instead.
-- Genkit `ai.generate()` can return `finishReason: failed` or `aborted`;
-  inspect the outcome and `error`/`cause` before using the result.
-  `LlamaPreparedModel.warmUp()` continues to throw on failure or cancellation.
-- Pass `cancel: controller.token` to Genkit generation for cooperative
-  cancellation. Queued cancelled requests are checked before loading or
-  generation, without interrupting another active request. They settle when
-  their queue slot is reached. The existing plugin cancellation helpers remain
-  available for stopping the active generation directly.
-
-## Finding Models
-
-This package runs `llamadart` model files locally. You can pass an existing local path with
-`LlamaModelDefinition(modelPath: ...)`, or let `llamaDart.prepareModel(...)`
-resolve a local, HTTP(S), or Hugging Face `ModelSource` into the package-managed
-cache. Good places to find models:
-
-- `llamadart` docs: https://llamadart.leehack.com/
-- Hugging Face GGUF search: https://huggingface.co/models?search=gguf
-- LiteRT-LM bundles: use `.litertlm` files on `llamadart` targets that support LiteRT-LM
-
-What to look for:
-
-- chat and agent examples: an instruct or chat GGUF model
-- Android LiteRT-LM chat: a `.litertlm` bundle such as Gemma 4 E2B
-- embedding example: an embedding GGUF model
-- multimodal usage: a vision-capable GGUF model and, when required, a matching `mmproj` file
-
-Before downloading a model, check its model card for:
-
-- quantization level and expected RAM or CPU requirements
-- chat template or instruct formatting
-- context length
-- whether tool calling or JSON-style output works well
-- whether a separate projector file is required for image input
-
-If you just want a tiny CPU-friendly smoke-test model, the real-model test
-section later in this README lists the small GGUF files used in CI.
-
-## Try It Fast
-
-If you only want to confirm the plugin works end-to-end, start with the
-streaming chat example and a small instruct/chat model.
-
-Example and model guide:
-
-- `example/genkit_llamadart_example.dart`: chat or instruct model; streams tokens to stdout
-- `example/genkit_llamadart_agent_example.dart`: chat or instruct model; streams replies and becomes interactive when `LLAMADART_PROMPT` is not set
-- `example/genkit_llamadart_json_example.dart`: grammar-capable chat or instruct model with decent JSON adherence; streams raw JSON tokens before printing parsed output
-- `example/genkit_llamadart_embedding_example.dart`: embedding GGUF; prints vector dimensions and sample values
-- `example/genkit_llamadart_source_prepare_example.dart`: resolves a `ModelSource` through the package-managed cache before generation
-- `example/genkit_llamadart_preparation_task_example.dart`: prints observable preparation snapshots, warms up the model, then generates
-- multimodal requests: add `LLAMADART_MMPROJ_PATH` when the selected model requires a projector file
-
-If you still need `llamadart` runtime or platform setup help before trying the
-examples, check https://llamadart.leehack.com/ first.
 
 ## Quickstart
 
@@ -222,7 +105,86 @@ Future<void> main() async {
 }
 ```
 
-## Source-backed model preparation
+Don't have a model file yet? Use
+[source-backed preparation](#source-backed-model-preparation) to download one,
+or see [Choosing a model](#choosing-a-model).
+
+## Choosing a Model
+
+Pass an existing local path with `LlamaModelDefinition(modelPath: ...)`, or let
+`llamaDart.prepareModel(...)` resolve a local, HTTP(S), or Hugging Face
+`ModelSource` into the package-managed cache. Good places to find models:
+
+- [`llamadart` documentation](https://llamadart.leehack.com/)
+- [Hugging Face GGUF search](https://huggingface.co/models?search=gguf)
+- [LiteRT community models](https://huggingface.co/litert-community) for
+  `.litertlm` bundles, on `llamadart` targets that support LiteRT-LM
+
+What to look for:
+
+- chat and agents: an instruct or chat GGUF model
+- Android LiteRT-LM chat: a `.litertlm` bundle such as Gemma 4 E2B
+- embeddings: an embedding GGUF model
+- multimodal input: a vision-capable GGUF model and, when required, a matching
+  `mmproj` file
+
+Before downloading a model, check its model card for:
+
+- quantization level and expected RAM or CPU requirements
+- chat template or instruct formatting
+- context length
+- whether tool calling or JSON-style output works well
+- whether a separate projector file is required for image input
+
+For tiny CPU-friendly smoke-test models, use
+`hf://unsloth/SmolLM2-135M-Instruct-GGUF/SmolLM2-135M-Instruct-Q2_K.gguf` for
+chat and
+`hf://second-state/jina-embeddings-v2-small-en-GGUF/jina-embeddings-v2-small-en-Q2_K.gguf`
+for embeddings.
+
+## Examples
+
+| Example | Model | Shows |
+| --- | --- | --- |
+| [`genkit_llamadart_example.dart`](example/genkit_llamadart_example.dart) | chat | streaming chat generation |
+| [`genkit_llamadart_source_prepare_example.dart`](example/genkit_llamadart_source_prepare_example.dart) | any source | resolving a `ModelSource` through the package-managed cache |
+| [`genkit_llamadart_preparation_task_example.dart`](example/genkit_llamadart_preparation_task_example.dart) | any source | preparation snapshots, warm-up, then generation |
+| [`genkit_llamadart_agent_example.dart`](example/genkit_llamadart_agent_example.dart) | chat | multi-turn tool loop; interactive when `LLAMADART_PROMPT` is unset |
+| [`genkit_llamadart_json_example.dart`](example/genkit_llamadart_json_example.dart) | grammar-capable chat | constrained JSON output with streaming |
+| [`genkit_llamadart_embedding_example.dart`](example/genkit_llamadart_embedding_example.dart) | embedding | vector dimensions and sample values |
+| [`genkit_llamadart_observability_example.dart`](example/genkit_llamadart_observability_example.dart) | chat | OpenTelemetry spans and metrics through `genkit_otel` |
+
+The table lists examples in the recommended order to try them. Examples that
+take a model path read it from `LLAMADART_MODEL_PATH`; add
+`LLAMADART_MMPROJ_PATH` to the chat and agent examples when the model requires
+a projector file.
+
+```bash
+LLAMADART_MODEL_PATH=/models/Qwen_Qwen3.5-9B-Q4_K_M.gguf \
+dart run example/genkit_llamadart_example.dart
+```
+
+The same form runs the agent, JSON, and embedding examples. Use an embedding
+model for the embedding example. The observability example also needs an
+OpenTelemetry collector; see [Observability](#observability).
+
+The preparation examples take a local path, HTTP(S) URL, or Hugging Face source
+and default to the tiny SmolLM2 model:
+
+```bash
+dart run -DLLAMADART_MODEL_SOURCE=hf://owner/repo/model.gguf \
+  example/genkit_llamadart_source_prepare_example.dart
+```
+
+Use a `.litertlm` source the same way on supported `llamadart` targets:
+
+```bash
+dart run \
+  -DLLAMADART_MODEL_SOURCE='https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm?download=true' \
+  example/genkit_llamadart_source_prepare_example.dart
+```
+
+## Source-Backed Model Preparation
 
 If your app does not already manage model files itself, use
 `llamaDart.prepareModel(...)` with `llamadart`'s `ModelSource` and
@@ -277,7 +239,7 @@ remote-only options such as cache policy overrides, cache directories, bearer
 tokens, headers, resume, and retry settings are rejected instead of silently
 ignored.
 
-### Observable preparation and warm-up
+### Observable Preparation and Warm-Up
 
 Flutter and other client apps can use `prepareModelTask(...)` when they need
 deterministic loading UI for source resolution, cache checks, downloads,
@@ -352,7 +314,7 @@ flight. Disposing the task closes snapshot resources; disposing the returned
 returned `Genkit` instance remains caller-owned and should still be shut down by
 the app.
 
-### GenUI and server integration
+### GenUI and Server Integration
 
 UI frameworks such as GenUI should adapt through normal Genkit model refs and
 backends. Once your app has a prepared model, pass `prepared.modelRef` and
@@ -420,109 +382,6 @@ Future<void> main() async {
   await startFlowServer(flows: [flow], port: 8080);
 }
 ```
-
-## Model Capability Flags
-
-Use `LlamaModelDefinition` to control what each registered model advertises and
-accepts:
-
-- `supportsEmbeddings`: only register an embedder when the model should expose one
-- `supportsTools`: disable Genkit tool use for models or templates that should not use tools
-- `supportsConstrainedOutput`: disable constrained JSON output for models that should not advertise it, including `.litertlm` LiteRT-LM bundles until that backend supports grammar constraints
-
-These flags default to `true` for backward compatibility. Set them explicitly
-for single-purpose chat, embedding, and structured-output models so Genkit does
-not advertise actions the selected model should not serve.
-
-Use `modelInfo` to customize Genkit metadata such as the label, versions,
-configuration schema, stage, or additional support metadata.
-`modelInfo.supports` is merged after the derived capability flags and therefore
-overrides advertised metadata only; it does not bypass runtime enforcement by
-`supportsTools`, `supportsConstrainedOutput`, or `supportsEmbeddings`. Keep
-overridden metadata aligned with those flags.
-
-## Default Request Settings
-
-Unless you override them in `LlamaDartGenerationConfig`, the plugin uses these
-defaults:
-
-- `temperature: 0.8`
-- `topP: 0.9`
-- `topK: 40`
-- `minP: 0.0`
-- `penalty: 1.1`
-- `maxTokens: 4096`
-- `enableThinking: false`
-- `parallelToolCalls: false`
-
-Additional request controls include:
-
-- `stop`: custom stop sequences
-- `seed`: an optional deterministic sampling seed
-- `sourceLangCode` and `targetLangCode`: language hints for translation-style templates
-- `chatTemplateKwargs`: extra globals passed through to the model chat template
-
-## Examples
-
-- basic streaming chat generation: `example/genkit_llamadart_example.dart`
-- source-backed model preparation: `example/genkit_llamadart_source_prepare_example.dart`
-- observable preparation and warm-up: `example/genkit_llamadart_preparation_task_example.dart`
-- multi-turn tool loop: `example/genkit_llamadart_agent_example.dart`
-- embeddings: `example/genkit_llamadart_embedding_example.dart`
-- constrained JSON output with streaming: `example/genkit_llamadart_json_example.dart`
-
-Run the streaming chat example with a local instruct/chat model:
-
-```bash
-LLAMADART_MODEL_PATH=/models/Qwen_Qwen3.5-9B-Q4_K_M.gguf \
-dart run example/genkit_llamadart_example.dart
-```
-
-Run the agent example with a local instruct/chat model:
-
-```bash
-LLAMADART_MODEL_PATH=/models/Qwen_Qwen3.5-9B-Q4_K_M.gguf \
-dart run example/genkit_llamadart_agent_example.dart
-```
-
-Run the embedding example with a local embedding model:
-
-```bash
-LLAMADART_MODEL_PATH=/models/nomic-embed-text.gguf \
-dart run example/genkit_llamadart_embedding_example.dart
-```
-
-Run the structured JSON streaming example with a local instruct/chat model:
-
-```bash
-LLAMADART_MODEL_PATH=/models/Qwen_Qwen3.5-9B-Q4_K_M.gguf \
-dart run example/genkit_llamadart_json_example.dart
-```
-
-Run the source-backed preparation example from a local path, HTTP(S) URL, or
-Hugging Face source:
-
-```bash
-dart run -DLLAMADART_MODEL_SOURCE=hf://owner/repo/model.gguf \
-  example/genkit_llamadart_source_prepare_example.dart
-```
-
-Use a `.litertlm` source the same way on supported `llamadart` targets:
-
-```bash
-dart run \
-  -DLLAMADART_MODEL_SOURCE='https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm?download=true' \
-  example/genkit_llamadart_source_prepare_example.dart
-```
-
-Examples are easiest to test in this order:
-
-1. `example/genkit_llamadart_example.dart`
-2. `example/genkit_llamadart_source_prepare_example.dart`
-3. `example/genkit_llamadart_preparation_task_example.dart`
-4. `example/genkit_llamadart_agent_example.dart`
-5. `example/genkit_llamadart_json_example.dart`
-6. `example/genkit_llamadart_embedding_example.dart`
 
 ## Embeddings
 
@@ -680,28 +539,141 @@ parameters or fragments, although remote fetching remains backend-dependent.
 Local `file://` URLs cannot include query parameters or fragments. Provide
 `contentType` when the path has no recognizable media extension.
 
-## Tool Calling Notes
+## Tool Calling
 
-- Genkit can drive multi-turn tool loops through this plugin.
-- `example/genkit_llamadart_agent_example.dart` shows a local agent flow.
+- Genkit can drive multi-turn tool loops through this plugin; see the
+  [agent example](example/genkit_llamadart_agent_example.dart).
+- Tool callbacks return `ToolResult.response(value)`. Multipart tool-result
+  content is rejected with `UNIMPLEMENTED`; return text or structured `output`
+  instead.
 - Tool input schemas and tool-request inputs must be JSON objects. Primitive or
   list root inputs cannot be represented by `llamadart`'s map argument API and
   fail with `INVALID_ARGUMENT`.
 - Named Schemantic object schemas are supported; local `$ref` and `$defs`
   wrappers emitted by Genkit are resolved before tool parameters are mapped.
 - Local models may vary in how reliably they emit structured tool arguments.
-- If a model emits empty or weak tool arguments, use strong tool descriptions,
+  If a model emits empty or weak tool arguments, use strong tool descriptions,
   prompt guidance, and app context to stabilize behavior.
 
-## Lifecycle And Runtime Behavior
+## Observability
+
+Configure a production instrumentation provider with
+`configureInstrumentation(...)` from `package:genkit/telemetry.dart` before
+creating `Genkit`. Genkit's development provider activates when a telemetry
+server is configured; installing this plugin alone does not export telemetry.
+
+The model response supplies backend-reported `usage.inputTokens`, `outputTokens`,
+`totalTokens`, and `cachedContentTokens`. Missing measurements remain absent;
+zero counts remain zero. Native llama.cpp and capable WebGPU bridges report
+usage; do not assume every backend provides it.
+
+`response.raw` additionally includes:
+
+- `usage`: llamadart's usage map, with `time_to_first_token_ms` and `duration_ms`
+  when reported. These backend timings exclude the plugin queue and model load.
+- `queueMs`: time waiting for the model's serialized execution slot.
+- `initializationMs`: time obtaining the runtime, including lazy model/projector
+  loading on its first request.
+- `totalLatencyMs`: elapsed time in the model action, including queue and setup.
+
+`response.latencyMs` retains its existing generation-path timing after runtime
+initialization. Usage is captured for ordinary chat and constrained JSON output.
+These are per-model-call measurements; Genkit handles multi-turn aggregation.
+
+Pass `observers: [yourObserver]` to `llamaDart(...)`, `prepareModel(...)`, or
+`prepareModelTask(...)` to observe engine model loads, chat/text generation,
+and embeddings, including failures and cancellation. Extend
+`LlamaEngineObserver` and `LlamaOperationObserver`. Callbacks execute in the
+request's Dart zone, allowing your instrumentation provider to correlate them
+with the surrounding Genkit span, including after queue waits. Observer errors
+are logged by llamadart without breaking inference. With a custom runtime
+factory, that factory is responsible for installing its observers.
+
+Observers receive request content. Export prompts, responses and tool data only
+with an explicit application opt-in. Count token usage once at the model level;
+engine diagnostics can carry the same measurements and should not increment a
+second model-usage counter.
+
+See [the observability example](example/genkit_llamadart_observability_example.dart)
+for `genkit_otel`'s `GenAiInstrumentation` and correlated engine spans. The
+example initializes and shuts down the OpenTelemetry SDK, exporting model token
+and duration metrics once. Message capture and raw action I/O are explicitly
+disabled. Engine spans include only operation names and outcomes; upstream
+instrumentation may still export exception details on failures.
+
+The telemetry packages are development dependencies here; applications adopting
+this example should add `genkit_otel` and `dartastic_opentelemetry` to their own
+dependencies. They are not required by the plugin itself.
+
+Start an OpenTelemetry collector accepting OTLP HTTP on port 4318, then run:
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 \
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf \
+LLAMADART_MODEL_PATH=/models/chat.gguf \
+dart run example/genkit_llamadart_observability_example.dart
+```
+
+## Configuration
+
+### Model Capability Flags
+
+Use `LlamaModelDefinition` to control what each registered model advertises and
+accepts:
+
+- `supportsEmbeddings`: only register an embedder when the model should expose one
+- `supportsTools`: disable Genkit tool use for models or templates that should not use tools
+- `supportsConstrainedOutput`: disable constrained JSON output for models that should not advertise it, including `.litertlm` LiteRT-LM bundles until that backend supports grammar constraints
+
+These flags default to `true` for backward compatibility. Set them explicitly
+for single-purpose chat, embedding, and structured-output models so Genkit does
+not advertise actions the selected model should not serve.
+
+Use `modelInfo` to customize Genkit metadata such as the label, versions,
+configuration schema, stage, or additional support metadata.
+`modelInfo.supports` is merged after the derived capability flags and therefore
+overrides advertised metadata only; it does not bypass runtime enforcement by
+`supportsTools`, `supportsConstrainedOutput`, or `supportsEmbeddings`. Keep
+overridden metadata aligned with those flags.
+
+### Default Request Settings
+
+Unless you override them in `LlamaDartGenerationConfig`, the plugin uses these
+defaults:
+
+- `temperature: 0.8`
+- `topP: 0.9`
+- `topK: 40`
+- `minP: 0.0`
+- `penalty: 1.1`
+- `maxTokens: 4096`
+- `enableThinking: false`
+- `parallelToolCalls: false`
+
+Additional request controls include:
+
+- `stop`: custom stop sequences
+- `seed`: an optional deterministic sampling seed
+- `sourceLangCode` and `targetLangCode`: language hints for translation-style templates
+- `chatTemplateKwargs`: extra globals passed through to the model chat template
+
+## Lifecycle and Cancellation
 
 - models load lazily on first use
 - requests for the same model are queued through a single runtime instance
 - different model names get separate runtime instances
+- pass `cancel: controller.token` to Genkit generation for cooperative
+  cancellation; queued cancelled requests are checked before loading or
+  generation, without interrupting another active request, and settle when
+  their queue slot is reached
 - call `prepared.cancelActiveGeneration()` to implement a stop button for a prepared model
 - call `plugin.cancelActiveGeneration(name)` for one registered model, or
   `plugin.cancelActiveGenerations()` to stop all currently loaded models
-- cancellation targets only the active generation; a separately queued request can still start afterward
+- these helpers cancel only the active generation; a separately queued request
+  can still start afterward
+- Genkit `ai.generate()` can return `finishReason: failed` or `aborted`;
+  inspect the outcome and `error`/`cause` before using the result
+- `LlamaPreparedModel.warmUp()` still throws on failure or cancellation
 - call `await plugin.dispose()` before process shutdown to release native state
 - plugin disposal is terminal; create a new plugin or prepared-model handle instead of reusing it
 - if multiple runtimes fail during disposal, the returned `ParallelWaitError`
@@ -722,52 +694,22 @@ Local `file://` URLs cannot include query parameters or fragments. Provide
   WebGPU; download the image to a local path or provide `data:` bytes for other
   compatible multimodal backends
 
-## Development
+## Upgrading to 2.0
 
-Contributor docs:
+Version 2.0 requires Dart 3.12, Genkit 0.17, llamadart 0.9, and Schemantic
+0.2.3. When upgrading from 1.x (Genkit 0.13–0.15):
 
-- architecture: `ARCHITECTURE.md`
-- contribution workflow: `CONTRIBUTING.md`
+- Return `ToolResult.response(value)` from tool callbacks; see
+  [Tool Calling](#tool-calling).
+- Check generation results for `failed` or `aborted` finish reasons, and
+  optionally pass Genkit cancellation tokens; see
+  [Lifecycle and Cancellation](#lifecycle-and-cancellation).
 
-Useful local checks before publishing:
+See the [changelog](CHANGELOG.md) for the full list of changes.
 
-```bash
-dart format --output=none --set-exit-if-changed .
-dart analyze
-dart test
-flutter pub publish --dry-run
-```
+## Contributing
 
-Optional real-model smoke tests are included. You can point them at local model
-files, or let them download tiny public GGUF test models from Hugging Face:
-
-```bash
-LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 \
-dart test -t real-model
-
-LLAMADART_INTEGRATION_MODEL_PATH=/models/tiny-chat.gguf \
-LLAMADART_INTEGRATION_EMBED_MODEL_PATH=/models/tiny-embed.gguf \
-dart test -t real-model
-```
-
-Optional environment variables for smoke tests:
-
-- `LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1` enables auto-download of the bundled tiny test models
-- `LLAMADART_TEST_MODEL_DIR` overrides the local test-model cache directory
-- `HUGGING_FACE_HUB_TOKEN` is an optional token for authenticated or rate-limited Hugging Face downloads
-
-Auto-downloaded smoke-test models are cached under
-`.dart_tool/llamadart_test_models` by default. Their Hugging Face revisions are
-pinned, and cached or downloaded files are verified against their expected size
-and SHA-256 digest before use.
-
-Default auto-downloaded smoke-test models:
-
-- chat: `unsloth/SmolLM2-135M-Instruct-GGUF` / `SmolLM2-135M-Instruct-Q2_K.gguf` (~88 MB)
-- embeddings: `second-state/jina-embeddings-v2-small-en-GGUF` / `jina-embeddings-v2-small-en-Q2_K.gguf` (~20 MB)
-
-These defaults are meant for CPU-friendly smoke testing on low-end developer
-machines and CI, not as quality benchmarks for application behavior.
-
-The unit test tree mirrors `lib/src/` so API, core, and Genkit integration code
-can evolve independently without mixing concerns.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for local checks, real-model smoke
+tests, and the release process, and [ARCHITECTURE.md](ARCHITECTURE.md) for the
+package layering rules. Report bugs and request features in the
+[issue tracker](https://github.com/leehack/genkit-llamadart/issues).
