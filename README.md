@@ -57,7 +57,7 @@ These companion packages provide Apple runtime packaging only. Keep importing
 - a local model file supported by `llamadart`, or a `ModelSource` that
   resolves to one
 - the native `llamadart` runtime prerequisites for your platform
-- optionally, a multimodal projector file or source for image input
+- optionally, a multimodal projector file or source for image or audio input
 
 Follow the [`llamadart` documentation](https://llamadart.leehack.com/) for
 native backends, Apple SwiftPM companion packages, and platform support.
@@ -117,7 +117,8 @@ Pass an existing local path with `LlamaModelDefinition(modelPath: ...)`, or let
 
 - [`llamadart` documentation](https://llamadart.leehack.com/)
 - [Hugging Face GGUF search](https://huggingface.co/models?search=gguf)
-- LiteRT-LM `.litertlm` bundles, on `llamadart` targets that support LiteRT-LM
+- [LiteRT community models](https://huggingface.co/litert-community) for
+  `.litertlm` bundles, on `llamadart` targets that support LiteRT-LM
 
 What to look for:
 
@@ -135,8 +136,11 @@ Before downloading a model, check its model card for:
 - whether tool calling or JSON-style output works well
 - whether a separate projector file is required for image input
 
-For a tiny CPU-friendly smoke-test model, use
-`hf://unsloth/SmolLM2-135M-Instruct-GGUF/SmolLM2-135M-Instruct-Q2_K.gguf`.
+For tiny CPU-friendly smoke-test models, use
+`hf://unsloth/SmolLM2-135M-Instruct-GGUF/SmolLM2-135M-Instruct-Q2_K.gguf` for
+chat and
+`hf://second-state/jina-embeddings-v2-small-en-GGUF/jina-embeddings-v2-small-en-Q2_K.gguf`
+for embeddings.
 
 ## Examples
 
@@ -160,8 +164,9 @@ LLAMADART_MODEL_PATH=/models/Qwen_Qwen3.5-9B-Q4_K_M.gguf \
 dart run example/genkit_llamadart_example.dart
 ```
 
-The same form runs the agent, JSON, embedding, and observability examples. Use
-an embedding model for the embedding example.
+The same form runs the agent, JSON, and embedding examples. Use an embedding
+model for the embedding example. The observability example also needs an
+OpenTelemetry collector; see [Observability](#observability).
 
 The preparation examples take a local path, HTTP(S) URL, or Hugging Face source
 and default to the tiny SmolLM2 model:
@@ -667,8 +672,8 @@ Additional request controls include:
 - these helpers cancel only the active generation; a separately queued request
   can still start afterward
 - Genkit `ai.generate()` can return `finishReason: failed` or `aborted`;
-  inspect the outcome and `error`/`cause` before using the result.
-  `LlamaPreparedModel.warmUp()` still throws on failure or cancellation.
+  inspect the outcome and `error`/`cause` before using the result
+- `LlamaPreparedModel.warmUp()` still throws on failure or cancellation
 - call `await plugin.dispose()` before process shutdown to release native state
 - plugin disposal is terminal; create a new plugin or prepared-model handle instead of reusing it
 - if multiple runtimes fail during disposal, the returned `ParallelWaitError`
@@ -692,17 +697,13 @@ Additional request controls include:
 ## Upgrading to 2.0
 
 Version 2.0 requires Dart 3.12, Genkit 0.17, llamadart 0.9, and Schemantic
-0.2.3. When upgrading from Genkit 0.15:
+0.2.3. When upgrading from 1.x (Genkit 0.13–0.15):
 
-- Tool callbacks return `ToolResult.response(value)`. Multipart tool-result
-  content is rejected with `UNIMPLEMENTED`; return text or structured `output`
-  instead.
-- Genkit `ai.generate()` can return `finishReason: failed` or `aborted`;
-  inspect the outcome and `error`/`cause` before using the result.
-  `LlamaPreparedModel.warmUp()` continues to throw on failure or cancellation.
-- Pass `cancel: controller.token` to Genkit generation for cooperative
-  cancellation. The existing plugin cancellation helpers remain available for
-  stopping the active generation directly.
+- Return `ToolResult.response(value)` from tool callbacks; see
+  [Tool Calling](#tool-calling).
+- Check generation results for `failed` or `aborted` finish reasons, and
+  optionally pass Genkit cancellation tokens; see
+  [Lifecycle and Cancellation](#lifecycle-and-cancellation).
 
 See the [changelog](CHANGELOG.md) for the full list of changes.
 
