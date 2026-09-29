@@ -1,25 +1,40 @@
-## Unreleased
+## 2.0.0 - 2026-09-28
 
-- Automatically tag and publish a release after its guarded release-preparation
-  PR is merged, with strict lookup failures, tag collision checks, and retry
-  handling that avoids dispatching over an active publisher.
-- Require Dart 3.12, Genkit 0.17, llamadart 0.9, and Schemantic 0.2.3;
-  migrate action metadata and tool examples to the new Genkit APIs.
-- Report actual token usage (including cached tokens) and backend timings for
-  chat and constrained JSON responses, plus queue, initialization and total
-  model-action timings. Keep unknown usage absent.
+### Breaking changes
+
+- Require Dart 3.12, Genkit 0.17, llamadart 0.9, and Schemantic 0.2.3.
+  Applications using older Genkit or Dart versions must upgrade before adopting
+  this release.
+- Follow Genkit 0.17's tool API: callbacks return `ToolResult.response(value)`.
+  Multipart tool-result content is rejected with `UNIMPLEMENTED`; return text
+  or structured `output` instead.
+- Genkit generation can return `failed` or `aborted` responses. Check
+  `finishReason` and `error`/`cause` before consuming output.
+  `LlamaPreparedModel.warmUp()` continues to throw on failure or cancellation.
+
+### Observability and cancellation
+
+- Report backend token usage, including cached tokens, for chat and constrained
+  JSON responses. Unknown measurements remain absent.
+- Preserve backend time to first token and generation duration, and report
+  queue, initialization, and total model-action timings.
 - Accept engine observers on direct and source-prepared plugins for trace
-  correlation, model-load and inference diagnostics; add a runnable
-  observability example and production instrumentation guidance.
-- Connect Genkit request cancellation to active inference and skip cancelled
-  queued work before initialization. Preserve warm-up failure exceptions despite
-  Genkit's new failed-response behavior.
+  correlation, model-load and inference diagnostics. Add a runnable
+  observability example and production instrumentation guidance; applications
+  configure their own telemetry providers.
+- Connect Genkit request cancellation to active inference. Skip cancelled queued
+  work before initialization without interrupting another active request.
 - Preserve backend token-limit finish reasons for constrained JSON output.
-- Reject unsupported multipart tool-result content instead of dropping it.
-- Update the lower-bound dependency compatibility lane.
 
+### Maintenance
+
+- Update action metadata, tool examples, migration documentation, and the
+  Dart 3.12 lower-bound dependency compatibility lane.
 - Skip runtime and lower-bound CI for known prose-only pull requests while
   retaining package validation; cancel superseded pull-request runs.
+- Automatically tag and publish after an approved release-preparation PR merge,
+  with strict lookup failures, tag collision checks, validated polling settings,
+  and retry handling that avoids dispatching over an active publisher.
 
 ## 1.4.0 - 2026-07-27
 
