@@ -30,6 +30,8 @@
 
 ### Maintenance
 
+- Reorganize the README around installation, a quickstart, and task guides,
+  and refresh the pub.dev description and topics.
 - Update action metadata, tool examples, migration documentation, and the
   Dart 3.12 lower-bound dependency compatibility lane.
 - Skip runtime and lower-bound CI for known prose-only pull requests while
