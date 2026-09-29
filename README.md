@@ -51,6 +51,17 @@ flutter pub add llamadart_litert_lm_flutter # .litertlm / LiteRT-LM
 These companion packages provide Apple runtime packaging only. Keep importing
 `package:genkit_llamadart/genkit_llamadart.dart` for Genkit APIs.
 
+### AI agent skills
+
+genkit_llamadart ships [agent skills](https://dart.dev/tools/pub/package-skills)
+for setup and generation, model preparation, tool calling, and structured JSON
+output. Install them into your coding agent's skills directory from your app's
+root:
+
+```bash
+dart run skills@ get
+```
+
 ### Requirements
 
 - Dart SDK `^3.12.0`, Genkit `0.17.x`, and llamadart `0.9.x`
