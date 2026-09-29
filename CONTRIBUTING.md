@@ -67,10 +67,14 @@ Auto-downloaded smoke-test models are cached under
 
 The default auto-downloaded models are intentionally tiny and CPU-friendly:
 
-- chat: `SmolLM2-135M-Instruct-Q2_K.gguf` (~88 MB)
-- embeddings: `jina-embeddings-v2-small-en-Q2_K.gguf` (~20 MB)
+- chat: `unsloth/SmolLM2-135M-Instruct-GGUF` /
+  `SmolLM2-135M-Instruct-Q2_K.gguf` (~88 MB)
+- embeddings: `second-state/jina-embeddings-v2-small-en-GGUF` /
+  `jina-embeddings-v2-small-en-Q2_K.gguf` (~20 MB)
 
-They are meant for smoke testing package behavior, not for judging output
+Their Hugging Face revisions are pinned, and cached or downloaded files are
+verified against their expected size and SHA-256 digest before use. They are
+meant for smoke testing package behavior, not for judging output
 quality.
 
 ## Before Opening A PR
