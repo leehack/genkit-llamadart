@@ -1,5 +1,8 @@
 ## Unreleased
 
+- Use `genkit_otel` in the observability example to export OpenTelemetry spans
+  and model metrics, with correlated engine diagnostics and content capture off.
+
 - Automatically tag and publish a release after its guarded release-preparation
   PR is merged, with strict lookup failures, tag collision checks, and retry
   handling that avoids dispatching over an active publisher.
