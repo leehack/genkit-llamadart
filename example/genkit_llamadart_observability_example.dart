@@ -1,15 +1,11 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart' as otel;
 import 'package:genkit/genkit.dart';
 import 'package:genkit/telemetry.dart';
 import 'package:genkit_llamadart/genkit_llamadart.dart';
-
-// A minimal console provider. Production applications can implement the same
-// public Genkit interfaces using their telemetry backend's tracing SDK.
-final _activeSpan = Object();
-int _nextId = 0;
+import 'package:genkit_otel/genkit_otel.dart';
 
 Future<void> main() async {
   final modelPath = Platform.environment['LLAMADART_MODEL_PATH'];
@@ -18,7 +14,17 @@ Future<void> main() async {
     exitCode = 64;
     return;
   }
-  configureInstrumentation(ConsoleInstrumentation());
+  await otel.OTel.initialize(
+    serviceName: 'genkit-llamadart-example',
+    enableLogs: false,
+    detectPlatformResources: false,
+  );
+  configureInstrumentation(
+    GenAiInstrumentation(
+      contentCapturingMode: ContentCapturingMode.noContent,
+      captureActionIO: false,
+    ),
+  );
   final plugin = llamaDart(
     models: [
       LlamaModelDefinition(
@@ -27,7 +33,7 @@ Future<void> main() async {
         supportsEmbeddings: false,
       ),
     ],
-    observers: [ConsoleEngineObserver()],
+    observers: [OtelEngineObserver()],
   );
   final ai = Genkit(plugins: [plugin], isDevEnv: false);
   try {
@@ -44,97 +50,53 @@ Future<void> main() async {
       }),
     );
   } finally {
-    await plugin.dispose();
-    await ai.shutdown();
-  }
-}
-
-class ConsoleInstrumentation implements Instrumentation {
-  @override
-  Future<O> runInNewSpan<O>(
-    SpanMetadata metadata,
-    Future<O> Function([SpanContext? span]) next,
-  ) async {
-    final parent = Zone.current[_activeSpan] as _ConsoleSpan?;
-    final id = (++_nextId).toString();
-    final span = _ConsoleSpan(parent?.traceId ?? id, id);
-    final timer = Stopwatch()..start();
-    var outcome = 'completed';
     try {
-      final result = await runZoned(
-        () => next(span),
-        zoneValues: {_activeSpan: span},
-      );
-      final finishReason = switch (result) {
-        ModelResponse response => response.finishReason,
-        GenerateResponse response => response.finishReason,
-        _ => null,
-      };
-      if (finishReason == FinishReason.failed) outcome = 'failed';
-      if (finishReason == FinishReason.aborted) outcome = 'cancelled';
-      return result;
-    } on CancelledException {
-      outcome = 'cancelled';
-      rethrow;
-    } catch (_) {
-      outcome = 'failed';
-      rethrow;
+      await plugin.dispose();
     } finally {
-      stdout.writeln(
-        jsonEncode({
-          'event': 'genkit_span',
-          'traceId': span.traceId,
-          'spanId': span.spanId,
-          'actionType': metadata.actionType,
-          'durationMs': timer.elapsedMicroseconds / 1000,
-          'outcome': outcome,
-        }),
-      );
+      try {
+        await ai.shutdown();
+      } finally {
+        try {
+          // A short CLI run may finish before the periodic metric export.
+          await otel.OTel.meterProvider().forceFlush();
+        } finally {
+          await otel.OTel.shutdown();
+        }
+      }
     }
   }
 }
 
-class _ConsoleSpan implements SpanContext {
-  _ConsoleSpan(this.traceId, this.spanId);
-  @override
-  final String traceId;
-  @override
-  final String spanId;
-  @override
-  void setMetadata(Map<String, Object?> metadata) {}
-}
-
-final class ConsoleEngineObserver extends LlamaEngineObserver {
+// Engine spans provide runtime diagnostics. GenAiInstrumentation alone records
+// model token metrics, so observing the engine does not count tokens twice.
+final class OtelEngineObserver extends LlamaEngineObserver {
   @override
   LlamaOperationObserver onStart(LlamaOperation operation) {
-    return _ConsoleOperation(
-      Zone.current[_activeSpan] as _ConsoleSpan?,
-      operation.runtimeType.toString(),
-    );
+    final span = otel.OTel.tracerProvider()
+        .getTracer('llamadart-engine')
+        .startSpan(
+          'llamadart.${operation.runtimeType}',
+          kind: otel.SpanKind.internal,
+        );
+    return _OtelOperation(span);
   }
 }
 
-final class _ConsoleOperation extends LlamaOperationObserver {
-  _ConsoleOperation(this.span, this.operation);
-  final _ConsoleSpan? span;
-  final String operation;
-  final Stopwatch timer = Stopwatch()..start();
+final class _OtelOperation extends LlamaOperationObserver {
+  _OtelOperation(this.span);
+  final otel.APISpan span;
+
   @override
   void onEnd(LlamaOperationResult result) {
-    stdout.writeln(
-      jsonEncode({
-        'event': 'llamadart_operation',
-        'traceId': span?.traceId,
-        'parentSpanId': span?.spanId,
-        'operation': operation,
-        'durationMs': timer.elapsedMicroseconds / 1000,
-        'outcome': result.cancelled
-            ? 'cancelled'
-            : result.error != null
-            ? 'failed'
-            : 'completed',
-        'usage': result.usage?.toJson(),
-      }),
+    // Avoid exporting exception messages, model paths or request content.
+    span.setStringAttribute(
+      'llamadart.outcome',
+      result.cancelled
+          ? 'cancelled'
+          : result.error != null
+          ? 'failed'
+          : 'completed',
     );
+    span.end();
   }
 }

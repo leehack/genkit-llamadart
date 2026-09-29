@@ -20,8 +20,10 @@
   queue, initialization, and total model-action timings.
 - Accept engine observers on direct and source-prepared plugins for trace
   correlation, model-load and inference diagnostics. Add a runnable
-  observability example and production instrumentation guidance; applications
-  configure their own telemetry providers.
+  observability example that exports OpenTelemetry spans and model metrics
+  through `genkit_otel`, with content capture off, plus production
+  instrumentation guidance; applications configure their own telemetry
+  providers.
 - Connect Genkit request cancellation to active inference. Skip cancelled queued
   work before initialization without interrupting another active request.
 - Preserve backend token-limit finish reasons for constrained JSON output.

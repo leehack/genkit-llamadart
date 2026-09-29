@@ -103,11 +103,23 @@ engine diagnostics can carry the same measurements and should not increment a
 second model-usage counter.
 
 See [the observability example](example/genkit_llamadart_observability_example.dart)
-for a runnable Genkit provider and correlated engine observer that print only
-measurements:
+for `genkit_otel`'s `GenAiInstrumentation` and correlated engine spans. The
+example initializes and shuts down the OpenTelemetry SDK, exporting model token
+and duration metrics once. Message capture and raw action I/O are explicitly
+disabled. Engine spans include only operation names and outcomes; upstream
+instrumentation may still export exception details on failures.
+
+The telemetry packages are development dependencies here; applications adopting
+this example should add `genkit_otel` and `dartastic_opentelemetry` to their own
+dependencies. They are not required by the plugin itself.
+
+Start an OpenTelemetry collector accepting OTLP HTTP on port 4318, then run:
 
 ```bash
-LLAMADART_MODEL_PATH=/models/chat.gguf dart run example/genkit_llamadart_observability_example.dart
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 \
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf \
+LLAMADART_MODEL_PATH=/models/chat.gguf \
+dart run example/genkit_llamadart_observability_example.dart
 ```
 
 ### Migrating from Genkit 0.15
