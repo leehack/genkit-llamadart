@@ -29,6 +29,13 @@ The test tree mirrors this layout.
 - place shared helpers in a nearby `test_support/` directory
 - prefer unit tests first, then Genkit integration tests, then real-model smoke tests
 
+## Agent Skills
+
+`skills/` is published to consumers' coding agents. A public API or behavior
+change updates the affected `SKILL.md` in the same PR;
+`test/tooling/package_skills_test.dart` validates each skill and analyzes its
+Dart examples.
+
 ## Test Commands
 
 Fast local checks:
