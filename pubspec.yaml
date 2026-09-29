@@ -2,7 +2,7 @@ name: genkit_llamadart
 description: >-
   Genkit Dart plugin for local, on-device LLMs through llamadart: llama.cpp
   GGUF and LiteRT-LM chat, streaming, tool calling, JSON output, and embeddings.
-version: 1.4.0
+version: 2.0.0
 homepage: https://github.com/leehack/genkit-llamadart
 repository: https://github.com/leehack/genkit-llamadart
 issue_tracker: https://github.com/leehack/genkit-llamadart/issues
