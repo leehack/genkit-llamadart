@@ -1,7 +1,7 @@
 ## Unreleased
 
-- Ship agent skills for setup and generation, tool calling, and structured JSON
-  output; install them with `dart run skills@ get`.
+- Ship agent skills for setup and generation, model preparation, tool calling,
+  and structured JSON output; install them with `dart run skills@ get`.
 
 ## 2.0.0 - 2026-09-28
 

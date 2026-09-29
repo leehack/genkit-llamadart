@@ -54,8 +54,9 @@ These companion packages provide Apple runtime packaging only. Keep importing
 ### AI agent skills
 
 genkit_llamadart ships [agent skills](https://dart.dev/tools/pub/package-skills)
-for setup and generation, tool calling, and structured JSON output. Install
-them into your coding agent's skills directory from your app's root:
+for setup and generation, model preparation, tool calling, and structured JSON
+output. Install them into your coding agent's skills directory from your app's
+root:
 
 ```bash
 dart run skills@ get
