@@ -34,7 +34,8 @@ description: >-
 - Definition flags grant permission; the loaded runtime must confirm support.
   Discovery never loads models and starts with false support booleans. Inspect
   `llamadartCapabilities.state` (`unloaded`, `unverified`, `verified`) and `ready`;
-  request probes update cached metadata. Unsupported runtime features fail with
+  request probes update cached support metadata while preserving model labels,
+  schemas and annotations. Unsupported runtime features fail with
   `UNIMPLEMENTED`. Custom runtime factories need `LlamaRuntimeCapabilityProvider`
   for advanced requests; without it, only single-turn text is accepted.
 - Set the context window with `modelParams: ModelParams(contextSize: ...)`.

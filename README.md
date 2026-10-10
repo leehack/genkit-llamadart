@@ -653,8 +653,8 @@ confirmed. Metadata includes `llamadartCapabilities` with:
 - `declared`: the definition's `tools`, `constrained`, and `embeddings` permissions
 
 After initialization, the plugin reads `LlamaEngine.capabilities` before every
-queued request and updates registered and cached discovery metadata. These
-snapshots describe the last check; every request checks again. A failed probe
+queued request and updates registered and cached discovery metadata, preserving
+labels, schemas and other model annotations. These snapshots describe the last check; every request checks again. A failed probe
 clears previous support and blocks inference. Disposing the plugin clears its
 support metadata. Registering an action does not guarantee that its runtime
 supports the requested feature.

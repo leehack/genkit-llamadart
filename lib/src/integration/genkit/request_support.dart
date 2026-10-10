@@ -22,14 +22,14 @@ void checkDeclaredModelRequest(
       status: genkit.StatusCode.invalidArgument,
     );
   }
-  if (_usesTools(request) && !definition.supportsTools) {
+  if (!definition.supportsTools && _usesTools(request)) {
     throw genkit.GenkitException(
       'Tool use is disabled for `${definition.name}`.',
       status: genkit.StatusCode.failedPrecondition,
     );
   }
-  if (shouldUseStructuredGeneration(request.output) &&
-      !definition.supportsConstrainedOutput) {
+  if (!definition.supportsConstrainedOutput &&
+      shouldUseStructuredGeneration(request.output)) {
     throw genkit.GenkitException(
       'Constrained output is disabled for `${definition.name}`.',
       status: genkit.StatusCode.failedPrecondition,
@@ -82,7 +82,7 @@ void checkRuntimeModelRequest(
     feature: feature,
   );
 
-  if (_usesTools(request)) {
+  if (capabilities?.supportsToolCalling != true && _usesTools(request)) {
     require(capabilities?.supportsToolCalling, 'tool calling');
   }
   if (shouldUseStructuredGeneration(request.output)) {
@@ -94,11 +94,16 @@ void checkRuntimeModelRequest(
       'grammar-constrained structured output',
     );
   }
-  if (messages.any((message) => message.role == llama.LlamaChatRole.system)) {
-    require(capabilities?.supportsMultiTurnChat, 'system-message delivery');
-  }
-  if (messages.where((m) => m.role != llama.LlamaChatRole.system).length > 1) {
-    require(capabilities?.supportsMultiTurnChat, 'multi-turn history');
+  if (capabilities?.supportsMultiTurnChat != true) {
+    if (messages.any((message) => message.role == llama.LlamaChatRole.system)) {
+      require(capabilities?.supportsMultiTurnChat, 'system-message delivery');
+    }
+    if (messages
+        .where((message) => message.role != llama.LlamaChatRole.system)
+        .skip(1)
+        .isNotEmpty) {
+      require(capabilities?.supportsMultiTurnChat, 'multi-turn history');
+    }
   }
 
   // Native LiteRT bundle declarations can under-report encoders. Preserve the
@@ -106,10 +111,15 @@ void checkRuntimeModelRequest(
   final bestEffortMedia =
       const bool.fromEnvironment('dart.library.io') &&
       capabilities?.runtime == llama.LlamaRuntime.liteRtLm;
+  if (bestEffortMedia ||
+      (capabilities?.supportsVision == true &&
+          capabilities?.supportsAudio == true)) {
+    return;
+  }
   for (final part in messages.expand((message) => message.parts)) {
-    if (part is llama.LlamaImageContent && !bestEffortMedia) {
+    if (part is llama.LlamaImageContent) {
       require(capabilities?.supportsVision, 'image input');
-    } else if (part is llama.LlamaAudioContent && !bestEffortMedia) {
+    } else if (part is llama.LlamaAudioContent) {
       require(capabilities?.supportsAudio, 'audio input');
     }
   }

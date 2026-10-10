@@ -44,10 +44,17 @@ void trackCapabilityMetadata(
   EngineRegistry registry,
 ) {
   void refresh() {
-    metadata['model'] = modelInfoFor(
-      definition,
-      capabilities: registry.capabilitiesFor(definition.name),
-    ).toJson();
+    // Keep labels, schemas and framework/app annotations stable; only support
+    // changes when the runtime is probed.
+    final model = metadata['model'] as Map<String, dynamic>;
+    model['supports'] = <String, dynamic>{
+      ...?model['supports'] as Map<String, dynamic>?,
+      ...?definition.modelInfo?.supports,
+      ...supportMetadataFor(
+        definition,
+        capabilities: registry.capabilitiesFor(definition.name),
+      ),
+    };
     metadata['llamadartCapabilities'] = capabilityMetadataFor(
       definition,
       registry,

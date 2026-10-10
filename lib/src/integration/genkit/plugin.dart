@@ -103,10 +103,7 @@ class LlamaDartPlugin extends GenkitPlugin {
     return _listedActions ??= _models
         .expand((definition) {
           final actionName = actionNameFor(definition.name);
-          final modelInfo = modelInfoFor(
-            definition,
-            capabilities: _registry.capabilitiesFor(definition.name),
-          );
+          final modelInfo = modelInfoFor(definition);
           final metadata = actionMetadataFor(definition, modelInfo: modelInfo);
           trackCapabilityMetadata(metadata, definition, _registry);
           return <ActionMetadata>[

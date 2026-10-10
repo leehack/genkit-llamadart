@@ -147,6 +147,56 @@ void main() {
     },
   );
 
+  test(
+    'capability refresh preserves framework and app model annotations',
+    () async {
+      final listed = await plugin.list();
+      final views = [model.metadata, embedder.metadata, listed.first.metadata];
+      for (final metadata in views) {
+        final modelInfo = metadata['model'] as Map<String, dynamic>;
+        modelInfo['customOptions'] = {'type': 'object', 'title': 'App config'};
+        modelInfo['appAnnotation'] = 'keep';
+        (modelInfo['supports'] as Map<String, dynamic>)['appCapability'] = true;
+      }
+      await model(_request());
+      runtime.capabilitySnapshot = _textOnly;
+      await model(_request());
+      for (final metadata in views) {
+        final modelInfo = metadata['model'] as Map<String, dynamic>;
+        expect(modelInfo['label'], 'Custom');
+        expect(modelInfo['customOptions'], {
+          'type': 'object',
+          'title': 'App config',
+        });
+        expect(modelInfo['appAnnotation'], 'keep');
+        expect(_supports(metadata)['appCapability'], true);
+        expect(_supports(metadata)['tools'], false);
+      }
+    },
+  );
+
+  for (final vision in [false, true]) {
+    test(
+      'image/audio capabilities are independent with vision=$vision',
+      () async {
+        runtime.capabilitySnapshot = llama.LlamaEngineCapabilities(
+          isSupported: true,
+          supportsVision: vision,
+          supportsAudio: !vision,
+        );
+        final supported = vision ? 'image/png' : 'audio/wav';
+        final unsupported = vision ? 'audio/wav' : 'image/png';
+        await model(_media(supported));
+        await expectLater(
+          model(_media(unsupported)),
+          throwsA(_status(genkit.StatusCode.unimplemented)),
+        );
+        expect(runtime.createCallCount, 1);
+        expect(_supports(model.metadata)['media'], true);
+      },
+    );
+  }
+
   for (final loadViaEmbedder in [false, true]) {
     test(
       'loading through embedder=$loadViaEmbedder updates every metadata view',
