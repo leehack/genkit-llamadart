@@ -124,6 +124,22 @@ void main() {
         (m) => m.name == 'gen_ai.client.operation.duration',
       );
       expect(duration.histogram.dataPoints.single.count.toInt(), 1);
+      final timingMetrics = exported
+          .where((m) => m.name.startsWith('llamadart.model.'))
+          .toList();
+      expect(timingMetrics, hasLength(4));
+      for (final metric in timingMetrics) {
+        expect(metric.unit, 's');
+        final point = metric.histogram.dataPoints.single;
+        expect(point.count.toInt(), 1);
+        expect(point.attributes.single.key, 'llamadart.outcome');
+        expect(point.attributes.single.value.stringValue, 'completed');
+        expect(point.sum, greaterThanOrEqualTo(0));
+        final attribute = modelSpan.attributes.singleWhere(
+          (a) => a.key == metric.name,
+        );
+        expect(attribute.value.doubleValue, point.sum);
+      }
     },
     tags: ['real-model'],
     timeout: const Timeout(Duration(minutes: 3)),

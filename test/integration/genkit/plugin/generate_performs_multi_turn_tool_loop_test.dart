@@ -10,12 +10,12 @@ final SchemanticType<Map<String, dynamic>> _weatherInputSchema =
     _WeatherInputSchema();
 
 void main() {
-  test('Genkit generate performs a multi-turn tool loop', () async {
+  test('Genkit tool loop preserves delimiter text in arguments', () async {
     final runtime = FakeRuntime()
       ..createScripts.addAll(<List<llama.LlamaCompletionChunk>>[
         <llama.LlamaCompletionChunk>[
           textChunk(
-            '<tool_call>{"name":"get_weather","arguments":{"location":"Seoul"}}</tool_call>',
+            '<tool_call>{"name":"get_weather","arguments":{"location":"Seoul","note":"<tool_call>"}}</tool_call>',
           ),
           stopChunk(),
         ],
@@ -44,6 +44,8 @@ void main() {
       inputSchema: _weatherInputSchema,
       outputSchema: SchemanticType.string(),
       fn: (input, _) async {
+        expect(input['location'], 'Seoul');
+        expect(input['note'], '<tool_call>');
         return ToolResult.response('Seoul is clear and 19C.');
       },
     );

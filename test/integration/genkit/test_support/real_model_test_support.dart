@@ -14,6 +14,27 @@ const String autoDownloadTestModelsEnv = 'LLAMADART_AUTO_DOWNLOAD_TEST_MODELS';
 const String testModelDirectoryEnv = 'LLAMADART_TEST_MODEL_DIR';
 const String huggingFaceTokenEnv = 'HUGGING_FACE_HUB_TOKEN';
 
+const HuggingFaceModelSpec integrationToolModel = HuggingFaceModelSpec(
+  repository: 'unsloth/Qwen3-1.7B-GGUF',
+  fileName: 'Qwen3-1.7B-Q4_K_M.gguf',
+  revision: 'd7f544eead698dbd1f15126ef60b45a1e1933222',
+  expectedSha256:
+      'b139949c5bd74937ad8ed8c8cf3d9ffb1e99c866c823204dc42c0d91fa181897',
+  expectedSizeBytes: 1107409472,
+);
+
+Future<String> requireIntegrationToolModelPath() async {
+  final path = await _resolveModelPath(
+    envName: 'LLAMADART_INTEGRATION_TOOL_MODEL_PATH',
+    spec: integrationToolModel,
+    downloadEnv: 'LLAMADART_AUTO_DOWNLOAD_TOOL_MODEL',
+  );
+  if (!await _hasExpectedModelContents(File(path), integrationToolModel)) {
+    throw StateError('Tool qualification requires the pinned Qwen3 fixture.');
+  }
+  return path;
+}
+
 const HuggingFaceModelSpec integrationChatModel = HuggingFaceModelSpec(
   repository: 'unsloth/SmolLM2-135M-Instruct-GGUF',
   fileName: 'SmolLM2-135M-Instruct-Q2_K.gguf',
@@ -100,15 +121,16 @@ class HuggingFaceModelSpec {
 Future<String> _resolveModelPath({
   required String envName,
   required HuggingFaceModelSpec spec,
+  String downloadEnv = autoDownloadTestModelsEnv,
 }) async {
   final envPath = _readPathEnv(envName);
   if (envPath != null) {
     return envPath;
   }
 
-  if (Platform.environment[autoDownloadTestModelsEnv] != '1') {
+  if (Platform.environment[downloadEnv] != '1') {
     markTestSkipped(
-      'Set $envName or enable $autoDownloadTestModelsEnv=1 to download a tiny test model from Hugging Face.',
+      'Set $envName or enable $downloadEnv=1 to download the pinned test model from Hugging Face.',
     );
   }
 

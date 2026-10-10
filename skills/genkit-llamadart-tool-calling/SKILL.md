@@ -211,6 +211,13 @@ Future<String> streamAgentTurn(
 
 ## More
 
+- Check the final generation result before acting on streamed tool previews.
+  Invalid or token-limited final calls fail with `DATA_LOSS`; partial argument
+  deltas are allowed during streaming.
+- `ToolChoice.none` prevents handler execution; inline tool-looking text stays
+  inert. Genkit 1.0 keeps `required` across turns, so the application must change
+  the next turn's choice when it needs a final text answer.
+
 - Runnable agent example:
   https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_agent_example.dart
 - llamadart tool-calling behavior per runtime:

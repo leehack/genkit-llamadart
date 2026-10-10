@@ -171,6 +171,12 @@ Local `file://` URLs cannot include query parameters or fragments. Provide
   fail with `INVALID_ARGUMENT`.
 - Named Schemantic object schemas are supported; local `$ref` and `$defs`
   wrappers emitted by Genkit are resolved before tool parameters are mapped.
+- Invalid or token-limited final tool calls fail with `DATA_LOSS` before tool
+  execution. Incomplete argument deltas remain valid while streaming. Check
+  the final result before treating a streamed tool preview as executable.
+- `toolChoice: ToolChoice.none` prevents handler execution. Inline tool-looking
+  text remains ordinary text. Genkit 1.0 retains `required` across tool-loop
+  turns; explicitly change the next turn's choice when a final answer is needed.
 - Local models may vary in how reliably they emit structured tool arguments.
   If a model emits empty or weak tool arguments, use strong tool descriptions,
   prompt guidance, and app context to stabilize behavior.

@@ -7,6 +7,8 @@ import 'package:genkit/telemetry.dart';
 import 'package:genkit_llamadart/genkit_llamadart.dart';
 import 'package:genkit_otel/genkit_otel.dart';
 
+import 'telemetry/runtime_timing_instrumentation.dart';
+
 Future<void> main() async {
   final modelPath = Platform.environment['LLAMADART_MODEL_PATH'];
   if (modelPath == null) {
@@ -23,6 +25,12 @@ Future<void> main() async {
     GenAiInstrumentation(
       contentCapturingMode: ContentCapturingMode.noContent,
       captureActionIO: false,
+    ),
+  );
+  configureInstrumentation(
+    RuntimeTimingInstrumentation(
+      meter: otel.OTel.meter('llamadart-runtime'),
+      tracer: otel.OTel.tracerProvider().getTracer('llamadart-runtime'),
     ),
   );
   final plugin = llamaDart(

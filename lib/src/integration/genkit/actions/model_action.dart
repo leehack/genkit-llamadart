@@ -162,6 +162,7 @@ Future<genkit.ModelResponse> _runStreamingModel({
     accumulator.toResult(),
     latencyMs: started.elapsedMilliseconds.toDouble(),
     raw: rawResponseMetadata(definition),
+    allowToolCalls: tools.isNotEmpty && toolChoice != llama.ToolChoice.none,
   );
 }
 
