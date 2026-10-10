@@ -93,6 +93,42 @@ remote-only options such as cache policy overrides, cache directories, bearer
 tokens, headers, resume, and retry settings are rejected instead of silently
 ignored.
 
+## Explicit format and LiteRT activation settings
+
+`ModelFormat` and `LiteRtLmActivationDataType` are available from the adapter
+import. Native loads usually detect the format from the file. An explicit source
+format is useful when an extension cannot identify it. Activation data types
+apply to LiteRT-LM and must be supported by the selected bundle and device:
+
+```dart
+import 'package:genkit/genkit.dart';
+import 'package:genkit_llamadart/genkit_llamadart.dart';
+
+Future<void> main() async {
+  final prepared = await llamaDart.prepareModel(
+    name: 'litert-chat',
+    source: ModelSource.path('/models/chat.litertlm', format: ModelFormat.liteRtLm),
+    modelParams: const ModelParams(
+      device: ComputeDevice.cpu,
+      liteRtLmActivationDataType: LiteRtLmActivationDataType.float32,
+    ),
+    supportsEmbeddings: false,
+    supportsConstrainedOutput: false,
+  );
+  final ai = prepared.createGenkit();
+  try {
+    final response = await ai.generate(model: prepared.modelRef, prompt: 'Hello');
+    if (response.finishReason == FinishReason.failed) {
+      throw response.cause ?? StateError('Generation failed.');
+    }
+    print(response.text);
+  } finally {
+    await prepared.dispose();
+    await ai.shutdown();
+  }
+}
+```
+
 ## Progress, cancellation and warm-up
 
 Flutter and other client apps can use `prepareModelTask(...)` when they need

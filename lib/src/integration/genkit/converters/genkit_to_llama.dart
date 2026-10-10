@@ -89,6 +89,19 @@ llama.GenerationParams toGenerationParams(LlamaDartGenerationConfig config) {
     topP: config.topP ?? LlamaDartGenerationConfig.defaultTopP,
     minP: config.minP ?? LlamaDartGenerationConfig.defaultMinP,
     penalty: config.penalty ?? LlamaDartGenerationConfig.defaultPenalty,
+    presencePenalty: config.presencePenalty ?? 0.0,
+    thinkingBudget: config.thinkingBudget,
+    speculativeDecoding: config.speculativeDecoding ?? false,
+    speculativeDecodingConfig: config.speculativeDecodingConfig,
+    reusePromptPrefix:
+        config.reusePromptPrefix ??
+        llama.GenerationParams.defaultReusePromptPrefix,
+    streamBatchTokenThreshold:
+        config.streamBatchTokenThreshold ??
+        llama.GenerationParams.defaultStreamBatchTokenThreshold,
+    streamBatchByteThreshold:
+        config.streamBatchByteThreshold ??
+        llama.GenerationParams.defaultStreamBatchByteThreshold,
     seed: config.seed,
     stopSequences: config.stop ?? const <String>[],
   );

@@ -36,6 +36,7 @@ export 'package:llamadart/llamadart.dart'
         LlamaModelException,
         LlamaStateException,
         LlamaUnsupportedException,
+        LiteRtLmActivationDataType,
         LoraAdapterConfig,
         ModelCacheEntry,
         ModelCachePolicy,
@@ -44,10 +45,14 @@ export 'package:llamadart/llamadart.dart'
         ModelDownloadProgress,
         ModelDownloadProgressCallback,
         ModelLoadOptions,
+        ModelFormat,
         ModelParams,
         ModelSplitMode,
         ModelSource,
-        ModelSourceKind;
+        ModelSourceKind,
+        SpeculativeDecodingConfig,
+        SpeculativeDecodingStrategy,
+        ThinkingBudget;
 
 export 'src/api/embed_config.dart' show LlamaDartEmbedConfig;
 export 'src/api/generation_config.dart' show LlamaDartGenerationConfig;

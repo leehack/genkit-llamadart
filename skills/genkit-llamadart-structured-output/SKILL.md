@@ -159,3 +159,7 @@ Future<Map<String, dynamic>?> streamJson(
 - Runnable JSON example:
   https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_json_example.dart
 - Schemantic: https://pub.dev/packages/schemantic
+
+Thinking budgets are supported when the runtime reports them; omitted tags are
+resolved from the structured request's template. Speculative decoding is rejected
+with constrained JSON because core grammar sampling does not support it.

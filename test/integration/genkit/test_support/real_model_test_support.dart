@@ -35,6 +35,29 @@ Future<String> requireIntegrationToolModelPath() async {
   return path;
 }
 
+const HuggingFaceModelSpec integrationQwen35Model = HuggingFaceModelSpec(
+  repository: 'unsloth/Qwen3.5-0.8B-GGUF',
+  fileName: 'Qwen3.5-0.8B-Q4_K_M.gguf',
+  revision: '6ab461498e2023f6e3c1baea90a8f0fe38ab64d0',
+  expectedSha256:
+      'bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517',
+  expectedSizeBytes: 532517120,
+);
+
+Future<String> requireIntegrationQwen35ModelPath() async {
+  final path = await _resolveModelPath(
+    envName: 'LLAMADART_INTEGRATION_QWEN35_MODEL_PATH',
+    spec: integrationQwen35Model,
+    downloadEnv: 'LLAMADART_AUTO_DOWNLOAD_QWEN35_MODEL',
+  );
+  if (!await _hasExpectedModelContents(File(path), integrationQwen35Model)) {
+    throw StateError(
+      'Sampler qualification requires the pinned Qwen3.5 fixture.',
+    );
+  }
+  return path;
+}
+
 const HuggingFaceModelSpec integrationChatModel = HuggingFaceModelSpec(
   repository: 'unsloth/SmolLM2-135M-Instruct-GGUF',
   fileName: 'SmolLM2-135M-Instruct-Q2_K.gguf',

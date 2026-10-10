@@ -170,7 +170,7 @@ dart run -DLLAMADART_MODEL_SOURCE=hf://owner/repo/model.gguf \
 
 ## Guides and API reference
 
-- [Generation settings, tools, JSON, embeddings and cancellation](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md)
+- [Generation settings (including thinking, presence penalties and speculative decoding), tools, JSON, embeddings and cancellation](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md)
 - [Model preparation, cache policy and loading UI](https://github.com/leehack/genkit-llamadart/blob/main/doc/model-preparation.md)
 - [Runtime support, discovery and custom runtimes](https://github.com/leehack/genkit-llamadart/blob/main/doc/runtime-support.md)
 - [Telemetry and engine observers](https://github.com/leehack/genkit-llamadart/blob/main/doc/observability.md)
