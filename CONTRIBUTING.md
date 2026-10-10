@@ -242,3 +242,27 @@ The publish workflow then:
   `dart pub publish --dry-run`
 - publishes to pub.dev using GitHub OIDC trusted publishing
 - creates a GitHub release for the tag after a successful publish
+
+## Real inference-control qualification
+
+```bash
+LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 \
+LLAMADART_AUTO_DOWNLOAD_TOOL_MODEL=1 \
+LLAMADART_AUTO_DOWNLOAD_QWEN35_MODEL=1 \
+dart test test/integration/genkit/plugin/real_model_inference_controls_test.dart -j 1
+```
+
+This optional suite compares greedy native output with prefix reuse disabled,
+single-piece batching and ngram-simple speculation on SmolLM2; it verifies
+zero-budget reasoning in Qwen3 chat and constrained JSON, and the complete
+Qwen3.5 nonthinking sampling recipe including presence penalty. Qwen3.5-0.8B
+Q4_K_M (~533 MB) is separate from default CI auto-downloads. Revision
+`6ab461498e2023f6e3c1baea90a8f0fe38ab64d0`, size 532517120 and SHA-256
+`bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517`
+are verified even for `LLAMADART_INTEGRATION_QWEN35_MODEL_PATH` overrides.
+
+Record OS/architecture, core/native versions, model hashes, output and timing.
+These bounded CPU runs qualify routing and sampler behavior, not throughput
+claims or every speculative strategy. Model-specific draft/MTP and real Web
+qualification remain targeted checks for the chosen model/backend. Browser
+adapter guards are tested in `actions/model_action/inference_controls_test.dart`.

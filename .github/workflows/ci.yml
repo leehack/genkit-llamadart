@@ -71,7 +71,7 @@ jobs:
 
       - name: Verify browser capability guards
         if: steps.changes.outputs.runtime == 'true'
-        run: dart test -p chrome test/integration/genkit/plugin/runtime_capabilities_test.dart
+        run: dart test -p chrome test/integration/genkit/plugin/runtime_capabilities_test.dart test/integration/genkit/actions/model_action/inference_controls_test.dart test/api/generation_config/inference_controls_codec_test.dart
 
       - name: Run real-model tests
         if: steps.changes.outputs.runtime == 'true'

@@ -1,4 +1,7 @@
+import 'package:llamadart/llamadart.dart' as llama;
+
 import 'config_parsing.dart';
+import 'generation_controls_codec.dart';
 
 /// Sampling and chat-template options for a Genkit model request.
 ///
@@ -50,6 +53,13 @@ class LlamaDartGenerationConfig {
     this.minP,
     this.penalty,
     this.maxTokens,
+    this.presencePenalty,
+    this.thinkingBudget,
+    this.speculativeDecoding,
+    this.speculativeDecodingConfig,
+    this.reusePromptPrefix,
+    this.streamBatchTokenThreshold,
+    this.streamBatchByteThreshold,
     this.stop,
     this.seed,
     this.enableThinking,
@@ -62,11 +72,13 @@ class LlamaDartGenerationConfig {
   /// Reads recognized fields from a Genkit config map.
   ///
   /// Null maps produce an empty config. Numeric values are converted to the
-  /// required numeric type; integer fields truncate fractional numbers.
+  /// required numeric type for existing sampling fields; those integer fields
+  /// truncate fractional numbers.
   /// Non-numeric sampling values, non-boolean flags and mixed-type stop lists
   /// become null. Language hints must be strings and template keys must be
   /// strings; incompatible values can throw [TypeError]. Unknown keys are
-  /// ignored.
+  /// ignored. New inference controls reject malformed values with
+  /// [FormatException], without including supplied values in diagnostics.
   factory LlamaDartGenerationConfig.fromJson(Map<String, dynamic>? json) {
     if (json == null) {
       return const LlamaDartGenerationConfig();
@@ -78,6 +90,23 @@ class LlamaDartGenerationConfig {
       topK: asInt(json['topK']),
       minP: asDouble(json['minP']),
       penalty: asDouble(json['penalty']),
+      presencePenalty: controlDouble(json, 'presencePenalty'),
+      thinkingBudget: thinkingBudgetFromJson(json['thinkingBudget']),
+      speculativeDecoding: controlBool(json, 'speculativeDecoding'),
+      speculativeDecodingConfig: speculativeConfigFromJson(
+        json['speculativeDecodingConfig'],
+      ),
+      reusePromptPrefix: controlBool(json, 'reusePromptPrefix'),
+      streamBatchTokenThreshold: controlInt(
+        json,
+        'streamBatchTokenThreshold',
+        minimum: 1,
+      ),
+      streamBatchByteThreshold: controlInt(
+        json,
+        'streamBatchByteThreshold',
+        minimum: 1,
+      ),
       maxTokens: asInt(json['maxTokens']),
       stop: asStringList(json['stop']),
       seed: asInt(json['seed']),
@@ -113,6 +142,56 @@ class LlamaDartGenerationConfig {
   ///
   /// Null uses [defaultPenalty].
   final double? penalty;
+
+  /// Additive presence penalty; null or zero disables it.
+  ///
+  /// Requires the loaded runtime to report presence-penalty support. Unlike
+  /// [penalty], this adds a fixed penalty rather than scaling repeated logits.
+  final double? presencePenalty;
+
+  /// Maximum reasoning tokens per block; null leaves reasoning unbudgeted.
+  ///
+  /// This does not enable thinking: set [enableThinking] for the model's
+  /// template. Omitted delimiters are resolved from the selected template in
+  /// chat and constrained JSON. Media and speculative decoding cannot be
+  /// combined with a budget. Requires runtime thinking-budget support.
+  final llama.ThinkingBudget? thinkingBudget;
+
+  /// Enables the backend's default speculative strategy; null defaults false.
+  ///
+  /// Prefer [speculativeDecodingConfig] to select a strategy. A non-null typed
+  /// config takes precedence, including when this flag is false.
+  final bool? speculativeDecoding;
+
+  /// Backend-native speculative strategy and tuning; null disables it unless
+  /// [speculativeDecoding] is true.
+  ///
+  /// Every selected strategy must be reported by the loaded runtime. The core
+  /// runtime validates model-specific tuning. Constrained JSON, active tools,
+  /// media and thinking budgets cannot be combined with speculation.
+  /// JSON uses enum names and nested source/download objects. Authenticated or
+  /// signed draft sources must be downloaded outside the request first:
+  /// [toJson] rejects credentials and cancellation tokens to keep them out of
+  /// Genkit request traces. Deprecated draft paths are rejected as well.
+  final llama.SpeculativeDecodingConfig? speculativeDecodingConfig;
+
+  /// Whether native text generation reuses matching prompt prefixes.
+  ///
+  /// Null defaults true. This is an optimization, not a conversational session;
+  /// send the full history on every request. Disabling reuse requires confirmed
+  /// native llama.cpp; Web and LiteRT-LM cannot confirm this control.
+  final bool? reusePromptPrefix;
+
+  /// Native worker flush threshold in token pieces; null defaults to 8.
+  ///
+  /// Must be positive. Lower values improve granularity at the cost of message
+  /// overhead. Nondefault values require stream-batching support.
+  final int? streamBatchTokenThreshold;
+
+  /// Native worker flush threshold in bytes; null defaults to 512.
+  ///
+  /// Must be positive. Nondefault values require stream-batching support.
+  final int? streamBatchByteThreshold;
 
   /// Maximum number of generated tokens, excluding the input prompt.
   ///
@@ -158,8 +237,30 @@ class LlamaDartGenerationConfig {
   final Map<String, dynamic>? chatTemplateKwargs;
 
   /// Serializes the config to a Genkit-friendly map.
+  ///
+  /// Throws [FormatException] for invalid new controls or speculative draft
+  /// settings that cannot safely be represented in request traces.
   Map<String, dynamic> toJson() {
+    validateGenerationControls(
+      presencePenalty: presencePenalty,
+      streamBatchTokenThreshold: streamBatchTokenThreshold,
+      streamBatchByteThreshold: streamBatchByteThreshold,
+    );
     return {
+      if (presencePenalty != null) 'presencePenalty': presencePenalty,
+      if (thinkingBudget != null)
+        'thinkingBudget': thinkingBudgetToJson(thinkingBudget!),
+      if (speculativeDecoding != null)
+        'speculativeDecoding': speculativeDecoding,
+      if (speculativeDecodingConfig != null)
+        'speculativeDecodingConfig': speculativeConfigToJson(
+          speculativeDecodingConfig!,
+        ),
+      if (reusePromptPrefix != null) 'reusePromptPrefix': reusePromptPrefix,
+      if (streamBatchTokenThreshold != null)
+        'streamBatchTokenThreshold': streamBatchTokenThreshold,
+      if (streamBatchByteThreshold != null)
+        'streamBatchByteThreshold': streamBatchByteThreshold,
       if (temperature != null) 'temperature': temperature,
       if (topP != null) 'topP': topP,
       if (topK != null) 'topK': topK,

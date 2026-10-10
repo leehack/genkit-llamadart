@@ -107,22 +107,29 @@ class LlamaDartPlugin extends GenkitPlugin {
     return _listedActions ??= _models
         .expand((definition) {
           final actionName = actionNameFor(definition.name);
-          final modelInfo = modelInfoFor(definition);
-          final metadata = actionMetadataFor(definition, modelInfo: modelInfo);
-          trackCapabilityMetadata(metadata, definition, _registry);
+          Map<String, dynamic> metadataFor({bool generation = true}) {
+            final metadata = actionMetadataFor(
+              definition,
+              modelInfo: modelInfoFor(definition, generation: generation),
+              generation: generation,
+            );
+            trackCapabilityMetadata(metadata, definition, _registry);
+            return metadata;
+          }
+
           return <ActionMetadata>[
             ActionMetadata(
               name: actionName,
               description: definition.name,
               actionType: ActionType.model,
-              metadata: metadata,
+              metadata: metadataFor(),
             ),
             if (definition.supportsEmbeddings)
               ActionMetadata(
                 name: actionName,
                 description: definition.name,
                 actionType: ActionType.embedder,
-                metadata: metadata,
+                metadata: metadataFor(generation: false),
               ),
           ];
         })

@@ -17,7 +17,8 @@ genkit.Embedder<LlamaDartEmbedConfig> buildEmbedderAction({
     name: actionName,
     metadata: actionMetadataFor(
       definition,
-      modelInfo: modelInfoFor(definition),
+      modelInfo: modelInfoFor(definition, generation: false),
+      generation: false,
     ),
     fn: (request, _) async {
       if (!definition.supportsEmbeddings) {

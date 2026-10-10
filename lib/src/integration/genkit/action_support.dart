@@ -4,6 +4,7 @@ import 'package:llamadart/llamadart.dart' as llama;
 import '../../api/model_definition.dart';
 import '../../core/metadata/model_capabilities.dart';
 import '../../core/runtime/engine_registry.dart';
+import 'generation_config_schema.dart';
 
 const String llamaDartPluginName = 'llamadart';
 
@@ -12,23 +13,31 @@ String actionNameFor(String modelName) => '$llamaDartPluginName/$modelName';
 Map<String, dynamic> actionMetadataFor(
   LlamaModelDefinition definition, {
   required genkit.ModelInfo modelInfo,
+  bool generation = true,
 }) {
   return <String, dynamic>{
     'label': definition.name,
     'description': definition.name,
-    'model': modelInfo.toJson(),
+    'model': {
+      ...modelInfo.toJson(),
+      if (generation && modelInfo.configSchema != null)
+        'customOptions': modelInfo.configSchema,
+    },
   };
 }
 
 genkit.ModelInfo modelInfoFor(
   LlamaModelDefinition definition, {
   llama.LlamaEngineCapabilities? capabilities,
+  bool generation = true,
 }) {
   final provided = definition.modelInfo;
   return genkit.ModelInfo(
     versions: provided?.versions,
     label: provided?.label ?? definition.name,
-    configSchema: provided?.configSchema,
+    configSchema:
+        provided?.configSchema ??
+        (generation ? generationConfigSchema() : null),
     supports: <String, dynamic>{
       ...?provided?.supports,
       ...supportMetadataFor(definition, capabilities: capabilities),
@@ -65,15 +74,34 @@ void trackCapabilityMetadata(
 Map<String, dynamic> capabilityMetadataFor(
   LlamaModelDefinition definition,
   EngineRegistry registry,
-) => {
-  'state': registry.capabilityStateFor(definition.name),
-  'ready': registry.capabilitiesFor(definition.name)?.isSupported == true,
-  'declared': {
-    'tools': definition.supportsTools,
-    'constrained': definition.supportsConstrainedOutput,
-    'embeddings': definition.supportsEmbeddings,
-  },
-};
+) {
+  final snapshot = registry.capabilitiesFor(definition.name);
+  final capabilities = snapshot?.isSupported == true ? snapshot : null;
+  return {
+    'state': registry.capabilityStateFor(definition.name),
+    'ready': capabilities != null,
+    'generation': {
+      'penalty': capabilities?.supportsPenalty == true,
+      'minP': capabilities?.supportsMinP == true,
+      'presencePenalty': capabilities?.supportsPresencePenalty == true,
+      'thinkingBudget': capabilities?.supportsThinkingBudget == true,
+      'streamBatching': capabilities?.supportsStreamBatching == true,
+      'promptPrefixControl':
+          const bool.fromEnvironment('dart.library.io') &&
+          capabilities?.runtime == llama.LlamaRuntime.llamaCpp,
+      'speculativeDecodingStrategies':
+          capabilities?.speculativeDecodingStrategies
+              .map((s) => s.name)
+              .toList() ??
+          <String>[],
+    },
+    'declared': {
+      'tools': definition.supportsTools,
+      'constrained': definition.supportsConstrainedOutput,
+      'embeddings': definition.supportsEmbeddings,
+    },
+  };
+}
 
 Map<String, dynamic> rawResponseMetadata(
   LlamaModelDefinition definition, {

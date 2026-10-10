@@ -40,9 +40,22 @@ description: >-
   for advanced requests; without it, only single-turn text is accepted.
 - Set the context window with `modelParams: ModelParams(contextSize: ...)`.
   Tune a request with `LlamaDartGenerationConfig` (`temperature`, `topP`,
-  `topK`, `minP`, `penalty`, `maxTokens`, `stop`, `seed`, `enableThinking`,
+  `topK`, `minP`, `penalty`, `presencePenalty`, `maxTokens`, `stop`, `seed`, `enableThinking`,
   `parallelToolCalls`, `chatTemplateKwargs`). Defaults: temperature 0.8,
   maxTokens 4096, thinking off.
+- Thinking budgets use `ThinkingBudget(maxTokens: ...)`, separate from
+  `enableThinking`. Delimiters are resolved from the template for chat and JSON.
+  `SpeculativeDecodingConfig` selects core strategies; the legacy-style boolean
+  selects the backend default. Speculation cannot be combined with constrained
+  JSON, active tools, media or thinking budgets. Never put draft download tokens
+  or signed URLs into Genkit config: download first and use `ModelSource.path`.
+- Native performance controls are `reusePromptPrefix`,
+  `streamBatchTokenThreshold` and `streamBatchByteThreshold`; defaults stay
+  true, 8 and 512. Overrides require confirmed runtime support. Discovery
+  exposes `model.configSchema` and `llamadartCapabilities.generation` without
+  loading a model. See [generation controls](../../doc/usage.md#generation-settings).
+- `ModelFormat` and `LiteRtLmActivationDataType` are re-exported for source/load
+  configuration; use `ComputeDevice` instead of deprecated device selectors.
 - Stream with `ai.generateStream<Object?, LlamaDartGenerationConfig>(...)`:
   iterate the chunks for `chunk.text`, then `await stream.onResult` for the
   final response.

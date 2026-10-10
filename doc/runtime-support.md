@@ -18,6 +18,9 @@ confirmed. Metadata includes `llamadartCapabilities` with:
 
 - `state`: `unloaded`, `unverified` (a pending/failed probe or no provider), or `verified`
 - `ready`: whether the last checked runtime reports a loaded, usable model
+- `generation`: `penalty`, `minP`, `presencePenalty`, `thinkingBudget`, `streamBatching`,
+  `promptPrefixControl`, and `speculativeDecodingStrategies` from the last ready
+  snapshot; false flags and an empty strategy list before verification
 - `declared`: the definition's `tools`, `constrained`, and `embeddings` permissions
 
 After initialization, the plugin reads `LlamaEngine.capabilities` before every
@@ -27,6 +30,11 @@ check; every request checks again. A failed probe clears previous support and
 blocks inference. Disposing the plugin clears its
 support metadata. Registering an action does not guarantee that its runtime
 supports the requested feature.
+
+Inference controls are checked before generation. Nondefault batching and
+nonzero presence penalties require explicit support; thinking budgets and every
+selected speculative strategy must be confirmed. See [generation settings](usage.md#generation-settings)
+for incompatible combinations and JSON configuration.
 
 Tools, strict JSON, embeddings, system messages, conversation history, images,
 and audio are checked before generation or embedding. Confirmed unsupported

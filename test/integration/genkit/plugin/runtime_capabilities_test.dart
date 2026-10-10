@@ -129,6 +129,15 @@ void main() {
         expect(_state(metadata), {
           'state': 'unloaded',
           'ready': false,
+          'generation': {
+            'penalty': false,
+            'minP': false,
+            'presencePenalty': false,
+            'thinkingBudget': false,
+            'streamBatching': false,
+            'promptPrefixControl': false,
+            'speculativeDecodingStrategies': <String>[],
+          },
           'declared': {'tools': true, 'constrained': true, 'embeddings': true},
         });
         final supports = _supports(metadata);
@@ -636,6 +645,21 @@ void main() {
         embed(_embedRequest()),
         throwsA(_status(genkit.StatusCode.failedPrecondition)),
       );
+      for (final config in [
+        const LlamaDartGenerationConfig(presencePenalty: 2),
+        const LlamaDartGenerationConfig(
+          thinkingBudget: ThinkingBudget(maxTokens: 0),
+        ),
+        const LlamaDartGenerationConfig(speculativeDecoding: true),
+        const LlamaDartGenerationConfig(reusePromptPrefix: false),
+        const LlamaDartGenerationConfig(streamBatchTokenThreshold: 1),
+      ]) {
+        final request = _request()..config = config.toJson();
+        await expectLater(
+          action(request),
+          throwsA(_status(genkit.StatusCode.failedPrecondition)),
+        );
+      }
       expect(runtime.createCallCount, 1);
       expect(runtime.capabilityReadCount, 0);
       expect(_state(action.metadata)['state'], 'unverified');

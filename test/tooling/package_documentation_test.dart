@@ -86,7 +86,17 @@ void main() {
         final String prefix = name.replaceAll('-', '_');
         for (final RegExpMatch block in _dartBlock.allMatches(markdown)) {
           var code = block.group(1)!;
-          if (!RegExp(r'^import ', multiLine: true).hasMatch(code)) {
+          if (!RegExp(r'^import ', multiLine: true).hasMatch(code) &&
+              name == 'readme') {
+            final quickstart = _dartBlock.firstMatch(markdown)!.group(1)!;
+            const tryStart = '  try {\n';
+            const finallyStart = '  } finally {\n';
+            final start = quickstart.indexOf(tryStart);
+            final end = quickstart.indexOf(finallyStart);
+            expect(start, greaterThanOrEqualTo(0));
+            expect(end, greaterThan(start));
+            code = quickstart.replaceRange(start + tryStart.length, end, code);
+          } else if (!RegExp(r'^import ', multiLine: true).hasMatch(code)) {
             code =
                 '''
 import 'package:genkit/genkit.dart';

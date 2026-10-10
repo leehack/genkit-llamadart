@@ -124,3 +124,63 @@ void checkRuntimeModelRequest(
     }
   }
 }
+
+void checkRuntimeGenerationConfig(
+  LlamaModelDefinition definition,
+  genkit.ModelRequest request,
+  List<llama.LlamaChatMessage> messages,
+  llama.GenerationParams params,
+  llama.LlamaEngineCapabilities? capabilities,
+) {
+  void require(bool? supported, String feature) => requireRuntimeCapability(
+    definition,
+    supported: supported,
+    feature: feature,
+  );
+  if (params.presencePenalty != 0) {
+    require(capabilities?.supportsPresencePenalty, 'presencePenalty');
+  }
+  if (params.thinkingBudget != null) {
+    require(capabilities?.supportsThinkingBudget, 'thinkingBudget');
+  }
+  if (params.streamBatchTokenThreshold !=
+          llama.GenerationParams.defaultStreamBatchTokenThreshold ||
+      params.streamBatchByteThreshold !=
+          llama.GenerationParams.defaultStreamBatchByteThreshold) {
+    require(capabilities?.supportsStreamBatching, 'native stream batching');
+  }
+  if (!params.reusePromptPrefix) {
+    require(
+      capabilities == null
+          ? null
+          : const bool.fromEnvironment('dart.library.io') &&
+                capabilities.runtime == llama.LlamaRuntime.llamaCpp,
+      'native prompt-prefix reuse control',
+    );
+  }
+  final speculative = params.resolvedSpeculativeDecodingConfig;
+  if (speculative != null) {
+    for (final strategy in speculative.effectiveStrategies) {
+      require(
+        capabilities?.speculativeDecodingStrategies.contains(strategy),
+        'speculative strategy ${strategy.name}',
+      );
+    }
+  }
+  final hasMedia = messages
+      .expand((m) => m.parts)
+      .any((p) => p is llama.LlamaImageContent || p is llama.LlamaAudioContent);
+  if ((hasMedia && (params.thinkingBudget != null || speculative != null)) ||
+      (speculative != null &&
+          (params.thinkingBudget != null ||
+              shouldUseStructuredGeneration(request.output) ||
+              ((request.tools?.isNotEmpty ?? false) &&
+                  request.toolChoice != genkit.ToolChoice.none)))) {
+    throw genkit.GenkitException(
+      'Thinking budgets and speculative decoding require text-only input. '
+      'Speculative decoding cannot be combined with thinking budgets, constrained JSON or active tools. '
+      'Disable speculation or remove the incompatible request options.',
+      status: genkit.StatusCode.unimplemented,
+    );
+  }
+}

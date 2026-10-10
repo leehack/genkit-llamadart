@@ -80,7 +80,10 @@ Future<void> main() async {
 
 Use this path for HTTP(S), Hugging Face, or local `ModelSource` values when you
 want `llamadart` to own cache lookup, download, checksum verification, and
-authenticated downloads. Supply `sha256` when you have a trusted checksum,
+authenticated downloads. For reproducible Hugging Face downloads, use
+`ModelSource.huggingFace(..., revision: commit)` or
+`ModelSource.parse('hf://owner/repo@commit/file.gguf')`.
+Supply `sha256` when you have a trusted checksum,
 and `bearerToken` or `headers` for private remote sources; keep credentials out
 of logs and source control. Keep constructing `LlamaModelDefinition` manually
 when your application already has a local filesystem path and owns all download
@@ -92,6 +95,42 @@ Local `ModelSource.path(...)` values use `llamadart`'s local-path semantics:
 remote-only options such as cache policy overrides, cache directories, bearer
 tokens, headers, resume, and retry settings are rejected instead of silently
 ignored.
+
+## LiteRT model settings
+
+`ModelFormat` and `LiteRtLmActivationDataType` are available from the adapter
+import for source and model configuration. Prepared native models load the
+resolved local file and detect its format from the contents. Activation data types
+apply to LiteRT-LM and must be supported by the selected bundle and device:
+
+```dart
+import 'package:genkit/genkit.dart';
+import 'package:genkit_llamadart/genkit_llamadart.dart';
+
+Future<void> main() async {
+  final prepared = await llamaDart.prepareModel(
+    name: 'litert-chat',
+    source: ModelSource.path('/models/chat.litertlm', format: ModelFormat.liteRtLm),
+    modelParams: const ModelParams(
+      device: ComputeDevice.cpu,
+      liteRtLmActivationDataType: LiteRtLmActivationDataType.float32,
+    ),
+    supportsEmbeddings: false,
+    supportsConstrainedOutput: false,
+  );
+  final ai = prepared.createGenkit();
+  try {
+    final response = await ai.generate(model: prepared.modelRef, prompt: 'Hello');
+    if (response.finishReason == FinishReason.failed) {
+      throw response.cause ?? StateError('Generation failed.');
+    }
+    print(response.text);
+  } finally {
+    await prepared.dispose();
+    await ai.shutdown();
+  }
+}
+```
 
 ## Progress, cancellation and warm-up
 

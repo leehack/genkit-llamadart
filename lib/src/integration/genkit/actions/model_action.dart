@@ -29,6 +29,15 @@ genkit.Model<LlamaDartGenerationConfig> buildModelAction({
     metadata: actionMetadataFor(definition, modelInfo: modelInfo),
     fn: (request, context) {
       checkDeclaredModelRequest(definition, request);
+      final LlamaDartGenerationConfig config;
+      try {
+        config = LlamaDartGenerationConfig.fromJson(request.config);
+      } on FormatException catch (error) {
+        throw genkit.GenkitException(
+          error.message,
+          status: genkit.StatusCode.invalidArgument,
+        );
+      }
       final capture = OperationUsage();
       final total = Stopwatch()..start();
       return runZoned(() async {
@@ -43,6 +52,7 @@ genkit.Model<LlamaDartGenerationConfig> buildModelAction({
               runtime: runtime,
               capabilities: registry.capabilitiesFor(definition.name),
               request: request,
+              config: config,
               context: context,
             );
             context.cancel?.throwIfCancelled();
@@ -75,13 +85,20 @@ Future<genkit.ModelResponse> _runModel({
   required LlamaRuntime runtime,
   required llama.LlamaEngineCapabilities? capabilities,
   required genkit.ModelRequest request,
+  required LlamaDartGenerationConfig config,
   required _ModelActionContext context,
 }) async {
-  final config = LlamaDartGenerationConfig.fromJson(request.config);
   final messages = toLlamaMessages(request.messages);
   checkRuntimeModelRequest(definition, request, messages, capabilities);
   final tools = toLlamaTools(request.tools);
   final params = toGenerationParams(config);
+  checkRuntimeGenerationConfig(
+    definition,
+    request,
+    messages,
+    params,
+    capabilities,
+  );
   final toolChoice = toLlamaToolChoice(
     request.toolChoice,
     hasTools: tools.isNotEmpty,
@@ -203,12 +220,25 @@ Future<genkit.ModelResponse> _runStructuredModel({
     inputParts.addAll(message.parts);
   }
 
+  final budget = params.thinkingBudget;
+  final tags = budget == null
+      ? null
+      : llama.ChatTemplateEngine.thinkingTagsFor(template.format);
+  final resolvedBudget = budget == null
+      ? null
+      : llama.ThinkingBudget(
+          maxTokens: budget.maxTokens,
+          startTag: budget.startTag ?? tags!.startTag,
+          endTag: budget.endTag ?? tags!.endTag,
+          forcedMessage: budget.forcedMessage,
+        );
   final rawOutput = StringBuffer();
   await for (final token in runtime.generate(
     template.prompt,
     params: params.copyWith(
       stopSequences: stops,
       grammar: template.grammar,
+      thinkingBudget: resolvedBudget,
       grammarLazy: template.grammarLazy,
       grammarTriggers: template.grammarTriggers
           .map((trigger) {
