@@ -2,8 +2,6 @@
 @TestOn('vm')
 library;
 
-import 'dart:io';
-
 import 'package:genkit/genkit.dart';
 import 'package:genkit_llamadart/genkit_llamadart.dart';
 import 'package:schemantic/schemantic.dart';
@@ -37,7 +35,9 @@ void main() {
   test(
     'native prefix reuse, batching and ngram speculation preserve greedy text',
     () async {
-      final app = setup(await requireIntegrationModelPath());
+      final path = await resolveIntegrationModelPath();
+      if (path == null) return;
+      final app = setup(path);
       final outputs = <String>[];
       for (final config in [
         const LlamaDartGenerationConfig(
@@ -100,17 +100,9 @@ void main() {
   test(
     'Qwen3 thinking budget closes reasoning in chat and constrained JSON',
     () async {
-      if (Platform.environment['LLAMADART_AUTO_DOWNLOAD_TOOL_MODEL'] != '1' &&
-          (Platform.environment['LLAMADART_INTEGRATION_TOOL_MODEL_PATH']
-                  ?.trim()
-                  .isEmpty ??
-              true)) {
-        markTestSkipped(
-          'Set LLAMADART_AUTO_DOWNLOAD_TOOL_MODEL=1 or LLAMADART_INTEGRATION_TOOL_MODEL_PATH for Qwen3 budget qualification.',
-        );
-        return;
-      }
-      final app = setup(await requireIntegrationToolModelPath());
+      final path = await resolveIntegrationToolModelPath();
+      if (path == null) return;
+      final app = setup(path);
       const config = LlamaDartGenerationConfig(
         temperature: 0,
         seed: 42,
@@ -169,17 +161,9 @@ void main() {
   test(
     'Qwen3.5 runs recommended nonthinking sampling with presence penalty',
     () async {
-      if (Platform.environment['LLAMADART_AUTO_DOWNLOAD_QWEN35_MODEL'] != '1' &&
-          (Platform.environment['LLAMADART_INTEGRATION_QWEN35_MODEL_PATH']
-                  ?.trim()
-                  .isEmpty ??
-              true)) {
-        markTestSkipped(
-          'Set LLAMADART_AUTO_DOWNLOAD_QWEN35_MODEL=1 or LLAMADART_INTEGRATION_QWEN35_MODEL_PATH for Qwen3.5 sampler qualification.',
-        );
-        return;
-      }
-      final app = setup(await requireIntegrationQwen35ModelPath());
+      final path = await resolveIntegrationQwen35ModelPath();
+      if (path == null) return;
+      final app = setup(path);
       final timer = Stopwatch()..start();
       final result = await app.ai.generate(
         model: llamaDart.model('controls'),

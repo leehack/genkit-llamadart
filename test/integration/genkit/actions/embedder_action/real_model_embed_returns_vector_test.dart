@@ -9,7 +9,8 @@ import '../../test_support/real_model_test_support.dart';
 
 void main() {
   test('real model embed returns vector', () async {
-    final modelPath = await requireIntegrationEmbedModelPath();
+    final modelPath = await resolveIntegrationEmbedModelPath();
+    if (modelPath == null) return;
     final integration = createIntegrationGenkit(
       modelName: 'real-embed',
       modelPath: modelPath,

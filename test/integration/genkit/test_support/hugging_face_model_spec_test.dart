@@ -7,6 +7,8 @@ void main() {
     for (final spec in <HuggingFaceModelSpec>[
       integrationChatModel,
       integrationEmbedModel,
+      integrationToolModel,
+      integrationQwen35Model,
     ]) {
       expect(spec.revision, hasLength(40));
       expect(spec.expectedSha256, hasLength(64));

@@ -137,7 +137,7 @@ For request cancellation, pass a Genkit `CancellationController` token. See
 | Feature | Requirements / guide |
 | --- | --- |
 | Offline chat and streaming | Instruct/chat model; [streaming example](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_example.dart) |
-| Tool calling and agent loops | Tool-capable model/runtime, object input schemas; [tool calling](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#tool-calling) |
+| Tool calling and agent loops | Tool-capable model/runtime, supported object schemas; [tool calling](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#tool-calling) |
 | Structured JSON output | Grammar-capable backend; [JSON guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#structured-json-output) |
 | Text embeddings for search / RAG | Embedding model; [embedding guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#embeddings) |
 | Image and audio input | Compatible multimodal model and runtime, matching projector when required; [media guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#image-and-audio-input) |

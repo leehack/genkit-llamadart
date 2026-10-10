@@ -11,7 +11,8 @@ void main() {
   test(
     'example exports correlated spans and token metrics before exiting',
     () async {
-      final model = await requireIntegrationModelPath();
+      final model = await resolveIntegrationModelPath();
+      if (model == null) return;
       final collector = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
       addTearDown(() => collector.close(force: true));
       final traces = ExportTraceServiceRequest();

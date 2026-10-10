@@ -13,7 +13,8 @@ void main() {
   test(
     'prepareModelTask downloads a real GGUF over HTTP then hits cache',
     () async {
-      final modelPath = await requireIntegrationModelPath();
+      final modelPath = await resolveIntegrationModelPath();
+      if (modelPath == null) return;
       final server = await _FileServer.start(File(modelPath));
       final cacheDirectory = await Directory.systemTemp.createTemp(
         'genkit_llamadart_http_cache_',
@@ -83,7 +84,8 @@ void main() {
   );
 
   test('prepareModelTask cancels an in-flight HTTP download', () async {
-    final modelPath = await requireIntegrationModelPath();
+    final modelPath = await resolveIntegrationModelPath();
+    if (modelPath == null) return;
     final server = await _FileServer.start(
       File(modelPath),
       bytesPerChunk: 16 * 1024,

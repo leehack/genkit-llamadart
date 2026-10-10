@@ -58,7 +58,12 @@ class LlamaModelDefinition {
   /// Enabled tools must use object-shaped input schemas and arguments because
   /// `llamadart` represents tool arguments as `Map<String, dynamic>`. Local
   /// `$ref` wrappers emitted for named Schemantic object schemas are resolved
-  /// before their parameters are mapped.
+  /// before their parameters are mapped. Single primitive types (including
+  /// `null`), string enums, nested objects, required fields and typed arrays
+  /// are supported. Nullable unions, bounds, composition and restrictive
+  /// `additionalProperties` policies fail with `INVALID_ARGUMENT` before
+  /// initialization instead of being silently discarded. See the tool guide
+  /// for the supported schema subset.
   final bool supportsTools;
 
   /// Whether this definition permits constrained JSON output requests.

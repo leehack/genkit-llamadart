@@ -245,23 +245,44 @@ Map<String, dynamic> toLlamaToolArguments(Object? input) {
 }
 
 llama.LlamaContentPart _toLlamaMediaPart(genkit.Media media) {
-  final contentType = media.contentType ?? _inferContentType(media.url);
+  final uri = Uri.tryParse(media.url);
+  if (uri == null && !_windowsDrivePath.hasMatch(media.url)) {
+    throw genkit.GenkitException(
+      'Malformed media URI for llamadart; use a local path, file URL or data URL.',
+      status: genkit.StatusCode.invalidArgument,
+    );
+  }
+  final String? contentType;
+  try {
+    contentType = media.contentType ?? _inferContentType(media.url);
+  } on FormatException {
+    throw genkit.GenkitException(
+      'Invalid media data URL; check its MIME type and encoded payload.',
+      status: genkit.StatusCode.invalidArgument,
+    );
+  }
   final isImage = contentType?.startsWith('image/') ?? false;
   final isAudio = contentType?.startsWith('audio/') ?? false;
 
   if (!isImage && !isAudio) {
     throw genkit.GenkitException(
-      'Unsupported media type for llamadart: ${contentType ?? media.url}',
+      'Unsupported media type for llamadart; specify an image/* or audio/* MIME type.',
       status: genkit.StatusCode.invalidArgument,
     );
   }
 
-  final uri = Uri.tryParse(media.url);
-  if (uri != null && uri.scheme == 'data') {
-    final bytes = UriData.parse(media.url).contentAsBytes();
-    return isImage
-        ? llama.LlamaImageContent(bytes: bytes)
-        : llama.LlamaAudioContent(bytes: bytes);
+  if (uri?.scheme == 'data') {
+    try {
+      final bytes = UriData.parse(media.url).contentAsBytes();
+      return isImage
+          ? llama.LlamaImageContent(bytes: bytes)
+          : llama.LlamaAudioContent(bytes: bytes);
+    } on FormatException {
+      throw genkit.GenkitException(
+        'Invalid media data URL; check its MIME type and encoded payload.',
+        status: genkit.StatusCode.invalidArgument,
+      );
+    }
   }
 
   final filePath = _toFilePath(uri, media.url);
@@ -276,7 +297,8 @@ llama.LlamaContentPart _toLlamaMediaPart(genkit.Media media) {
   }
 
   throw genkit.GenkitException(
-    'Unsupported media URL for llamadart: ${media.url}',
+    'Unsupported media URI scheme for llamadart. Audio requires a local path, '
+    'file URL or data URL; remote images require an HTTP(S)-capable backend.',
     status: genkit.StatusCode.invalidArgument,
   );
 }
@@ -326,7 +348,7 @@ String? _toFilePath(Uri? uri, String originalUrl) {
       return uri.toFilePath();
     } on UnsupportedError {
       throw genkit.GenkitException(
-        'Invalid local file media URL: $originalUrl',
+        'Invalid local file media URL; use a file URL valid for this platform.',
         status: genkit.StatusCode.invalidArgument,
       );
     }
