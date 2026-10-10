@@ -119,8 +119,11 @@ The default auto-downloaded models are intentionally tiny and CPU-friendly:
 - embeddings: `jina-embeddings-v2-small-en-Q2_K.gguf` (~20 MB)
 
 They are meant for smoke testing package behavior, not for judging output
-quality. See [ARCHITECTURE.md](ARCHITECTURE.md#real-model-smoke-tests) for
-their sources and verification.
+quality. The observer/lifecycle smoke fixture explicitly uses CPU, a 1024-token
+context and one generation/batch thread so concurrent CI model sessions have
+bounded resources.
+See [ARCHITECTURE.md](ARCHITECTURE.md#real-model-smoke-tests) for their sources
+and verification.
 
 ### Real tool-model qualification
 

@@ -11,6 +11,12 @@ import 'package:test/test.dart';
 import '../test_support/real_model_test_support.dart';
 
 final traceKey = Object();
+const _fixtureModelParams = ModelParams(
+  device: ComputeDevice.cpu,
+  contextSize: 1024,
+  numberOfThreads: 1,
+  numberOfThreadsBatch: 1,
+);
 
 void main() {
   test(
@@ -24,6 +30,7 @@ void main() {
           LlamaModelDefinition(
             name: 'observed',
             modelPath: modelPath,
+            modelParams: _fixtureModelParams,
             supportsEmbeddings: false,
           ),
         ],
@@ -124,6 +131,7 @@ void main() {
                 .prepareModelTask(
                   name: 'prepared',
                   source: ModelSource.path(path),
+                  modelParams: _fixtureModelParams,
                   supportsEmbeddings: false,
                   observers: [observer],
                 )
@@ -131,6 +139,7 @@ void main() {
           : await llamaDart.prepareModel(
               name: 'prepared',
               source: ModelSource.path(path),
+              modelParams: _fixtureModelParams,
               supportsEmbeddings: false,
               observers: [observer],
             );
@@ -159,6 +168,7 @@ void main() {
         const LlamaModelDefinition(
           name: 'missing',
           modelPath: '/nonexistent/genkit-observability-model.gguf',
+          modelParams: _fixtureModelParams,
           supportsEmbeddings: false,
         ),
       ],
