@@ -12,6 +12,8 @@ const _supported = llama.LlamaEngineCapabilities(
   supportsGrammar: true,
   supportsStructuredOutput: true,
   supportsPresencePenalty: true,
+  supportsPenalty: true,
+  supportsMinP: true,
   supportsThinkingBudget: true,
   supportsStreamBatching: true,
   speculativeDecodingStrategies: {
@@ -408,6 +410,8 @@ void main() {
       );
       await generate(const LlamaDartGenerationConfig(presencePenalty: 2));
       expect(generation()['presencePenalty'], true);
+      expect(generation()['penalty'], true);
+      expect(generation()['minP'], true);
       expect(generation()['speculativeDecodingStrategies'], [
         'backendDefault',
         'ngramSimple',
@@ -421,6 +425,8 @@ void main() {
       expect(response.finishReason, genkit.FinishReason.failed);
       expect(generation()['presencePenalty'], false);
       expect(generation()['speculativeDecodingStrategies'], isEmpty);
+      expect(generation()['penalty'], false);
+      expect(generation()['minP'], false);
       expect(runtime.createCallCount, 1);
     },
   );

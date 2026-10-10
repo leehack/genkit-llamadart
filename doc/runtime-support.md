@@ -18,7 +18,7 @@ confirmed. Metadata includes `llamadartCapabilities` with:
 
 - `state`: `unloaded`, `unverified` (a pending/failed probe or no provider), or `verified`
 - `ready`: whether the last checked runtime reports a loaded, usable model
-- `generation`: `presencePenalty`, `thinkingBudget`, `streamBatching`,
+- `generation`: `penalty`, `minP`, `presencePenalty`, `thinkingBudget`, `streamBatching`,
   `promptPrefixControl`, and `speculativeDecodingStrategies` from the last ready
   snapshot; false flags and an empty strategy list before verification
 - `declared`: the definition's `tools`, `constrained`, and `embeddings` permissions

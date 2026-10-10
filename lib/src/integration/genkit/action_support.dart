@@ -81,6 +81,8 @@ Map<String, dynamic> capabilityMetadataFor(
     'state': registry.capabilityStateFor(definition.name),
     'ready': capabilities != null,
     'generation': {
+      'penalty': capabilities?.supportsPenalty == true,
+      'minP': capabilities?.supportsMinP == true,
       'presencePenalty': capabilities?.supportsPresencePenalty == true,
       'thinkingBudget': capabilities?.supportsThinkingBudget == true,
       'streamBatching': capabilities?.supportsStreamBatching == true,

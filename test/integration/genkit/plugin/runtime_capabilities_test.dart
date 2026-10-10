@@ -130,6 +130,8 @@ void main() {
           'state': 'unloaded',
           'ready': false,
           'generation': {
+            'penalty': false,
+            'minP': false,
             'presencePenalty': false,
             'thinkingBudget': false,
             'streamBatching': false,
