@@ -46,7 +46,7 @@ description: >-
 - `task.result` completes with an error on failure, cancellation or disposal.
   Always await it in `try`/`catch`.
 - `ready` means files are resolved and the plugin is built; the native model
-  still loads lazily on the first request. Call
+  still loads lazily on the first request, inspection or tokenization. Call
   `await prepared.warmUp(ai)` to load it behind the loading screen.
   `warmUp` throws on failure or cancellation.
 - Ownership: `task.dispose()` closes snapshot resources; `prepared.dispose()`

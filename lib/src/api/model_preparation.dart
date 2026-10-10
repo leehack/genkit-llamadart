@@ -24,12 +24,13 @@ enum LlamaModelPreparationStage {
 
   /// The Genkit plugin, model definition, and typed refs are being created.
   ///
-  /// This stage does not load the native model; use warm-up for that.
+  /// This stage does not load the native model; warm-up or inspection does.
   loading,
 
   /// Source resolution finished and a [LlamaPreparedModel] can be registered.
   ///
-  /// Native model loading remains lazy until the first request or warm-up.
+  /// Native model loading remains lazy until a request, warm-up, inspection
+  /// or raw-text tokenization/counting.
   ready,
 
   /// Preparation failed.

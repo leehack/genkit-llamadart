@@ -61,7 +61,8 @@ class LlamaDartPluginHandle {
   ///
   /// [observers] are copied before preparation and attached to the engine.
   /// Downloads finish before this future resolves; native model loading stays
-  /// lazy until generation, embedding or [LlamaPreparedModel.warmUp].
+  /// lazy until generation, embedding, [LlamaPreparedModel.warmUp],
+  /// [LlamaPreparedModel.inspect] or raw-text tokenization/counting.
   ///
   /// Throws [ArgumentError] for an empty [name] and propagates download,
   /// checksum and source-option errors from llamadart. [onModelProgress] and
