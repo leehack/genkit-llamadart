@@ -27,17 +27,10 @@ List<llama.LlamaChatMessage> toLlamaMessages(
       }
 
       for (final part in toolResponses) {
-        _validateToolResponse(part.toolResponse);
         converted.add(
           llama.LlamaChatMessage.withContent(
             role: llama.LlamaChatRole.tool,
-            content: [
-              llama.LlamaToolResultContent(
-                id: part.toolResponse.ref,
-                name: part.toolResponse.name,
-                result: _normalizeToolResultOutput(part.toolResponse.output),
-              ),
-            ],
+            content: [_toLlamaToolResult(part.toolResponse)],
           ),
         );
       }
@@ -211,13 +204,7 @@ llama.LlamaContentPart? _toLlamaPart(genkit.Part part) {
   }
 
   if (part.isToolResponse) {
-    final toolResponse = part.toolResponse!;
-    _validateToolResponse(toolResponse);
-    return llama.LlamaToolResultContent(
-      id: toolResponse.ref,
-      name: toolResponse.name,
-      result: _normalizeToolResultOutput(toolResponse.output),
-    );
+    return _toLlamaToolResult(part.toolResponse!);
   }
 
   if (part.isReasoning) {
@@ -382,11 +369,24 @@ String _normalizeToolResultOutput(Object? output) {
   }
 }
 
-void _validateToolResponse(genkit.ToolResponse response) {
-  if (response.content?.isNotEmpty ?? false) {
-    throw genkit.GenkitException(
-      'Multipart tool results are not supported by llamadart; return structured output or text.',
-      status: genkit.StatusCode.unimplemented,
+llama.LlamaToolResultContent _toLlamaToolResult(genkit.ToolResponse response) =>
+    llama.LlamaToolResultContent(
+      id: response.ref,
+      name: response.name,
+      result: response.content?.isNotEmpty == true
+          ? response.content!.map(_toolResultText).join('\n')
+          : _normalizeToolResultOutput(response.output),
     );
+
+String _toolResultText(Object? part) {
+  final value = part is genkit.Part ? part.toJson() : part;
+  if (value is Map &&
+      value['text'] is String &&
+      value.keys.every((key) => key == 'text' || key == 'metadata')) {
+    return value['text'] as String;
   }
+  throw genkit.GenkitException(
+    'llamadart tool-result content supports text parts only; return TextPart values or structured output.',
+    status: genkit.StatusCode.unimplemented,
+  );
 }
