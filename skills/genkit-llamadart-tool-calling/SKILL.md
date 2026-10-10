@@ -16,8 +16,11 @@ description: >-
   runs the loop: it executes each tool request and calls the model again, up
   to `maxTurns`. Always set `maxTurns`.
 - Tool callbacks return `ToolResult.response(value)`. Return text or
-  JSON-compatible data; multipart tool-result content is rejected with
-  `UNIMPLEMENTED`.
+  JSON-compatible data, or supply `parts: [TextPart(text: '...')]` for the
+  model-facing presentation. Nonempty text parts are joined with newlines;
+  structured `output` remains in Genkit history and is not appended to that
+  presentation. Missing/empty parts fall back to output. Non-text result parts
+  fail with `UNIMPLEMENTED`; multimodal tool results remain unsupported.
 - Tool input schemas and tool-call arguments must be JSON objects, because
   llamadart passes arguments as `Map<String, dynamic>`. Primitive or list root
   inputs fail with `INVALID_ARGUMENT`. For a no-argument tool, use an object

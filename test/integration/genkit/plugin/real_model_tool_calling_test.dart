@@ -36,6 +36,7 @@ void main() {
     });
     var calls = 0;
     var code = '';
+    var multipart = false;
     final tool = ai.defineTool<Map<String, dynamic>, String>(
       name: 'get_verification_code',
       description:
@@ -60,7 +61,15 @@ void main() {
       fn: (input, _) async {
         expect(input, {'value': null});
         calls++;
-        return ToolResult.response(code);
+        return multipart
+            ? ToolResult.response(
+                'GENKIT-OUTPUT-ONLY',
+                parts: [
+                  TextPart(text: code),
+                  TextPart(text: 'Use the code above.'),
+                ],
+              )
+            : ToolResult.response(code);
       },
     );
     final finishAfterRequired = ai.defineGenerateMiddleware<void>(
@@ -69,6 +78,7 @@ void main() {
     );
     for (final choice in [ToolChoice.auto, ToolChoice.required]) {
       calls = 0;
+      multipart = choice == ToolChoice.required;
       code = 'NORTHSTAR-${choice == ToolChoice.auto ? 48271 : 93652}';
       final result = await ai.generate(
         model: llamaDart.model('tool-qualified'),
@@ -101,11 +111,24 @@ void main() {
           (m) =>
               m.role == Role.tool &&
               m.content.any(
-                (p) => p.toolResponsePart?.toolResponse.output == code,
+                (p) =>
+                    p.toolResponsePart?.toolResponse.output ==
+                    (multipart ? 'GENKIT-OUTPUT-ONLY' : code),
               ),
         ),
         isTrue,
       );
+      if (multipart) {
+        final response = history
+            .expand((m) => m.content)
+            .firstWhere((p) => p.isToolResponse)
+            .toolResponse!;
+        expect(response.content, [
+          {'text': code},
+          {'text': 'Use the code above.'},
+        ]);
+        expect(result.text, isNot(contains('GENKIT-OUTPUT-ONLY')));
+      }
     }
     final schemaTool = toLlamaTools([
       api.ToolDefinition(

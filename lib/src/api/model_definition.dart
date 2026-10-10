@@ -64,6 +64,10 @@ class LlamaModelDefinition {
   /// `additionalProperties` policies fail with `INVALID_ARGUMENT` before
   /// initialization instead of being silently discarded. See the tool guide
   /// for the supported schema subset.
+  ///
+  /// Tool results may contain text parts, joined with newlines for the model;
+  /// structured output remains in Genkit history. Missing or empty parts use
+  /// the output representation. Non-text result parts are unsupported.
   final bool supportsTools;
 
   /// Whether this definition permits constrained JSON output requests.
