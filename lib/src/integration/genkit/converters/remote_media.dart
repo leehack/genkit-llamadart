@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:genkit/plugin.dart' as genkit;
@@ -6,11 +7,11 @@ import 'package:llamadart/llamadart.dart' as llama;
 import '../../../api/media_resolver.dart';
 import 'genkit_to_llama.dart';
 
-Future<List<llama.LlamaChatMessage>> resolveLlamaMessages(
+FutureOr<List<llama.LlamaChatMessage>> resolveLlamaMessages(
   List<genkit.Message> messages, {
   LlamaDartMediaResolver? resolver,
   genkit.CancellationToken? cancel,
-}) async {
+}) {
   if (!const bool.fromEnvironment('dart.library.io') || resolver == null) {
     return toLlamaMessages(messages);
   }
@@ -41,36 +42,38 @@ Future<List<llama.LlamaChatMessage>> resolveLlamaMessages(
   }
   final validated = toLlamaMessages(messages, mediaOverrides: overrides);
   if (pending.isEmpty) return validated;
-  for (final entry in pending.entries) {
-    if (cancel?.isCancelled ?? false) {
-      throw genkit.CancelledException(token: cancel);
-    }
-    final Uint8List bytes;
-    try {
-      bytes = await resolver.resolve(
-        Uri.parse(entry.key.$1),
-        contentType: entry.value,
-        cancel: cancel,
-      );
-      if (bytes.isEmpty) throw StateError('Empty media.');
-    } catch (error) {
+  return () async {
+    for (final entry in pending.entries) {
       if (cancel?.isCancelled ?? false) {
         throw genkit.CancelledException(token: cancel);
       }
-      throw genkit.GenkitException(
-        'Remote media resolution failed. Check URL policy, authentication, '
-        'response MIME type and transfer limits.',
-        status: error is genkit.GenkitException
-            ? error.status
-            : genkit.StatusCode.invalidArgument,
-      );
+      final Uint8List bytes;
+      try {
+        bytes = await resolver.resolve(
+          Uri.parse(entry.key.$1),
+          contentType: entry.value,
+          cancel: cancel,
+        );
+        if (bytes.isEmpty) throw StateError('Empty media.');
+      } catch (error) {
+        if (cancel?.isCancelled ?? false) {
+          throw genkit.CancelledException(token: cancel);
+        }
+        throw genkit.GenkitException(
+          'Remote media resolution failed. Check URL policy, authentication, '
+          'response MIME type and transfer limits.',
+          status: error is genkit.GenkitException
+              ? error.status
+              : genkit.StatusCode.invalidArgument,
+        );
+      }
+      if (cancel?.isCancelled ?? false) {
+        throw genkit.CancelledException(token: cancel);
+      }
+      overrides[entry.key] = entry.value.startsWith('image/')
+          ? llama.LlamaImageContent(bytes: bytes)
+          : llama.LlamaAudioContent(bytes: bytes);
     }
-    if (cancel?.isCancelled ?? false) {
-      throw genkit.CancelledException(token: cancel);
-    }
-    overrides[entry.key] = entry.value.startsWith('image/')
-        ? llama.LlamaImageContent(bytes: bytes)
-        : llama.LlamaAudioContent(bytes: bytes);
-  }
-  return toLlamaMessages(messages, mediaOverrides: overrides);
+    return toLlamaMessages(messages, mediaOverrides: overrides);
+  }();
 }

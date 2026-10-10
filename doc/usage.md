@@ -220,8 +220,10 @@ to untrusted redirect destinations. Genkit request cancellation aborts an
 in-flight transfer. The plugin does not close your client. Bytes stay in memory
 without a disk cache or temporary files; each request resolves its own input.
 
-Native resolution finishes before runtime creation. Local, file and data input
-bypass the resolver. On Web the plugin preserves existing browser image-URL
+Native resolution finishes before runtime creation and queue admission. Cancel
+or await pending requests before closing the client; `plugin.dispose()` drains
+queued runtime work and does not cancel application-owned transfers. Local, file
+and data input bypass the resolver. On Web the plugin preserves existing browser image-URL
 routing and remote audio remains unsupported; browser CORS and the active
 runtime still apply. Implement `LlamaDartMediaResolver` for an application-owned
 cache or custom authenticated fetcher, enforcing its own limits and cancellation.
