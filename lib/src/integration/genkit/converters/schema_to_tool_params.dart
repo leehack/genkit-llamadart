@@ -13,7 +13,7 @@ List<llama.ToolParam> schemaToToolParams(Map<String, dynamic>? schema) {
       modernDefinitions.keys.any(legacyDefinitions.containsKey)) {
     throw _schemaError('Use unique names across local definition blocks.');
   }
-  _checkReferences(copied);
+  _checkReferences(copied, copied);
   final Map<String, dynamic> normalized;
   try {
     normalized = Map<String, dynamic>.from(
@@ -56,13 +56,20 @@ const _annotations = {
   'writeOnly',
 };
 
-void _checkReferences(Map<String, dynamic> schema) {
+void _checkReferences(Map<String, dynamic> schema, Map<String, dynamic> root) {
   if (schema.containsKey(r'$ref')) {
     final ref = schema[r'$ref'];
     if (ref is! String ||
         !RegExp(r'^#/(\$defs|definitions)/[^/~]+$').hasMatch(ref)) {
       throw _schemaError(
         'Only local named \$defs/definitions references are supported.',
+      );
+    }
+    final parts = ref.split('/');
+    final definitions = root[parts[1]];
+    if (definitions is! Map || definitions[parts[2]] is! Map<String, dynamic>) {
+      throw _schemaError(
+        'Local references must name a schema in the specified root definition block.',
       );
     }
     if (schema.keys.any(
@@ -81,12 +88,12 @@ void _checkReferences(Map<String, dynamic> schema) {
     final children = schema[key];
     if (children is Map) {
       for (final child in children.values) {
-        if (child is Map<String, dynamic>) _checkReferences(child);
+        if (child is Map<String, dynamic>) _checkReferences(child, root);
       }
     }
   }
   final items = schema['items'];
-  if (items is Map<String, dynamic>) _checkReferences(items);
+  if (items is Map<String, dynamic>) _checkReferences(items, root);
 }
 
 void _validateSchema(Map<String, dynamic> schema) {

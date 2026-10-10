@@ -113,6 +113,27 @@ void main() {
       },
     },
     'missing reference': {r'$ref': r'#/$defs/Missing'},
+    'legacy reference to modern definition': {
+      r'$ref': '#/definitions/Input',
+      r'$defs': {
+        'Input': {'type': 'object'},
+      },
+    },
+    'modern reference to legacy definition': {
+      r'$ref': r'#/$defs/Input',
+      'definitions': {
+        'Input': {'type': 'object'},
+      },
+    },
+    'nested reference to the wrong definition block': {
+      'type': 'object',
+      'properties': {
+        'value': {r'$ref': '#/definitions/Value'},
+      },
+      r'$defs': {
+        'Value': {'type': 'string'},
+      },
+    },
     'external reference': {r'$ref': 'https://example.invalid/schema'},
     'circular reference': {
       r'$ref': r'#/$defs/Input',

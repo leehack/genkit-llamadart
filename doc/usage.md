@@ -183,8 +183,9 @@ Local `file://` URLs cannot include query parameters or fragments. Provide
   validation boundary. Do not assume the original constraints were enforced.
   Explicit `additionalProperties: true` is equivalent to the default open
   object policy. Full rich-schema support needs a richer llamadart tool API.
-- Local named references must be acyclic. Put constraints in the referenced
-  definition; semantic siblings beside `$ref` are rejected because merging
+- Local named references must be acyclic and resolve in the exact root
+  `$defs` or `definitions` block named by the reference. Put constraints in the
+  referenced definition; semantic siblings beside `$ref` are rejected because merging
   them could change the schema. Descriptive annotations are allowed.
 - Invalid or token-limited final tool calls fail with `DATA_LOSS` before tool
   execution. Incomplete argument deltas remain valid while streaming. Check

@@ -84,21 +84,30 @@ void main() {
         await plugin.dispose();
         await ai.shutdown();
       });
-      for (final property in <Map<String, dynamic>>[
+      for (final inputSchema in <Map<String, dynamic>>[
+        for (final property in <Map<String, dynamic>>[
+          {
+            'type': ['string', 'null'],
+          },
+          {'type': 'integer', 'minimum': 1},
+          {'type': 'object', 'additionalProperties': false},
+        ])
+          {
+            'type': 'object',
+            'properties': {'value': property},
+          },
         {
-          'type': ['string', 'null'],
+          r'$ref': '#/definitions/Input',
+          r'$defs': {
+            'Input': {'type': 'object'},
+          },
         },
-        {'type': 'integer', 'minimum': 1},
-        {'type': 'object', 'additionalProperties': false},
       ]) {
         final tool = ai.defineTool<Map<String, dynamic>, String>(
-          name: 'lookup${ai.hashCode}${property.hashCode}',
+          name: 'lookup${ai.hashCode}${inputSchema.hashCode}',
           description: 'Lookup',
           inputSchema: SchemanticType.from(
-            jsonSchema: {
-              'type': 'object',
-              'properties': {'value': property},
-            },
+            jsonSchema: inputSchema,
             parse: (v) => (v as Map).cast<String, dynamic>(),
           ),
           outputSchema: SchemanticType.string(),
