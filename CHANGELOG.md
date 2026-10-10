@@ -1,11 +1,9 @@
-## Unreleased
+## 3.1.0 - 2026-10-10
 
 - Reject malformed, truncated and disallowed final tool calls before tool execution.
 - Add an opt-in OpenTelemetry recipe for queue, initialization, action latency and time to first token.
-
-- Simplify the getting-started docs, expand public API guidance, and reduce redundant media allocation and tests.
-
-- Derive Genkit support metadata from loaded runtime capabilities and reject unsupported requests before inference, with lazy discovery and optional capability probes for custom runtimes.
+- Simplify getting-started documentation and expand public API guidance.
+- Discover model capabilities from the loaded runtime and reject unsupported requests before inference, with optional capability probes for custom runtimes.
 
 ## 3.0.0 - 2026-10-09
 
