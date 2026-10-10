@@ -1,4 +1,6 @@
 import os
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 import subprocess
 import tempfile
@@ -51,7 +53,13 @@ class DiffTest(unittest.TestCase):
             with patch.dict(os.environ, {**env, "BASE_SHA": "0" * 40}), patch(
                 "select_ci.subprocess.run", side_effect=run_in_repo
             ):
-                self.assertTrue(all(select(changed_paths()).values()))
+                warning = StringIO()
+                with redirect_stdout(warning):
+                    self.assertTrue(all(select(changed_paths()).values()))
+                self.assertEqual(
+                    warning.getvalue(),
+                    "::warning::Could not compare PR revisions; running all checks\n",
+                )
 
 
 class SelectionTest(unittest.TestCase):
