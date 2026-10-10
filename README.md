@@ -726,6 +726,11 @@ Schemantic 1.0. For applications using the previous dependency versions:
   for device selection. The deprecated `LiteRtLmBackendPreference` export
   has been removed; replace it with `ComputeDevice`.
 - Use `genkit_otel` 0.2.0 or newer with Genkit 1.0.
+- Flutter Apple apps using runtime companions must upgrade them alongside
+  llamadart: core 0.11.1 pairs with `llamadart_llama_cpp_flutter` 0.0.21
+  and `llamadart_litert_lm_flutter` 0.0.13. See the
+  [llamadart 0.11.1 installation notes](https://pub.dev/packages/llamadart/versions/0.11.1#install)
+  for the matching runtime packaging.
 
 ## Upgrading to 2.0
 
