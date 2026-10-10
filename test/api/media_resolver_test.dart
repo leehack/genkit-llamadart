@@ -137,31 +137,60 @@ void main() {
     expect(cancelled, isTrue);
   });
 
-  for (final location in [
-    'http://media.example/insecure',
-    'https://user:$_secret@media.example/file',
-    'file:///secret',
-    'https://media.example/image.png',
+  for (final scenario in [
+    (
+      name: 'HTTPS downgrade',
+      location: 'http://media.example/insecure',
+      message: 'Remote media cannot redirect from HTTPS to HTTP.',
+      requests: 1,
+    ),
+    (
+      name: 'URL credentials',
+      location: 'https://user:$_secret@media.example/file',
+      message: 'Remote media URL is not permitted by the application policy.',
+      requests: 1,
+    ),
+    (
+      name: 'non-HTTP scheme',
+      location: 'file://media.example/secret',
+      message: 'Remote media URL is not permitted by the application policy.',
+      requests: 1,
+    ),
+    (
+      name: 'redirect loop',
+      location: 'https://media.example/image.png',
+      message: 'Remote media exceeded its redirect limit.',
+      requests: 2,
+    ),
   ]) {
-    test(
-      'rejects unsafe redirect or redirect limit: ${location.split(":").first}',
-      () async {
-        final client = _Client(
-          (_) async =>
-              _response([], status: 302, headers: {'location': location}),
-        );
-        final resolver = HttpLlamaDartMediaResolver(
-          client: client,
-          allowUri: (_) => true,
-          maxRedirects: 1,
-        );
-        await expectLater(
-          resolver.resolve(_uri, contentType: 'image/png'),
-          throwsA(_safe()),
-        );
-        expect(client.requests.length, lessThanOrEqualTo(2));
-      },
-    );
+    test('rejects ${scenario.name} before another request', () async {
+      final client = _Client(
+        (_) async => _response(
+          [],
+          status: 302,
+          headers: {'location': scenario.location},
+        ),
+      );
+      final resolver = HttpLlamaDartMediaResolver(
+        client: client,
+        allowUri: (_) => true,
+        maxRedirects: 1,
+      );
+      await expectLater(
+        resolver.resolve(_uri, contentType: 'image/png'),
+        throwsA(
+          allOf(
+            _safe(),
+            isA<genkit.GenkitException>().having(
+              (e) => e.message,
+              'reason',
+              scenario.message,
+            ),
+          ),
+        ),
+      );
+      expect(client.requests, hasLength(scenario.requests));
+    });
   }
 
   for (final response in [

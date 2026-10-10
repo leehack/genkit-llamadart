@@ -164,8 +164,9 @@ Local `file://` URLs cannot include query parameters or fragments. Provide
 ### Resolving remote input on native platforms
 
 Install `HttpLlamaDartMediaResolver` with an application-owned `http.Client`
-(`dart pub add http`) and a URL policy. No request downloads media by default.
-This example permits only HTTPS input from your own media host:
+(`dart pub add http`) and a URL policy. Native requests download media only
+when a resolver is installed. This example permits HTTPS input from your own
+media host:
 
 ```dart
 import 'package:genkit/genkit.dart';

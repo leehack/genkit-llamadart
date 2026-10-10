@@ -62,6 +62,9 @@ class LlamaDartPlugin extends GenkitPlugin {
 
   /// Disposes all runtimes cached by this plugin instance.
   ///
+  /// Queued runtime operations drain before disposal. Pending remote-media
+  /// transfers remain caller-owned; cancel or await them before closing the client.
+  ///
   /// Disposal is terminal. Create a new plugin instance instead of submitting
   /// model or embedding requests after this future has been requested.
   /// Multiple runtime disposal failures are retained in a `ParallelWaitError`.

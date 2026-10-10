@@ -141,7 +141,8 @@ class LlamaDartPluginHandle {
   ///
   /// [observers] are copied and attached to the prepared engine for telemetry
   /// alongside download progress. [mediaResolver] is retained for native
-  /// request media after preparation and remains application-owned. The task starts on the next microtask.
+  /// request media after preparation and remains application-owned.
+  /// The task starts on the next microtask.
   /// Dispose both the task and its resulting [LlamaPreparedModel]; disposing
   /// the task alone does not dispose a successfully prepared plugin.
   /// Throws [ArgumentError] for an empty [name].
