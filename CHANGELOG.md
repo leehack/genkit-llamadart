@@ -1,3 +1,7 @@
+## Unreleased
+
+- Derive Genkit support metadata from loaded runtime capabilities and reject unsupported requests before inference, with lazy discovery and optional capability probes for custom runtimes.
+
 ## 3.0.0 - 2026-10-09
 
 - Upgrade to Genkit 1.0, Schemantic 1.0, and llamadart 0.11.1 with updated generation, tool choice, and embedding APIs.

@@ -27,6 +27,8 @@ description: >-
   constrained output from them.
 - A request with `outputConstrained: true` on a model registered with
   `supportsConstrainedOutput: false` fails with `FAILED_PRECONDITION`.
+  An enabled definition still needs verified structured-output and grammar
+  capabilities; an unsupported runtime fails before decoding with `UNIMPLEMENTED`.
 - Constrained output cannot be combined with tools (`UNIMPLEMENTED`). Register
   a JSON-only model with `supportsTools: false`, or run the tool turn first and
   ask for JSON in a follow-up request without `tools:`.

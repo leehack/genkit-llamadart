@@ -1,10 +1,31 @@
 import 'dart:collection';
 
 import 'package:genkit_llamadart/genkit_llamadart.dart';
-import 'package:genkit_llamadart/src/core/runtime/llama_runtime.dart';
 import 'package:llamadart/llamadart.dart' as llama;
 
-class FakeRuntime implements LlamaRuntime {
+class FakeRuntime implements LlamaDartRuntime, LlamaRuntimeCapabilityProvider {
+  int capabilityReadCount = 0;
+  Object? capabilityError;
+  llama.LlamaEngineCapabilities capabilitySnapshot =
+      const llama.LlamaEngineCapabilities(
+        isSupported: true,
+        supportsVision: true,
+        supportsAudio: true,
+        supportsEmbeddings: true,
+        supportsMultiTurnChat: true,
+        supportsToolCalling: true,
+        supportsStructuredOutput: true,
+        supportsGrammar: true,
+        supportsLazyGrammar: true,
+      );
+
+  @override
+  Future<llama.LlamaEngineCapabilities> get capabilities async {
+    capabilityReadCount += 1;
+    if (capabilityError != null) throw capabilityError!;
+    return capabilitySnapshot;
+  }
+
   int initializeCount = 0;
   int createCallCount = 0;
   int chatTemplateCallCount = 0;

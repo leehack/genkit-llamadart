@@ -31,6 +31,13 @@ description: >-
   them to `false` for what the model should not serve (for example
   `supportsEmbeddings: false` for a chat model). Requests that use a disabled
   capability fail with `FAILED_PRECONDITION`.
+- Definition flags grant permission; the loaded runtime must confirm support.
+  Discovery never loads models and starts with false support booleans. Inspect
+  `llamadartCapabilities.state` (`unloaded`, `unverified`, `verified`) and `ready`;
+  request probes update cached support metadata while preserving model labels,
+  schemas and annotations. Unsupported runtime features fail with
+  `UNIMPLEMENTED`. Custom runtime factories need `LlamaRuntimeCapabilityProvider`
+  for advanced requests; without it, only single-turn text is accepted.
 - Set the context window with `modelParams: ModelParams(contextSize: ...)`.
   Tune a request with `LlamaDartGenerationConfig` (`temperature`, `topP`,
   `topK`, `minP`, `penalty`, `maxTokens`, `stop`, `seed`, `enableThinking`,

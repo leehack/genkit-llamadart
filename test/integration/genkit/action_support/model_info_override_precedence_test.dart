@@ -4,7 +4,7 @@ import 'package:genkit_llamadart/src/integration/genkit/action_support.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('modelInfo supports override advertised default capabilities', () {
+  test('modelInfo cannot override unverified or disabled capabilities', () {
     final modelInfo = modelInfoFor(
       LlamaModelDefinition(
         name: 'local',
@@ -18,7 +18,7 @@ void main() {
     );
 
     expect(modelInfo.label, 'Custom label');
-    expect(modelInfo.supports, containsPair('tools', true));
+    expect(modelInfo.supports, containsPair('tools', false));
     expect(modelInfo.supports, containsPair('toolChoice', false));
     expect(modelInfo.supports, containsPair('customCapability', true));
   });
