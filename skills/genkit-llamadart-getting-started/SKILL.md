@@ -38,6 +38,12 @@ description: >-
   schemas and annotations. Unsupported runtime features fail with
   `UNIMPLEMENTED`. Custom runtime factories need `LlamaRuntimeCapabilityProvider`
   for advanced requests; without it, only single-turn text is accepted.
+- Native remote image/audio input requires an explicit `mediaResolver` on the
+  plugin or preparation helper. `HttpLlamaDartMediaResolver` takes a caller-owned
+  `http.Client` and mandatory destination policy; it bounds size/time/redirects,
+  validates MIME headers and aborts on Genkit cancellation. No default fetcher
+  or disk cache exists. Web image URLs retain existing runtime routing and Web
+  remote audio remains unsupported. See `doc/usage.md#image-and-audio-input`.
 - Set the context window with `modelParams: ModelParams(contextSize: ...)`.
   Tune a request with `LlamaDartGenerationConfig` (`temperature`, `topP`,
   `topK`, `minP`, `penalty`, `presencePenalty`, `maxTokens`, `stop`, `seed`, `enableThinking`,

@@ -6,7 +6,10 @@ import 'package:llamadart/llamadart.dart' as llama;
 import '../../../api/generation_config.dart';
 import 'schema_to_tool_params.dart';
 
-List<llama.LlamaChatMessage> toLlamaMessages(List<genkit.Message> messages) {
+List<llama.LlamaChatMessage> toLlamaMessages(
+  List<genkit.Message> messages, {
+  Map<(String, String?), llama.LlamaContentPart> mediaOverrides = const {},
+}) {
   final converted = <llama.LlamaChatMessage>[];
 
   for (final message in messages) {
@@ -36,7 +39,12 @@ List<llama.LlamaChatMessage> toLlamaMessages(List<genkit.Message> messages) {
 
     final parts = <llama.LlamaContentPart>[];
     for (final part in message.content) {
-      final convertedPart = _toLlamaPart(part);
+      final media = part.isMedia ? part.media! : null;
+      final convertedPart =
+          (media == null
+              ? null
+              : mediaOverrides[(media.url, media.contentType)]) ??
+          _toLlamaPart(part);
       if (convertedPart != null) {
         parts.add(convertedPart);
       }
@@ -241,7 +249,7 @@ llama.LlamaContentPart _toLlamaMediaPart(genkit.Media media) {
   }
   final String? contentType;
   try {
-    contentType = media.contentType ?? _inferContentType(media.url);
+    contentType = media.contentType ?? inferMediaContentType(media.url);
   } on FormatException {
     throw genkit.GenkitException(
       'Invalid media data URL; check its MIME type and encoded payload.',
@@ -290,7 +298,7 @@ llama.LlamaContentPart _toLlamaMediaPart(genkit.Media media) {
   );
 }
 
-String? _inferContentType(String url) {
+String? inferMediaContentType(String url) {
   final uri = Uri.tryParse(url);
   if (uri != null && uri.scheme == 'data') {
     return UriData.parse(url).mimeType;

@@ -152,12 +152,83 @@ Supported media inputs:
 - `http(s)` image URLs on backends that consume remote URLs directly
   (currently WebGPU)
 - audio from local paths, `file://`, and `data:` URLs
+- native HTTP(S) image and audio input when an explicit `mediaResolver` is
+  installed on the plugin or either model-preparation helper
 
 For local files and HTTP(S) URLs with a recognized extension, the media type is
 inferred from the URI path. This includes signed HTTP(S) URLs with query
 parameters or fragments, although remote fetching remains backend-dependent.
 Local `file://` URLs cannot include query parameters or fragments. Provide
 `contentType` when the path has no recognizable media extension.
+
+### Resolving remote input on native platforms
+
+Install `HttpLlamaDartMediaResolver` with an application-owned `http.Client`
+(`dart pub add http`) and a URL policy. Native requests download media only
+when a resolver is installed. This example permits HTTPS input from your own
+media host:
+
+```dart
+import 'package:genkit/genkit.dart';
+import 'package:genkit_llamadart/genkit_llamadart.dart';
+import 'package:http/http.dart' as http;
+
+Future<void> main() async {
+  final client = http.Client();
+  final plugin = llamaDart(
+    models: [LlamaModelDefinition(name: 'vision', modelPath: '/models/vision.litertlm')],
+    mediaResolver: HttpLlamaDartMediaResolver(
+      client: client,
+      allowUri: (uri) => uri.scheme == 'https' && uri.host == 'media.example.com',
+    ),
+  );
+  final ai = Genkit(plugins: [plugin]);
+  try {
+    final response = await ai.generate(
+      model: llamaDart.model('vision'),
+      messages: [Message(role: Role.user, content: [
+        TextPart(text: 'Describe this image.'),
+        MediaPart(media: Media(
+          url: 'https://media.example.com/image.png',
+          contentType: 'image/png',
+        )),
+      ])],
+    );
+    if (response.finishReason == FinishReason.failed ||
+        response.finishReason == FinishReason.aborted) {
+      throw response.cause ?? StateError('Generation failed.');
+    }
+    print(response.text);
+  } finally {
+    await plugin.dispose();
+    await ai.shutdown();
+    client.close();
+  }
+}
+```
+
+The resolver validates the initial destination and every redirect, rejects
+URL credentials and HTTPS-to-HTTP redirects, and defaults to a 20 MiB encoded
+byte limit, a 30-second total timeout and at most three redirects. Response
+MIME headers must match the requested type; the runtime validates the actual
+codec and encoded bytes. A matching model and projector/encoder are still
+required. No video or universal codec support is implied.
+
+The client can supply authentication or proxy configuration and must support
+`http.AbortableRequest`. Apply your deployment's normal network policy,
+including private hosts and DNS rules where relevant. Do not forward credentials
+to untrusted redirect destinations. Genkit request cancellation aborts an
+in-flight transfer. The plugin does not close your client. Bytes stay in memory
+without a disk cache or temporary files; each request resolves its own input.
+
+Native resolution finishes before runtime creation and queue admission. Cancel
+or await pending requests before closing the client; `plugin.dispose()` drains
+queued runtime work and does not cancel application-owned transfers. Local, file
+and data input bypass the resolver. On Web the plugin preserves existing browser image-URL
+routing and remote audio remains unsupported; browser CORS and the active
+runtime still apply. Implement `LlamaDartMediaResolver` for an application-owned
+cache or custom authenticated fetcher, enforcing its own limits and cancellation.
+Resolver failures have sanitized messages and no original exception cause.
 
 ## Tool calling
 
@@ -206,7 +277,8 @@ Local `file://` URLs cannot include query parameters or fragments. Provide
 Media validation errors omit source URLs, userinfo, query strings, fragments
 and paths. Invalid URI/data encodings return `INVALID_ARGUMENT` without wrapping
 an exception containing the payload. Supported media is still forwarded intact;
-this does not add remote audio downloads or redact application-owned request logs.
+application-owned Genkit request logs and client telemetry still require their
+own content/export policy.
 
 ## Generation settings
 

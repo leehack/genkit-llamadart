@@ -77,6 +77,7 @@ runtime behavior to prevent unverified support claims.
 - some models may need prompt tuning for reliable tool arguments
 - multimodal requests require a compatible model and runtime; llama.cpp also
   requires a compatible projector, while native LiteRT-LM can use built-in encoders
-- direct HTTP(S) image inputs are backend-dependent and currently supported by
-  WebGPU; download the image to a local path or provide `data:` bytes for other
-  compatible multimodal backends
+- direct HTTP(S) image URLs are currently consumed by WebGPU. Native image
+  and audio downloads require an explicit application-owned
+  [media resolver](usage.md#resolving-remote-input-on-native-platforms); local
+  paths and `data:` bytes remain available on compatible multimodal backends

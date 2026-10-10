@@ -1,6 +1,8 @@
 ## Unreleased
 
 - Support text-only multipart tool results while retaining structured output in Genkit history.
+- Resolve native HTTP(S) image and audio input with an explicit, bounded application-owned resolver.
+
 - Keep media validation errors free of signed URLs, credentials and source paths.
 - Preserve null tool parameters and reject schema constraints that the runtime cannot retain.
 - Stop optional real-model tests before downloads or inference when their fixture is not enabled.

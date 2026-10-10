@@ -6,6 +6,7 @@ import '../integration/genkit/plugin.dart';
 import 'embed_config.dart';
 import 'generation_config.dart';
 import 'model_definition.dart';
+import 'media_resolver.dart';
 
 /// Result of preparing a `llamadart` model source for Genkit registration.
 ///
@@ -147,6 +148,7 @@ LlamaPreparedModel createLlamaPreparedModel({
   bool supportsConstrainedOutput = true,
   genkit.ModelInfo? modelInfo,
   Iterable<llama.LlamaEngineObserver> observers = const [],
+  LlamaDartMediaResolver? mediaResolver,
 }) {
   final definition = LlamaModelDefinition(
     name: name,
@@ -161,6 +163,7 @@ LlamaPreparedModel createLlamaPreparedModel({
   final plugin = LlamaDartPlugin(
     models: <LlamaModelDefinition>[definition],
     observers: observers,
+    mediaResolver: mediaResolver,
   );
 
   return LlamaPreparedModel(
