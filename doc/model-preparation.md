@@ -80,7 +80,10 @@ Future<void> main() async {
 
 Use this path for HTTP(S), Hugging Face, or local `ModelSource` values when you
 want `llamadart` to own cache lookup, download, checksum verification, and
-authenticated downloads. Supply `sha256` when you have a trusted checksum,
+authenticated downloads. For reproducible Hugging Face downloads, use
+`ModelSource.huggingFace(..., revision: commit)` or
+`ModelSource.parse('hf://owner/repo@commit/file.gguf')`.
+Supply `sha256` when you have a trusted checksum,
 and `bearerToken` or `headers` for private remote sources; keep credentials out
 of logs and source control. Keep constructing `LlamaModelDefinition` manually
 when your application already has a local filesystem path and owns all download

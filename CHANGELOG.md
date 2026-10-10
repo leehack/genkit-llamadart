@@ -1,6 +1,6 @@
 ## Unreleased
 
-- Make the README quick start runnable with a pinned Hugging Face Qwen3.5 download and matching sampling settings.
+- Make the README quick start runnable with a cached Hugging Face Qwen3.5 download and matching sampling settings.
 - Add presence penalties, thinking budgets, speculative decoding and native streaming controls with runtime capability checks.
 - Expose generation-control schemas and supported strategies in lazy model discovery.
 - Export `ModelFormat` and `LiteRtLmActivationDataType` for public model configuration.
