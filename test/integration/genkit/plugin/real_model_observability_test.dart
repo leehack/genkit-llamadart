@@ -30,7 +30,7 @@ void main() {
       );
       final ai = genkit.Genkit(plugins: [plugin], isDevEnv: false);
       try {
-        Future<genkit.GenerateResponseHelper<Object?>> generate(String trace) =>
+        Future<genkit.GenerateResult<Object?>> generate(String trace) =>
             runZoned(
               () => ai.generate(
                 model: llamaDart.model('observed'),

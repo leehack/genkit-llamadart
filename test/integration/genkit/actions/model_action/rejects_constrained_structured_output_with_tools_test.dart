@@ -45,7 +45,7 @@ void main() {
           isA<genkit.GenkitException>().having(
             (error) => error.status,
             'status',
-            genkit.StatusCodes.UNIMPLEMENTED,
+            genkit.StatusCode.unimplemented,
           ),
         ),
       );

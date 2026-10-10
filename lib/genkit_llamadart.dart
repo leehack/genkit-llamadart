@@ -37,10 +37,13 @@ library;
 
 export 'package:llamadart/llamadart.dart'
     show
+        ComputeDevice,
         DefaultModelDownloadManager,
         FlashAttention,
         GpuBackend,
         KvCacheType,
+        // Retained for callers migrating from the previous dependency set.
+        // ignore: deprecated_member_use
         LiteRtLmBackendPreference,
         LlamaEngineObserver,
         LlamaOperationObserver,

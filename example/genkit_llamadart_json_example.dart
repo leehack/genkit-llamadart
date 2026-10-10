@@ -57,7 +57,7 @@ Future<void> main() async {
   try {
     stdout.write('JSON stream: ');
     final stream = ai
-        .generateStream<LlamaDartGenerationConfig, Map<String, dynamic>>(
+        .generateStream<Map<String, dynamic>, LlamaDartGenerationConfig>(
           model: llamaDart.model('local-json'),
           prompt: prompt,
           outputSchema: _reviewSchema,

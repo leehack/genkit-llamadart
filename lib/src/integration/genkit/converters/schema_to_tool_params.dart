@@ -16,14 +16,14 @@ List<llama.ToolParam> schemaToToolParams(Map<String, dynamic>? schema) {
     throw genkit.GenkitException(
       'llamadart tool input schema references could not be resolved: '
       '${error.message}',
-      status: genkit.StatusCodes.INVALID_ARGUMENT,
+      status: genkit.StatusCode.invalidArgument,
     );
   }
   final propertiesRaw = normalized['properties'];
   if (!_isObjectRootSchema(normalized)) {
     throw genkit.GenkitException(
       'llamadart tool input schemas must be object-shaped.',
-      status: genkit.StatusCodes.INVALID_ARGUMENT,
+      status: genkit.StatusCode.invalidArgument,
     );
   }
   if (propertiesRaw == null) {
@@ -32,7 +32,7 @@ List<llama.ToolParam> schemaToToolParams(Map<String, dynamic>? schema) {
   if (propertiesRaw is! Map) {
     throw genkit.GenkitException(
       'llamadart tool input schema properties must be an object.',
-      status: genkit.StatusCodes.INVALID_ARGUMENT,
+      status: genkit.StatusCode.invalidArgument,
     );
   }
 

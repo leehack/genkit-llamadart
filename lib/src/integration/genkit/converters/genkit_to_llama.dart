@@ -20,7 +20,7 @@ List<llama.LlamaChatMessage> toLlamaMessages(List<genkit.Message> messages) {
       if (toolResponses.isEmpty) {
         throw genkit.GenkitException(
           'Tool messages must contain at least one tool response part.',
-          status: genkit.StatusCodes.INVALID_ARGUMENT,
+          status: genkit.StatusCode.invalidArgument,
         );
       }
 
@@ -96,7 +96,7 @@ llama.GenerationParams toGenerationParams(LlamaDartGenerationConfig config) {
 }
 
 llama.ToolChoice? toLlamaToolChoice(
-  String? toolChoice, {
+  genkit.ToolChoice? toolChoice, {
   required bool hasTools,
 }) {
   if (!hasTools) {
@@ -104,8 +104,8 @@ llama.ToolChoice? toLlamaToolChoice(
   }
 
   return switch (toolChoice) {
-    'none' => llama.ToolChoice.none,
-    'required' => llama.ToolChoice.required,
+    genkit.ToolChoice.none => llama.ToolChoice.none,
+    genkit.ToolChoice.required => llama.ToolChoice.required,
     _ => llama.ToolChoice.auto,
   };
 }
@@ -154,7 +154,7 @@ String documentToPlainText(genkit.DocumentData document) {
 
     throw genkit.GenkitException(
       'llamadart embeddings currently support text-only documents.',
-      status: genkit.StatusCodes.INVALID_ARGUMENT,
+      status: genkit.StatusCode.invalidArgument,
     );
   }
 
@@ -207,7 +207,7 @@ llama.LlamaContentPart? _toLlamaPart(genkit.Part part) {
   if (part.isData || part.isCustom || part.isResource) {
     throw genkit.GenkitException(
       'Unsupported Genkit part type for llamadart requests: ${part.toJson().keys.join(', ')}',
-      status: genkit.StatusCodes.INVALID_ARGUMENT,
+      status: genkit.StatusCode.invalidArgument,
     );
   }
 
@@ -228,7 +228,7 @@ Map<String, dynamic> toLlamaToolArguments(Object? input) {
   }
   throw genkit.GenkitException(
     'llamadart tool requests require object-shaped input.',
-    status: genkit.StatusCodes.INVALID_ARGUMENT,
+    status: genkit.StatusCode.invalidArgument,
   );
 }
 
@@ -240,7 +240,7 @@ llama.LlamaContentPart _toLlamaMediaPart(genkit.Media media) {
   if (!isImage && !isAudio) {
     throw genkit.GenkitException(
       'Unsupported media type for llamadart: ${contentType ?? media.url}',
-      status: genkit.StatusCodes.INVALID_ARGUMENT,
+      status: genkit.StatusCode.invalidArgument,
     );
   }
 
@@ -266,7 +266,7 @@ llama.LlamaContentPart _toLlamaMediaPart(genkit.Media media) {
 
   throw genkit.GenkitException(
     'Unsupported media URL for llamadart: ${media.url}',
-    status: genkit.StatusCodes.INVALID_ARGUMENT,
+    status: genkit.StatusCode.invalidArgument,
   );
 }
 
@@ -308,7 +308,7 @@ String? _toFilePath(Uri? uri, String originalUrl) {
     if (uri.hasQuery || uri.hasFragment) {
       throw genkit.GenkitException(
         'Local file media URLs cannot contain query parameters or fragments.',
-        status: genkit.StatusCodes.INVALID_ARGUMENT,
+        status: genkit.StatusCode.invalidArgument,
       );
     }
     try {
@@ -316,7 +316,7 @@ String? _toFilePath(Uri? uri, String originalUrl) {
     } on UnsupportedError {
       throw genkit.GenkitException(
         'Invalid local file media URL: $originalUrl',
-        status: genkit.StatusCodes.INVALID_ARGUMENT,
+        status: genkit.StatusCode.invalidArgument,
       );
     }
   }
@@ -345,7 +345,7 @@ void _validateToolResponse(genkit.ToolResponse response) {
   if (response.content?.isNotEmpty ?? false) {
     throw genkit.GenkitException(
       'Multipart tool results are not supported by llamadart; return structured output or text.',
-      status: genkit.StatusCodes.UNIMPLEMENTED,
+      status: genkit.StatusCode.unimplemented,
     );
   }
 }

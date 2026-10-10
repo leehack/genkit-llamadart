@@ -17,8 +17,8 @@ description: >-
   `SchemanticType.from<T>(jsonSchema: ..., parse: ...)` for a hand-written
   JSON Schema.
 - Request JSON with `outputSchema: schema`, `outputFormat: 'json'` and
-  `outputConstrained: true`. Pass the output type as the second type argument
-  (`ai.generate<LlamaDartGenerationConfig, T>(...)`) so `response.output` is
+  `outputConstrained: true`. Pass the output type as the first type argument
+  (`ai.generate<T, LlamaDartGenerationConfig>(...)`) so `response.output` is
   typed.
 - Constrained output compiles the schema into a llama.cpp grammar, so the
   tokens must match the schema. It needs a grammar-capable backend: GGUF
@@ -83,7 +83,7 @@ Future<void> main() async {
 
   try {
     final response = await ai
-        .generate<LlamaDartGenerationConfig, Map<String, dynamic>>(
+        .generate<Map<String, dynamic>, LlamaDartGenerationConfig>(
           model: llamaDart.model('local-json'),
           prompt:
               'Review: "The battery lasts all day, but the speakers are weak." '
@@ -129,7 +129,7 @@ Future<Map<String, dynamic>?> streamJson(
   String prompt,
 ) async {
   final stream = ai
-      .generateStream<LlamaDartGenerationConfig, Map<String, dynamic>>(
+      .generateStream<Map<String, dynamic>, LlamaDartGenerationConfig>(
         model: llamaDart.model('local-json'),
         prompt: prompt,
         outputSchema: schema,

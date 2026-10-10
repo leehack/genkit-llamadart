@@ -26,7 +26,7 @@ void main() {
           isA<GenkitException>().having(
             (e) => e.status,
             'status',
-            StatusCodes.UNIMPLEMENTED,
+            StatusCode.unimplemented,
           ),
         ),
       );

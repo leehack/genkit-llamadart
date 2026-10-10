@@ -25,7 +25,7 @@ void main() {
         isA<genkit.GenkitException>().having(
           (error) => error.status,
           'status',
-          genkit.StatusCodes.FAILED_PRECONDITION,
+          genkit.StatusCode.failedPrecondition,
         ),
       ),
     );

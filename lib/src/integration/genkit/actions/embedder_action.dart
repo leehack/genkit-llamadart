@@ -22,14 +22,7 @@ genkit.Embedder<LlamaDartEmbedConfig> buildEmbedderAction({
       if (!definition.supportsEmbeddings) {
         throw genkit.GenkitException(
           'Embeddings are disabled for `${definition.name}`.',
-          status: genkit.StatusCodes.FAILED_PRECONDITION,
-        );
-      }
-
-      if (request == null) {
-        throw genkit.GenkitException(
-          'Embedder request cannot be null.',
-          status: genkit.StatusCodes.INVALID_ARGUMENT,
+          status: genkit.StatusCode.failedPrecondition,
         );
       }
 

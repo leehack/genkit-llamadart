@@ -24,13 +24,15 @@ class LlamaEngineRuntime implements LlamaRuntime {
       return;
     }
 
-    await _engine.loadModel(
-      definition.modelPath,
-      modelParams: definition.modelParams,
+    await _engine.setModel(
+      llama.LlamaModel(
+        llama.ModelSource.path(definition.modelPath),
+        projector: definition.mmprojPath == null
+            ? null
+            : llama.ModelSource.path(definition.mmprojPath!),
+      ),
+      params: definition.modelParams,
     );
-    if (definition.mmprojPath != null) {
-      await _engine.loadMultimodalProjector(definition.mmprojPath!);
-    }
     _initialized = true;
   }
 
@@ -53,9 +55,11 @@ class LlamaEngineRuntime implements LlamaRuntime {
       toolChoice: toolChoice,
       parallelToolCalls: parallelToolCalls,
       enableThinking: enableThinking,
-      sourceLangCode: sourceLangCode,
-      targetLangCode: targetLangCode,
-      chatTemplateKwargs: chatTemplateKwargs,
+      chatTemplateKwargs: _languageKwargs(
+        chatTemplateKwargs,
+        sourceLangCode,
+        targetLangCode,
+      ),
     );
   }
 
@@ -81,10 +85,12 @@ class LlamaEngineRuntime implements LlamaRuntime {
       parallelToolCalls: parallelToolCalls,
       enableThinking: enableThinking,
       responseFormat: responseFormat,
-      sourceLangCode: sourceLangCode,
-      targetLangCode: targetLangCode,
       includeTokenCount: includeTokenCount,
-      chatTemplateKwargs: chatTemplateKwargs,
+      chatTemplateKwargs: _languageKwargs(
+        chatTemplateKwargs,
+        sourceLangCode,
+        targetLangCode,
+      ),
     );
   }
 
@@ -112,4 +118,19 @@ class LlamaEngineRuntime implements LlamaRuntime {
   Future<void> dispose() async {
     await _engine.dispose();
   }
+}
+
+Map<String, dynamic>? _languageKwargs(
+  Map<String, dynamic>? kwargs,
+  String? source,
+  String? target,
+) {
+  final hasSource = source != null && source.isNotEmpty;
+  final hasTarget = target != null && target.isNotEmpty;
+  if (!hasSource && !hasTarget) return kwargs;
+  return <String, dynamic>{
+    ...?kwargs,
+    if (hasSource) 'source_lang_code': source,
+    if (hasTarget) 'target_lang_code': target,
+  };
 }

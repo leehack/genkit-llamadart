@@ -111,13 +111,15 @@ final class _WeatherInputSchema extends SchemanticType<Map<String, dynamic>> {
   @override
   JsonSchemaMetadata get schemaMetadata => JsonSchemaMetadata(
     name: 'WeatherInput',
-    definition: $Schema
-        .object(
-          properties: <String, $Schema>{
-            'location': $Schema.string(description: 'Location to look up.'),
-          },
-          required: const <String>['location'],
-        )
-        .value,
+    definition: <String, Object?>{
+      'type': 'object',
+      'properties': <String, Object?>{
+        'location': <String, Object?>{
+          'type': 'string',
+          'description': 'Location to look up.',
+        },
+      },
+      'required': <String>['location'],
+    },
   );
 }

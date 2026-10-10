@@ -22,6 +22,7 @@ class FakeRuntime implements LlamaRuntime {
   final List<List<llama.LlamaChatMessage>> recordedMessages =
       <List<llama.LlamaChatMessage>>[];
   List<llama.ToolDefinition>? lastTools;
+  llama.ToolChoice? lastToolChoice;
   llama.GenerationParams? lastGenerationParams;
 
   List<llama.LlamaCompletionChunk> createChunks =
@@ -58,6 +59,7 @@ class FakeRuntime implements LlamaRuntime {
     lastMessages = messages;
     recordedMessages.add(List<llama.LlamaChatMessage>.from(messages));
     lastTools = tools;
+    lastToolChoice = toolChoice;
     lastGenerationParams = params;
 
     final chunks = createScripts.isNotEmpty
@@ -83,6 +85,7 @@ class FakeRuntime implements LlamaRuntime {
     chatTemplateCallCount += 1;
     lastMessages = messages;
     lastTools = tools;
+    lastToolChoice = toolChoice;
     return templateResult;
   }
 

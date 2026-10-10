@@ -25,7 +25,7 @@ final SchemanticType<Map<String, dynamic>> _emptyToolInputSchema =
     JsonObjectSchema(
       name: 'ToolContextInput',
       description: 'This tool uses the latest user request from app context.',
-      properties: const <String, $Schema>{},
+      properties: const <String, Map<String, Object?>>{},
     );
 
 const Map<String, Map<String, dynamic>> _weatherByLocation =
@@ -186,7 +186,7 @@ Future<List<Message>> _runTurn(
 
   stdout.write('assistant> ');
   var streamedText = false;
-  final stream = ai.generateStream<LlamaDartGenerationConfig, Object?>(
+  final stream = ai.generateStream<Object?, LlamaDartGenerationConfig>(
     model: llamaDart.model('local-agent'),
     messages: requestMessages,
     tools: tools,
@@ -383,7 +383,7 @@ final class JsonObjectSchema extends SchemanticType<Map<String, dynamic>> {
 
   final String name;
   final String? description;
-  final Map<String, $Schema> properties;
+  final Map<String, Map<String, Object?>> properties;
   final List<String> requiredProperties;
 
   @override
@@ -400,12 +400,11 @@ final class JsonObjectSchema extends SchemanticType<Map<String, dynamic>> {
   @override
   JsonSchemaMetadata get schemaMetadata => JsonSchemaMetadata(
     name: name,
-    definition: $Schema
-        .object(
-          properties: properties,
-          required: requiredProperties,
-          description: description,
-        )
-        .value,
+    definition: <String, Object?>{
+      'type': 'object',
+      'properties': properties,
+      'required': requiredProperties,
+      if (description != null) 'description': description,
+    },
   );
 }
