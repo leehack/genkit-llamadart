@@ -3,55 +3,192 @@ import 'package:llamadart/llamadart.dart' as llama;
 import 'package:schemantic/schemantic.dart';
 
 List<llama.ToolParam> schemaToToolParams(Map<String, dynamic>? schema) {
-  if (schema == null) {
-    return const <llama.ToolParam>[];
-  }
+  if (schema == null) return const <llama.ToolParam>[];
 
+  final copied = _copySchemaValue(schema) as Map<String, dynamic>;
+  final modernDefinitions = copied[r'$defs'];
+  final legacyDefinitions = copied['definitions'];
+  if (modernDefinitions is Map &&
+      legacyDefinitions is Map &&
+      modernDefinitions.keys.any(legacyDefinitions.containsKey)) {
+    throw _schemaError('Use unique names across local definition blocks.');
+  }
+  _checkReferences(copied, copied);
   final Map<String, dynamic> normalized;
   try {
     normalized = Map<String, dynamic>.from(
-      Map<String, Object?>.from(schema).flatten(),
+      Map<String, Object?>.from(copied).flatten(),
     );
-  } on FormatException catch (error) {
-    throw genkit.GenkitException(
-      'llamadart tool input schema references could not be resolved: '
-      '${error.message}',
-      status: genkit.StatusCode.invalidArgument,
-    );
+  } on FormatException {
+    throw _schemaError('Local references must resolve without cycles.');
   }
-  final propertiesRaw = normalized['properties'];
-  if (!_isObjectRootSchema(normalized)) {
-    throw genkit.GenkitException(
-      'llamadart tool input schemas must be object-shaped.',
-      status: genkit.StatusCode.invalidArgument,
-    );
+  _validateSchema(normalized);
+  if (_schemaType(normalized) != 'object') {
+    throw _schemaError('Tool input schemas must be object-shaped.');
   }
-  if (propertiesRaw == null) {
-    return const <llama.ToolParam>[];
-  }
-  if (propertiesRaw is! Map) {
-    throw genkit.GenkitException(
-      'llamadart tool input schema properties must be an object.',
-      status: genkit.StatusCode.invalidArgument,
-    );
-  }
-
   return _mapObjectProperties(normalized);
 }
 
-bool _isObjectRootSchema(Map<String, dynamic> schema) {
-  final rawType = schema['type'];
-  if (rawType is String) {
-    return rawType == 'object';
+Object? _copySchemaValue(Object? value) {
+  if (value is Map) {
+    if (value.keys.any((key) => key is! String)) {
+      throw _schemaError('Schema object keys must be strings.');
+    }
+    return <String, dynamic>{
+      for (final entry in value.entries)
+        entry.key as String: _copySchemaValue(entry.value),
+    };
   }
-  if (rawType is List) {
-    final types = rawType
-        .whereType<String>()
-        .where((type) => type != 'null')
-        .toList(growable: false);
-    return types.isNotEmpty && types.every((type) => type == 'object');
+  if (value is List) return value.map(_copySchemaValue).toList();
+  return value;
+}
+
+const _annotations = {
+  r'$schema',
+  r'$id',
+  r'$comment',
+  'title',
+  'description',
+  'default',
+  'examples',
+  'deprecated',
+  'readOnly',
+  'writeOnly',
+};
+
+void _checkReferences(Map<String, dynamic> schema, Map<String, dynamic> root) {
+  if (schema.containsKey(r'$ref')) {
+    final ref = schema[r'$ref'];
+    if (ref is! String ||
+        !RegExp(r'^#/(\$defs|definitions)/[^/~]+$').hasMatch(ref)) {
+      throw _schemaError(
+        'Only local named \$defs/definitions references are supported.',
+      );
+    }
+    final parts = ref.split('/');
+    final definitions = root[parts[1]];
+    if (definitions is! Map || definitions[parts[2]] is! Map<String, dynamic>) {
+      throw _schemaError(
+        'Local references must name a schema in the specified root definition block.',
+      );
+    }
+    if (schema.keys.any(
+      (key) =>
+          key != r'$ref' &&
+          key != r'$defs' &&
+          key != 'definitions' &&
+          !_annotations.contains(key),
+    )) {
+      throw _schemaError(
+        'Constraints beside a local reference cannot be preserved; place them in its definition.',
+      );
+    }
   }
-  return schema['properties'] is Map;
+  for (final key in [r'$defs', 'definitions', 'properties']) {
+    final children = schema[key];
+    if (children is Map) {
+      for (final child in children.values) {
+        if (child is Map<String, dynamic>) _checkReferences(child, root);
+      }
+    }
+  }
+  final items = schema['items'];
+  if (items is Map<String, dynamic>) _checkReferences(items, root);
+}
+
+void _validateSchema(Map<String, dynamic> schema) {
+  final type = _schemaType(schema);
+  final allowed = {
+    ..._annotations,
+    'type',
+    if (type == 'string') 'enum',
+    if (type == 'object') ...['properties', 'required', 'additionalProperties'],
+    if (type == 'array') 'items',
+  };
+  for (final key in schema.keys) {
+    if (!allowed.contains(key)) {
+      throw _schemaError(
+        'The "$key" keyword cannot be preserved by llamadart ToolParam.',
+      );
+    }
+  }
+  if (schema.containsKey('description') && schema['description'] is! String) {
+    throw _schemaError('Descriptions must be strings.');
+  }
+  if (schema.containsKey('enum')) {
+    final values = schema['enum'];
+    if (values is! List ||
+        values.isEmpty ||
+        values.any((value) => value is! String)) {
+      throw _schemaError('Only nonempty string enums are supported.');
+    }
+  }
+  if (type == 'object') {
+    if (schema.containsKey('additionalProperties') &&
+        schema['additionalProperties'] != true) {
+      throw _schemaError(
+        'additionalProperties constraints cannot be preserved by llamadart ToolParam.',
+      );
+    }
+    final properties = schema['properties'];
+    if (schema.containsKey('properties') &&
+        properties is! Map<String, dynamic>) {
+      throw _schemaError('Object properties must be a map of schemas.');
+    }
+    final required = schema['required'];
+    if (schema.containsKey('required') &&
+        (required is! List ||
+            required.any(
+              (name) =>
+                  name is! String ||
+                  (properties as Map?)?.containsKey(name) != true,
+            ) ||
+            required.toSet().length != required.length)) {
+      throw _schemaError('Required names must be unique declared properties.');
+    }
+    for (final entry in (properties as Map<String, dynamic>? ?? {}).entries) {
+      if (entry.key.isEmpty || entry.value is! Map<String, dynamic>) {
+        throw _schemaError('Properties need nonempty names and typed schemas.');
+      }
+      _validateSchema(entry.value as Map<String, dynamic>);
+    }
+  }
+  if (type == 'array') {
+    final items = schema['items'];
+    if (items is! Map<String, dynamic>) {
+      throw _schemaError('Arrays require a single typed items schema.');
+    }
+    _validateSchema(items);
+  }
+}
+
+String _schemaType(Map<String, dynamic> schema) {
+  final raw = schema['type'];
+  final type = raw is List && raw.length == 1 ? raw.single : raw;
+  if (type is String &&
+      const {
+        'string',
+        'integer',
+        'number',
+        'boolean',
+        'null',
+        'object',
+        'array',
+      }.contains(type)) {
+    return type;
+  }
+  if (!schema.containsKey('type')) {
+    if (schema['properties'] is Map) return 'object';
+    final values = schema['enum'];
+    if (values is List &&
+        values.isNotEmpty &&
+        values.every((value) => value is String)) {
+      return 'string';
+    }
+  }
+  throw _schemaError(
+    'A supported single type is required; nullable unions and unknown types cannot be preserved.',
+  );
 }
 
 llama.ToolParam _mapSchemaToToolParam(
@@ -60,123 +197,75 @@ llama.ToolParam _mapSchemaToToolParam(
   required bool required,
 }) {
   final description = schema['description'] as String?;
-  final enumValues = schema['enum'];
-
-  if (enumValues is List && enumValues.every((value) => value is String)) {
+  final values = schema['enum'];
+  if (values is List) {
     return llama.ToolParam.enumType(
       name,
-      values: enumValues.cast<String>(),
+      values: values.cast<String>(),
       description: description,
       required: required,
     );
   }
-
-  final type = _normalizeType(schema['type']);
-  switch (type) {
-    case 'string':
-      return llama.ToolParam.string(
-        name,
-        description: description,
-        required: required,
-      );
-    case 'integer':
-      return llama.ToolParam.integer(
-        name,
-        description: description,
-        required: required,
-      );
-    case 'number':
-      return llama.ToolParam.number(
-        name,
-        description: description,
-        required: required,
-      );
-    case 'boolean':
-      return llama.ToolParam.boolean(
-        name,
-        description: description,
-        required: required,
-      );
-    case 'array':
-      return llama.ToolParam.array(
-        name,
-        itemType: _mapArrayItem(name, schema['items']),
-        description: description,
-        required: required,
-      );
-    case 'object':
-      return llama.ToolParam.object(
-        name,
-        properties: _mapObjectProperties(schema),
-        description: description,
-        required: required,
-      );
-    default:
-      return llama.ToolParam.string(
-        name,
-        description: description,
-        required: required,
-      );
-  }
-}
-
-llama.ToolParam _mapArrayItem(String name, Object? rawSchema) {
-  if (rawSchema is Map<String, dynamic>) {
-    return _mapSchemaToToolParam('${name}_item', rawSchema, required: false);
-  }
-
-  if (rawSchema is Map) {
-    return _mapSchemaToToolParam(
-      '${name}_item',
-      rawSchema.cast<String, dynamic>(),
-      required: false,
-    );
-  }
-
-  return llama.ToolParam.string('${name}_item');
+  return switch (_schemaType(schema)) {
+    'string' => llama.ToolParam.string(
+      name,
+      description: description,
+      required: required,
+    ),
+    'integer' => llama.ToolParam.integer(
+      name,
+      description: description,
+      required: required,
+    ),
+    'number' => llama.ToolParam.number(
+      name,
+      description: description,
+      required: required,
+    ),
+    'boolean' => llama.ToolParam.boolean(
+      name,
+      description: description,
+      required: required,
+    ),
+    'null' => llama.ToolParam.nullType(
+      name,
+      description: description,
+      required: required,
+    ),
+    'array' => llama.ToolParam.array(
+      name,
+      itemType: _mapSchemaToToolParam(
+        '${name}_item',
+        schema['items'] as Map<String, dynamic>,
+        required: false,
+      ),
+      description: description,
+      required: required,
+    ),
+    'object' => llama.ToolParam.object(
+      name,
+      properties: _mapObjectProperties(schema),
+      description: description,
+      required: required,
+    ),
+    _ => throw _schemaError('Unsupported parameter type.'),
+  };
 }
 
 List<llama.ToolParam> _mapObjectProperties(Map<String, dynamic> schema) {
-  final propertiesRaw = schema['properties'];
-  if (propertiesRaw is! Map) {
-    return const <llama.ToolParam>[];
-  }
-
-  final requiredNames = _parseRequiredSet(schema['required']);
-  final properties = propertiesRaw.cast<String, dynamic>();
-
-  return properties.entries
-      .map((entry) {
-        return _mapSchemaToToolParam(
-          entry.key,
-          entry.value is Map<String, dynamic>
-              ? entry.value as Map<String, dynamic>
-              : Map<String, dynamic>.from(entry.value as Map),
-          required: requiredNames.contains(entry.key),
-        );
-      })
-      .toList(growable: false);
+  final properties = schema['properties'] as Map<String, dynamic>? ?? {};
+  final required = (schema['required'] as List? ?? []).cast<String>().toSet();
+  return [
+    for (final entry in properties.entries)
+      _mapSchemaToToolParam(
+        entry.key,
+        entry.value as Map<String, dynamic>,
+        required: required.contains(entry.key),
+      ),
+  ];
 }
 
-Set<String> _parseRequiredSet(Object? raw) {
-  if (raw is List && raw.every((value) => value is String)) {
-    return raw.cast<String>().toSet();
-  }
-  return const <String>{};
-}
-
-String? _normalizeType(Object? rawType) {
-  if (rawType is String) {
-    return rawType;
-  }
-
-  if (rawType is List) {
-    for (final value in rawType) {
-      if (value is String && value != 'null') {
-        return value;
-      }
-    }
-  }
-
-  return null;
-}
+genkit.GenkitException _schemaError(String detail) => genkit.GenkitException(
+  'llamadart tool input schema: $detail Use object inputs with primitive types, string enums, nested objects or typed arrays.',
+  status: genkit.StatusCode.invalidArgument,
+);

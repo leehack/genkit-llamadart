@@ -2,6 +2,24 @@ import 'package:genkit_llamadart/src/integration/genkit/converters/schema_to_too
 import 'package:test/test.dart';
 
 void main() {
+  test('legacy references resolve within their declared definition block', () {
+    final params = schemaToToolParams({
+      r'$ref': '#/definitions/Input',
+      'definitions': {
+        'Input': {
+          'type': 'object',
+          'properties': {
+            'value': {r'$ref': '#/definitions/Value'},
+          },
+          'required': ['value'],
+        },
+        'Value': {'type': 'null'},
+      },
+    });
+    expect(params.single.toJsonSchema(), {'type': 'null'});
+    expect(params.single.required, isTrue);
+  });
+
   test('schemaToToolParams resolves ref-wrapped object schemas', () {
     final params = schemaToToolParams(<String, dynamic>{
       r'$ref': r'#/$defs/LookupInput',

@@ -38,6 +38,8 @@ genkit.Model<LlamaDartGenerationConfig> buildModelAction({
           status: genkit.StatusCode.invalidArgument,
         );
       }
+      final messages = toLlamaMessages(request.messages);
+      final tools = toLlamaTools(request.tools);
       final capture = OperationUsage();
       final total = Stopwatch()..start();
       return runZoned(() async {
@@ -52,6 +54,8 @@ genkit.Model<LlamaDartGenerationConfig> buildModelAction({
               runtime: runtime,
               capabilities: registry.capabilitiesFor(definition.name),
               request: request,
+              messages: messages,
+              tools: tools,
               config: config,
               context: context,
             );
@@ -85,12 +89,12 @@ Future<genkit.ModelResponse> _runModel({
   required LlamaRuntime runtime,
   required llama.LlamaEngineCapabilities? capabilities,
   required genkit.ModelRequest request,
+  required List<llama.LlamaChatMessage> messages,
+  required List<llama.ToolDefinition> tools,
   required LlamaDartGenerationConfig config,
   required _ModelActionContext context,
 }) async {
-  final messages = toLlamaMessages(request.messages);
   checkRuntimeModelRequest(definition, request, messages, capabilities);
-  final tools = toLlamaTools(request.tools);
   final params = toGenerationParams(config);
   checkRuntimeGenerationConfig(
     definition,

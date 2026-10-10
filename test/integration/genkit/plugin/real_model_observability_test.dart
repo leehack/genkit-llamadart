@@ -16,7 +16,8 @@ void main() {
   test(
     'real engine reports usage, structured usage and request-local observer context',
     () async {
-      final modelPath = await requireIntegrationModelPath();
+      final modelPath = await resolveIntegrationModelPath();
+      if (modelPath == null) return;
       final observer = _Observer();
       final plugin = llamaDart(
         models: [
@@ -114,7 +115,8 @@ void main() {
   );
 
   test('prepared model paths preserve observers', () async {
-    final path = await requireIntegrationModelPath();
+    final path = await resolveIntegrationModelPath();
+    if (path == null) return;
     for (final taskBased in [false, true]) {
       final observer = _Observer();
       final prepared = taskBased

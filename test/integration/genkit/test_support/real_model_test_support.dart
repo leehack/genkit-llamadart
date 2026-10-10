@@ -23,12 +23,13 @@ const HuggingFaceModelSpec integrationToolModel = HuggingFaceModelSpec(
   expectedSizeBytes: 1107409472,
 );
 
-Future<String> requireIntegrationToolModelPath() async {
-  final path = await _resolveModelPath(
+Future<String?> resolveIntegrationToolModelPath() async {
+  final path = await resolveTestModelPath(
     envName: 'LLAMADART_INTEGRATION_TOOL_MODEL_PATH',
     spec: integrationToolModel,
     downloadEnv: 'LLAMADART_AUTO_DOWNLOAD_TOOL_MODEL',
   );
+  if (path == null) return null;
   if (!await _hasExpectedModelContents(File(path), integrationToolModel)) {
     throw StateError('Tool qualification requires the pinned Qwen3 fixture.');
   }
@@ -44,12 +45,13 @@ const HuggingFaceModelSpec integrationQwen35Model = HuggingFaceModelSpec(
   expectedSizeBytes: 532517120,
 );
 
-Future<String> requireIntegrationQwen35ModelPath() async {
-  final path = await _resolveModelPath(
+Future<String?> resolveIntegrationQwen35ModelPath() async {
+  final path = await resolveTestModelPath(
     envName: 'LLAMADART_INTEGRATION_QWEN35_MODEL_PATH',
     spec: integrationQwen35Model,
     downloadEnv: 'LLAMADART_AUTO_DOWNLOAD_QWEN35_MODEL',
   );
+  if (path == null) return null;
   if (!await _hasExpectedModelContents(File(path), integrationQwen35Model)) {
     throw StateError(
       'Sampler qualification requires the pinned Qwen3.5 fixture.',
@@ -76,15 +78,15 @@ const HuggingFaceModelSpec integrationEmbedModel = HuggingFaceModelSpec(
   expectedSizeBytes: 19680224,
 );
 
-Future<String> requireIntegrationModelPath() {
-  return _resolveModelPath(
+Future<String?> resolveIntegrationModelPath() {
+  return resolveTestModelPath(
     envName: integrationModelPathEnv,
     spec: integrationChatModel,
   );
 }
 
-Future<String> requireIntegrationEmbedModelPath() {
-  return _resolveModelPath(
+Future<String?> resolveIntegrationEmbedModelPath() {
+  return resolveTestModelPath(
     envName: integrationEmbedModelPathEnv,
     spec: integrationEmbedModel,
   );
@@ -141,24 +143,32 @@ class HuggingFaceModelSpec {
   }
 }
 
-Future<String> _resolveModelPath({
+/// Resolves a supplied or opted-in fixture, returning null when disabled.
+///
+/// Callers must return immediately on null; skip annotation does not end a test.
+/// Disabled fixtures perform no HTTP access, cache lookup or filesystem work.
+Future<String?> resolveTestModelPath({
   required String envName,
   required HuggingFaceModelSpec spec,
   String downloadEnv = autoDownloadTestModelsEnv,
+  Map<String, String>? environment,
+  void Function(String) onSkip = markTestSkipped,
 }) async {
-  final envPath = _readPathEnv(envName);
-  if (envPath != null) {
+  final env = environment ?? Platform.environment;
+  final envPath = env[envName];
+  if (envPath != null && envPath.isNotEmpty) {
     return envPath;
   }
 
-  if (Platform.environment[downloadEnv] != '1') {
-    markTestSkipped(
+  if (env[downloadEnv] != '1') {
+    onSkip(
       'Set $envName or enable $downloadEnv=1 to download the pinned test model from Hugging Face.',
     );
+    return null;
   }
 
   final modelDir = Directory(
-    Platform.environment[testModelDirectoryEnv] ??
+    env[testModelDirectoryEnv] ??
         '${Directory.current.path}/.dart_tool/llamadart_test_models',
   );
   await modelDir.create(recursive: true);
@@ -188,7 +198,7 @@ Future<String> _resolveModelPath({
     final client = HttpClient();
     try {
       final request = await client.getUrl(Uri.parse(spec.downloadUrl));
-      final token = Platform.environment[huggingFaceTokenEnv];
+      final token = env[huggingFaceTokenEnv];
       if (token != null && token.isNotEmpty) {
         request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
       }
@@ -313,12 +323,4 @@ Future<bool> _hasExpectedModelContents(
   }
   final digest = await sha256.bind(file.openRead()).first;
   return digest.toString() == spec.expectedSha256;
-}
-
-String? _readPathEnv(String envName) {
-  final value = Platform.environment[envName];
-  if (value == null || value.isEmpty) {
-    return null;
-  }
-  return value;
 }

@@ -171,6 +171,22 @@ Local `file://` URLs cannot include query parameters or fragments. Provide
   fail with `INVALID_ARGUMENT`.
 - Named Schemantic object schemas are supported; local `$ref` and `$defs`
   wrappers emitted by Genkit are resolved before tool parameters are mapped.
+- Supported parameter schemas use a single `string`, `integer`, `number`,
+  `boolean`, `null`, `object` or `array` type. String enums, nested properties,
+  `required` and a single typed array `items` schema are retained, including
+  required null values. A missing type is inferred only from object properties
+  or a nonempty string enum.
+- Nullable unions, numeric/string/array bounds, patterns, formats, composition
+  and `additionalProperties: false` or a schema are rejected with
+  `INVALID_ARGUMENT` before the runtime loads. They were previously discarded;
+  existing tools using them now need a supported schema or an application-owned
+  validation boundary. Do not assume the original constraints were enforced.
+  Explicit `additionalProperties: true` is equivalent to the default open
+  object policy. Full rich-schema support needs a richer llamadart tool API.
+- Local named references must be acyclic and resolve in the exact root
+  `$defs` or `definitions` block named by the reference. Put constraints in the
+  referenced definition; semantic siblings beside `$ref` are rejected because merging
+  them could change the schema. Descriptive annotations are allowed.
 - Invalid or token-limited final tool calls fail with `DATA_LOSS` before tool
   execution. Incomplete argument deltas remain valid while streaming. Check
   the final result before treating a streamed tool preview as executable.
@@ -180,6 +196,11 @@ Local `file://` URLs cannot include query parameters or fragments. Provide
 - Local models may vary in how reliably they emit structured tool arguments.
   If a model emits empty or weak tool arguments, use strong tool descriptions,
   prompt guidance, and app context to stabilize behavior.
+
+Media validation errors omit source URLs, userinfo, query strings, fragments
+and paths. Invalid URI/data encodings return `INVALID_ARGUMENT` without wrapping
+an exception containing the payload. Supported media is still forwarded intact;
+this does not add remote audio downloads or redact application-owned request logs.
 
 ## Generation settings
 

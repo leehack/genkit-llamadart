@@ -22,6 +22,12 @@ description: >-
   llamadart passes arguments as `Map<String, dynamic>`. Primitive or list root
   inputs fail with `INVALID_ARGUMENT`. For a no-argument tool, use an object
   schema with no properties.
+- Use single primitive types (including `null`), string enums, nested objects,
+  `required` and typed array `items`. Nullable unions, bounds, patterns, formats,
+  composition and `additionalProperties: false`/schema are rejected before
+  loading; the runtime cannot retain them. Do not remove a safety constraint
+  and assume it is still enforced. Use an explicit application validation
+  boundary when richer constraints are required.
 - Named Schemantic object schemas work; local `$ref`/`$defs` wrappers are
   resolved before parameters are mapped.
 - The model definition must keep `supportsTools: true` (the default).

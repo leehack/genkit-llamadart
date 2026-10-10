@@ -13,7 +13,8 @@ void main() {
   test(
     'real GGUF probe guards media and preserves history and constrained JSON',
     () async {
-      final path = await requireIntegrationModelPath();
+      final path = await resolveIntegrationModelPath();
+      if (path == null) return;
       final observer = _ChatObserver();
       final plugin = LlamaDartPlugin(
         models: [

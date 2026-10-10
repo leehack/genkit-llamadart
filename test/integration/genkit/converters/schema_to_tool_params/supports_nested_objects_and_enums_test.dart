@@ -1,29 +1,51 @@
-import 'package:genkit_llamadart/src/integration/genkit/converters/schema_to_tool_params.dart';
+import 'package:genkit/plugin.dart' as genkit;
+import 'package:genkit_llamadart/src/integration/genkit/converters/genkit_to_llama.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('schemaToToolParams supports nested objects and enums', () {
-    final params = schemaToToolParams(<String, dynamic>{
-      'type': 'object',
-      'required': <String>['city', 'unit'],
-      'properties': <String, dynamic>{
-        'city': <String, dynamic>{'type': 'string'},
-        'unit': <String, dynamic>{
-          'type': 'string',
-          'enum': <String>['celsius', 'fahrenheit'],
-        },
-        'filters': <String, dynamic>{
-          'type': 'object',
-          'properties': <String, dynamic>{
-            'days': <String, dynamic>{'type': 'integer'},
+  test(
+    'model-facing schemas retain nested types, enums and required nulls',
+    () {
+      final schema = <String, dynamic>{
+        'type': 'object',
+        'required': ['city', 'unit', 'unset'],
+        'properties': {
+          'city': {'type': 'string', 'description': 'City to look up.'},
+          'unit': {
+            'type': 'string',
+            'enum': ['celsius', 'fahrenheit'],
+          },
+          'unset': {'type': 'null'},
+          'filters': {
+            'type': 'object',
+            'properties': {
+              'days': {'type': 'integer'},
+              'ratio': {'type': 'number'},
+              'active': {'type': 'boolean'},
+            },
+            'required': ['days'],
+          },
+          'rows': {
+            'type': 'array',
+            'items': {
+              'type': 'object',
+              'properties': {
+                'value': {'type': 'null'},
+              },
+              'required': ['value'],
+            },
           },
         },
-      },
-    });
-
-    expect(params, hasLength(3));
-    expect(params[0].name, 'city');
-    expect(params[1].name, 'unit');
-    expect(params[2].name, 'filters');
-  });
+      };
+      final tool = toLlamaTools([
+        genkit.ToolDefinition(
+          name: 'lookup',
+          description: 'Lookup',
+          inputSchema: schema,
+        ),
+      ]).single;
+      expect(tool.toJsonSchema(), schema);
+      expect((tool.toJson()['function'] as Map)['parameters'], schema);
+    },
+  );
 }

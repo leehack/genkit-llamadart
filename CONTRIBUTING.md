@@ -142,7 +142,11 @@ resolved llamadart version, native artifact and result in PR/release evidence.
 
 The model must request a real tool, receive its result through Genkit, and
 return the verification code supplied only by the handler. It covers `auto`,
-`required`, `none`, truncation, cancellation and recovery. Genkit 1.0 retains
+`required`, `none`, truncation, cancellation and recovery. Its tool input also
+requires a null value; the serialized adapter schema is compiled with the
+pinned native grammar sampler and checked against valid null, invalid string/
+number, missing-field and incomplete-output candidates using the Qwen3
+vocabulary. Genkit 1.0 retains
 `required` on every turn, so explicit application middleware switches to `none`
 after the tool result to permit a final answer. Adapter semantics are unchanged.
 
@@ -153,7 +157,11 @@ arguments and must not be token-limited. With `toolChoice.none`, inline
 tool-looking text stays inert. This native run does not qualify Web/mobile.
 
 The default real-model suite skips this fixture unless its own opt-in/path is
-supplied. It is discoverable through the `tool-model` tag.
+supplied. Fixture resolution returns no path when disabled; every caller must
+return before creating a runtime. `markTestSkipped` alone only annotates the
+result and does not stop a test. Fast regression checks verify that disabled
+fixtures perform no HTTP requests or cache writes, even when tiny-model downloads
+are enabled. It is discoverable through the `tool-model` tag.
 
 
 ## Before Opening A PR
