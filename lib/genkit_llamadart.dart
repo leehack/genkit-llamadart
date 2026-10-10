@@ -75,3 +75,11 @@ export 'src/core/runtime/llama_runtime.dart'
         LlamaRuntimeCapabilityProvider,
         LlamaRuntimeInspectionProvider;
 export 'src/integration/genkit/plugin.dart' show LlamaDartPlugin;
+
+export 'src/api/media_model.dart'
+    show
+        LlamaDartMediaModel,
+        LlamaDartSpeechToTextModel,
+        LlamaDartTextToSpeechModel,
+        LlamaDartImageModel;
+export 'src/integration/genkit/media_plugin.dart' show LlamaDartMediaPlugin;

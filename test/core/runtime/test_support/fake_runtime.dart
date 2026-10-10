@@ -43,6 +43,7 @@ class FakeRuntime implements LlamaDartRuntime, LlamaRuntimeCapabilityProvider {
   final List<List<llama.LlamaChatMessage>> recordedMessages =
       <List<llama.LlamaChatMessage>>[];
   List<llama.ToolDefinition>? lastTools;
+  Map<String, dynamic>? lastResponseFormat;
   llama.ToolChoice? lastToolChoice;
   llama.GenerationParams? lastGenerationParams;
 
@@ -104,6 +105,7 @@ class FakeRuntime implements LlamaDartRuntime, LlamaRuntimeCapabilityProvider {
     Map<String, dynamic>? chatTemplateKwargs,
   }) async {
     chatTemplateCallCount += 1;
+    lastResponseFormat = responseFormat;
     lastMessages = messages;
     lastTools = tools;
     lastToolChoice = toolChoice;

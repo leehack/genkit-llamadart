@@ -74,6 +74,10 @@ class LlamaModelDefinition {
   ///
   /// The loaded runtime must also report structured output and grammar support.
   ///
+  /// With active tools, native llama.cpp supports one call per turn and requires
+  /// thinking/parallel calls disabled. Constrained content is buffered until
+  /// complete parsing and validation. Browser/LiteRT combinations are unsupported.
+  ///
   /// Disable this for `.litertlm` LiteRT-LM bundles until `llamadart` exposes
   /// grammar constraints for that backend.
   final bool supportsConstrainedOutput;

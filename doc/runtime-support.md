@@ -52,7 +52,9 @@ Backend support does not prove model quality or template behavior. For example,
 `systemRole` means the runtime delivers system messages to the chat template;
 a model may still interpret them differently. Tool-choice constraints and
 model-specific embedding eligibility remain validated by llamadart.
-`constrainedWithTools` remains `false`.
+`constrainedWithTools` is true only for verified native llama.cpp runtimes with
+tools, structured output and grammar support. Combined requests require an eager
+generic JSON-envelope template and one call per turn; see [usage](usage.md).
 
 Use `modelInfo` to customize labels, versions, configuration schema, stage, or
 additional support metadata. Custom support keys are preserved; standard keys
@@ -73,7 +75,8 @@ runtime behavior to prevent unverified support claims.
 - LiteRT-LM `.litertlm` bundles can be used for chat and tool-call flows, but
   constrained JSON output currently requires a backend with grammar constraints;
   set `supportsConstrainedOutput: false` for `.litertlm` model definitions.
-- constrained structured output with active tool calling is not supported yet
+- constrained output with active tools requires native llama.cpp, one call per
+  turn and `enableThinking: false`; WebGPU and LiteRT-LM reject this combination
 - some models may need prompt tuning for reliable tool arguments
 - multimodal requests require a compatible model and runtime; llama.cpp also
   requires a compatible projector, while native LiteRT-LM can use built-in encoders
@@ -90,3 +93,7 @@ not load a model; inspection and raw token helpers do. Custom runtimes may opt
 into `LlamaRuntimeInspectionProvider` without changing the base runtime API.
 Keep backend capability labels free of paths and credentials; inspection
 publishes only recognized backend labels and a neutral unsupported reason.
+
+Dedicated [batch speech/image models](media-models.md) use `LlamaDartMediaPlugin`
+and separate typed engines. Their listed metadata describes accepted shapes;
+readiness is checked from the engine before each operation. This preview is native only.

@@ -282,3 +282,14 @@ These bounded CPU runs qualify routing and sampler behavior, not throughput
 claims or every speculative strategy. Model-specific draft/MTP and real Web
 qualification remain targeted checks for the chosen model/backend. Browser
 adapter guards are tested in `actions/model_action/inference_controls_test.dart`.
+
+Dedicated media qualification is opt-in (`speech-model` and `image-model` tags)
+and stays out of ordinary CI downloads. See `test/integration/genkit/media/`:
+`GENKIT_ASR_MODEL`/`GENKIT_ASR_PROJECTOR`, `GENKIT_TTS_MODEL`/`GENKIT_TTS_PROJECTOR`,
+and `GENKIT_IMAGE_MODEL` point to checksum-verified fixtures. The speech fixture
+uses public-domain `whisper.cpp` JFK audio with its exact hash and reference.
+Weights are not shipped. Image tests require a consumer enabling
+`hooks.user_defines.llamadart.llamadart_native_runtimes: [llama_cpp, stable_diffusion]`.
+Optional `GENKIT_TTS_WAV_OUTPUT`/`GENKIT_IMAGE_PNG_OUTPUT` save inspectable artifacts.
+Report model revision/checksum, published runtime, platform/backend and actual
+result; scripted engines do not qualify model families.

@@ -188,6 +188,7 @@ dart run -DLLAMADART_MODEL_SOURCE=hf://owner/repo/model.gguf \
 - [Generation settings (including thinking, presence penalties and speculative decoding), tools, JSON, embeddings and cancellation](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md)
 - [Model preparation, cache policy and loading UI](https://github.com/leehack/genkit-llamadart/blob/main/doc/model-preparation.md)
 - [Raw-text token counts, context capacity and backend inspection](https://github.com/leehack/genkit-llamadart/blob/main/doc/model-inspection.md)
+- [Batch transcription, WAV synthesis and PNG generation](https://github.com/leehack/genkit-llamadart/blob/main/doc/media-models.md)
 - [Runtime support, discovery and custom runtimes](https://github.com/leehack/genkit-llamadart/blob/main/doc/runtime-support.md)
 - [Telemetry and engine observers](https://github.com/leehack/genkit-llamadart/blob/main/doc/observability.md)
 - [Migration to 3.0 / Genkit 1.0](https://github.com/leehack/genkit-llamadart/blob/main/doc/migration.md)

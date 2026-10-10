@@ -448,3 +448,24 @@ are not exposed in request config.
 - if multiple runtimes fail during disposal, the returned `ParallelWaitError`
   retains every underlying failure
 - call `await ai.shutdown()` when your Genkit app is done
+
+## Constrained JSON with tools
+
+Native llama.cpp can combine `tools`, `outputSchema` and `outputConstrained: true`
+in the same Genkit request. The adapter constrains one tool call or a final
+schema-valid JSON response per turn, and Genkit executes the tool loop. Qwen3
+1.7B is the qualified family. Other GGUF families require their own validation.
+`auto` allows either outcome; `required` forces a call every turn, so an application
+that needs a final answer must explicitly change the choice after receiving a tool
+result. `none` disables tool dispatch and constrains the final JSON directly.
+
+Keep `parallelToolCalls` and `enableThinking` false. WebGPU, LiteRT-LM and
+unverified custom runtime kinds fail explicitly. Local JSON pointer schema refs
+work, including root and nested refs. External/anchor/dynamic refs, schema `$id`,
+anchors and legacy `dependencies` are rejected for the combined-tools slice.
+Tool input schemas retain their existing supported subset.
+
+Constrained generation buffers content until final parsing and schema validation
+succeed. It emits one complete content chunk; malformed/truncated tool output
+cannot leak fragments or dispatch a partial tool call. For dedicated WAV/PNG
+output and whole-file recognition, see [batch media models](media-models.md).

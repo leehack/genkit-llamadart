@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:genkit/plugin.dart' as genkit;
 import 'package:llamadart/llamadart.dart' as llama;
@@ -12,6 +13,7 @@ import '../../../core/runtime/operation_usage.dart';
 import '../../../core/streaming/completion_accumulator.dart';
 import '../action_support.dart';
 import '../converters/genkit_to_llama.dart';
+import '../converters/constrained_tools.dart';
 import '../converters/llama_to_genkit.dart';
 import '../converters/remote_media.dart';
 import '../request_support.dart';
@@ -120,9 +122,26 @@ Future<genkit.ModelResponse> _runModel({
   final started = Stopwatch()..start();
 
   if (shouldUseStructuredGeneration(request.output)) {
-    if (tools.isNotEmpty && toolChoice != llama.ToolChoice.none) {
+    final activeTools = tools.isNotEmpty && toolChoice != llama.ToolChoice.none;
+    if (activeTools &&
+        (!const bool.fromEnvironment('dart.library.io') ||
+            capabilities?.runtime != llama.LlamaRuntime.llamaCpp)) {
       throw genkit.GenkitException(
-        'llamadart does not support constrained structured output with tools yet.',
+        'Constrained output with active tools requires native llama.cpp. '
+        'WebGPU, LiteRT-LM and unverified custom runtimes are unsupported.',
+        status: genkit.StatusCode.unimplemented,
+      );
+    }
+    if (activeTools && config.parallelToolCalls == true) {
+      throw genkit.GenkitException(
+        'Constrained tool generation supports one tool call per turn. '
+        'Disable parallelToolCalls.',
+        status: genkit.StatusCode.unimplemented,
+      );
+    }
+    if (activeTools && config.enableThinking == true) {
+      throw genkit.GenkitException(
+        'Constrained tool generation currently requires enableThinking: false.',
         status: genkit.StatusCode.unimplemented,
       );
     }
@@ -134,6 +153,8 @@ Future<genkit.ModelResponse> _runModel({
       config: config,
       params: params,
       output: request.output,
+      tools: tools,
+      toolChoice: toolChoice ?? llama.ToolChoice.auto,
       context: context,
       started: started,
     );
@@ -204,15 +225,40 @@ Future<genkit.ModelResponse> _runStructuredModel({
   required LlamaDartGenerationConfig config,
   required llama.GenerationParams params,
   required genkit.OutputConfig? output,
+  required List<llama.ToolDefinition> tools,
+  required llama.ToolChoice toolChoice,
   required _ModelActionContext context,
   required Stopwatch started,
 }) async {
-  final responseFormat = toResponseFormat(output);
+  final activeTools = tools.isNotEmpty && toolChoice != llama.ToolChoice.none;
+  final envelopeSchema = activeTools
+      ? constrainedToolSchema(tools, toolChoice, output?.schema)
+      : null;
+  final responseFormat = envelopeSchema == null
+      ? toResponseFormat(output)
+      : <String, dynamic>{
+          'type': 'json_schema',
+          'json_schema': {'schema': envelopeSchema},
+        };
+  final templateMessages = activeTools
+      ? [
+          ...messages,
+          llama.LlamaChatMessage(
+            role: 'system',
+            content:
+                'For this turn, return one JSON envelope: '
+                '{"tool_call":{"name":"tool name","arguments":{...}}} for a tool, '
+                'or {"response":<the final value matching the requested output schema>} '
+                'for a final answer. Do not wrap the final value in a string unless '
+                'the requested schema is a string. Call only a declared tool.',
+          ),
+        ]
+      : messages;
   final template = await runtime.chatTemplate(
-    messages,
+    templateMessages,
     addAssistant: true,
-    tools: null,
-    toolChoice: llama.ToolChoice.none,
+    tools: activeTools ? tools : null,
+    toolChoice: toolChoice,
     parallelToolCalls: false,
     enableThinking:
         config.enableThinking ??
@@ -225,6 +271,18 @@ Future<genkit.ModelResponse> _runStructuredModel({
   );
 
   context.cancel?.throwIfCancelled();
+  if (activeTools &&
+      (template.grammar == null ||
+          template.grammar!.trim().isEmpty ||
+          template.format != llama.ChatFormat.generic.index ||
+          template.grammarLazy ||
+          template.parser != null)) {
+    throw genkit.GenkitException(
+      'Constrained tools require an eager grammar and the generic JSON envelope '
+      'parser from native llama.cpp. The runtime returned an unsupported template.',
+      status: genkit.StatusCode.unimplemented,
+    );
+  }
   final stops = <String>{
     ...template.additionalStops,
     ...params.stopSequences,
@@ -271,39 +329,65 @@ Future<genkit.ModelResponse> _runStructuredModel({
     parts: inputParts,
   )) {
     rawOutput.write(token);
-    if (context.streamingRequested) {
-      context.sendChunk(
-        genkit.ModelResponseChunk(
-          role: genkit.Role.model,
-          content: <genkit.Part>[genkit.TextPart(text: token)],
-          aggregated: false,
-        ),
-      );
-    }
   }
 
   context.cancel?.throwIfCancelled();
   final parsed = llama.ChatTemplateEngine.parse(
     template.format,
     rawOutput.toString(),
-    parseToolCalls: false,
+    parseToolCalls: activeTools,
+    tools: activeTools ? tools : null,
     thinkingForcedOpen: template.thinkingForcedOpen,
     parser: template.parser,
   );
 
-  final parts = <genkit.Part>[];
-  if (parsed.reasoningContent != null && parsed.reasoningContent!.isNotEmpty) {
-    parts.add(genkit.ReasoningPart(reasoning: parsed.reasoningContent!));
+  final usage = Zone.current[operationUsageKey] as OperationUsage?;
+  if (activeTools && usage?.finishReason == 'length') {
+    throw invalidConstrainedOutput();
   }
-
-  if (parsed.content.isNotEmpty || parts.isEmpty) {
-    parts.add(genkit.TextPart(text: parsed.content));
+  var visibleText = parsed.content;
+  if (envelopeSchema != null) {
+    final raw = llama.ChatTemplateEngine.parse(
+      template.format,
+      rawOutput.toString(),
+      parseToolCalls: false,
+      thinkingForcedOpen: template.thinkingForcedOpen,
+      parser: template.parser,
+    );
+    final envelope = decodeConstrainedValue(raw.content);
+    await validateConstrainedValue(envelope, envelopeSchema);
+    final map = envelope as Map;
+    if (map.containsKey('response')) {
+      visibleText = jsonEncode(map['response']);
+    } else if (parsed.toolCalls.length != 1) {
+      throw invalidConstrainedOutput();
+    }
+  } else {
+    final value = decodeConstrainedValue(visibleText);
+    if (output?.schema != null) {
+      await validateConstrainedValue(value, output!.schema!);
+    }
   }
-
-  return genkit.ModelResponse(
-    message: genkit.Message(role: genkit.Role.model, content: parts),
-    finishReason: genkit.FinishReason.stop,
+  final response = toGenkitModelResponse(
+    CompletionResult(
+      text: visibleText,
+      reasoning: parsed.reasoningContent ?? '',
+      toolCalls: parsed.toolCalls,
+      finishReason: usage?.finishReason,
+    ),
     latencyMs: started.elapsedMilliseconds.toDouble(),
     raw: rawResponseMetadata(definition, structured: true),
+    allowToolCalls: activeTools,
   );
+  context.cancel?.throwIfCancelled();
+  if (context.streamingRequested) {
+    context.sendChunk(
+      genkit.ModelResponseChunk(
+        role: genkit.Role.model,
+        content: response.message!.content,
+        aggregated: false,
+      ),
+    );
+  }
+  return response;
 }

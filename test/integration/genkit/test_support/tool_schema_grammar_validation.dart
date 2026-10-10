@@ -126,3 +126,29 @@ List<int> _tokenize(Pointer<llama_vocab> vocab, String candidate) {
     malloc.free(text);
   }
 }
+
+/// Verifies positive and negative token sequences against an eager native grammar.
+void validateCompiledGrammar(
+  String modelPath,
+  String grammar,
+  Map<String, bool> candidates,
+) {
+  final path = modelPath.toNativeUtf8();
+  final model = llama_model_load_from_file(
+    path.cast<Char>(),
+    llama_model_default_params()..vocab_only = true,
+  );
+  malloc.free(path);
+  expect(model, isNot(nullptr));
+  try {
+    for (final entry in candidates.entries) {
+      expect(
+        _accepts(model, grammar, entry.key),
+        entry.value,
+        reason: entry.key,
+      );
+    }
+  } finally {
+    llama_model_free(model);
+  }
+}

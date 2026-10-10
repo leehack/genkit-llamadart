@@ -1,5 +1,8 @@
 ## Unreleased
 
+- Combine constrained JSON and tool calls on native llama.cpp, with complete-output validation before streaming or tool dispatch.
+- Expose dedicated batch transcription, complete WAV synthesis and PNG generation as native Genkit models with explicit engine ownership and cancellation.
+
 - Support text-only multipart tool results while retaining structured output in Genkit history.
 - Resolve native HTTP(S) image and audio input with an explicit, bounded application-owned resolver.
 - Inspect loaded model capabilities and context capacity, and count or tokenize raw text without inference.
