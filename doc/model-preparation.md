@@ -93,11 +93,11 @@ remote-only options such as cache policy overrides, cache directories, bearer
 tokens, headers, resume, and retry settings are rejected instead of silently
 ignored.
 
-## Explicit format and LiteRT activation settings
+## LiteRT model settings
 
 `ModelFormat` and `LiteRtLmActivationDataType` are available from the adapter
-import. Native loads usually detect the format from the file. An explicit source
-format is useful when an extension cannot identify it. Activation data types
+import for source and model configuration. Prepared native models load the
+resolved local file and detect its format from the contents. Activation data types
 apply to LiteRT-LM and must be supported by the selected bundle and device:
 
 ```dart
