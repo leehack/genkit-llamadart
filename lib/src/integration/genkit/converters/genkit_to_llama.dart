@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:genkit/plugin.dart' as genkit;
 import 'package:llamadart/llamadart.dart' as llama;
@@ -246,8 +245,7 @@ llama.LlamaContentPart _toLlamaMediaPart(genkit.Media media) {
 
   final uri = Uri.tryParse(media.url);
   if (uri != null && uri.scheme == 'data') {
-    final data = UriData.parse(media.url).contentAsBytes();
-    final bytes = Uint8List.fromList(data);
+    final bytes = UriData.parse(media.url).contentAsBytes();
     return isImage
         ? llama.LlamaImageContent(bytes: bytes)
         : llama.LlamaAudioContent(bytes: bytes);

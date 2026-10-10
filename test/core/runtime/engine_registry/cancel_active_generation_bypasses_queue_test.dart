@@ -17,7 +17,6 @@ void main() {
       runtimeFactory: () => runtime,
     );
 
-    // Load the runtime so a generation can be in flight.
     await registry.withRuntime('local', (_) async {});
 
     // Occupy the operation queue with a request that never completes on its
@@ -28,8 +27,6 @@ void main() {
 
     registry.cancelActiveGeneration('local');
 
-    // The cancel landed on the runtime immediately, before the queued
-    // operation drained.
     expect(runtime.cancelGenerationCount, 1);
 
     blocker.complete();

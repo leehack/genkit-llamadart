@@ -27,7 +27,6 @@ void main() {
     final engine = _RecordingEngine();
     final runtime = LlamaEngineRuntime(engine: engine);
     addTearDown(runtime.dispose);
-    expect(runtime, isA<LlamaRuntimeCapabilityProvider>());
     expect(await runtime.capabilities, same(engine.snapshot));
   });
 

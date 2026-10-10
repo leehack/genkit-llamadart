@@ -1,6 +1,10 @@
 import 'config_parsing.dart';
 
-/// Request-time generation options supported by `genkit_llamadart`.
+/// Sampling and chat-template options for a Genkit model request.
+///
+/// Null fields use the adapter defaults when a request executes. Backend and
+/// model restrictions still apply; these options cannot enable an unsupported
+/// capability. [toJson] omits null fields for Genkit configuration maps.
 ///
 /// ```dart
 /// final response = await ai.generate(
@@ -32,7 +36,7 @@ class LlamaDartGenerationConfig {
   /// Default maximum generated tokens.
   static const int defaultMaxTokens = 4096;
 
-  /// Default reasoning visibility.
+  /// Whether thinking is enabled when the request omits [enableThinking].
   static const bool defaultEnableThinking = false;
 
   /// Default parallel tool-call behavior.
@@ -55,7 +59,14 @@ class LlamaDartGenerationConfig {
     this.chatTemplateKwargs,
   });
 
-  /// Builds a config from a Genkit config map.
+  /// Reads recognized fields from a Genkit config map.
+  ///
+  /// Null maps produce an empty config. Numeric values are converted to the
+  /// required numeric type; integer fields truncate fractional numbers.
+  /// Non-numeric sampling values, non-boolean flags and mixed-type stop lists
+  /// become null. Language hints must be strings and template keys must be
+  /// strings; incompatible values can throw [TypeError]. Unknown keys are
+  /// ignored.
   factory LlamaDartGenerationConfig.fromJson(Map<String, dynamic>? json) {
     if (json == null) {
       return const LlamaDartGenerationConfig();
@@ -78,43 +89,72 @@ class LlamaDartGenerationConfig {
     );
   }
 
-  /// Sampling temperature.
+  /// Sampling temperature; lower values favor more predictable output.
+  ///
+  /// Null uses [defaultTemperature].
   final double? temperature;
 
-  /// Top-p nucleus sampling value.
+  /// Cumulative probability cutoff for nucleus sampling.
+  ///
+  /// Null uses [defaultTopP].
   final double? topP;
 
-  /// Top-k sampling value.
+  /// Maximum number of candidate tokens considered by top-k sampling.
+  ///
+  /// Null uses [defaultTopK].
   final int? topK;
 
-  /// Minimum probability cutoff.
+  /// Minimum token probability relative to the most likely candidate.
+  ///
+  /// Null uses [defaultMinP], which disables this cutoff.
   final double? minP;
 
-  /// Repeat penalty value.
+  /// Repetition penalty applied to previously generated tokens.
+  ///
+  /// Null uses [defaultPenalty].
   final double? penalty;
 
-  /// Maximum tokens to generate.
+  /// Maximum number of generated tokens, excluding the input prompt.
+  ///
+  /// Null uses [defaultMaxTokens]. Reaching the limit can leave structured
+  /// output incomplete; inspect the final Genkit result.
   final int? maxTokens;
 
-  /// Stop sequences.
+  /// Additional strings that stop generation when encountered.
+  ///
+  /// Structured output also preserves stop sequences supplied by the template.
   final List<String>? stop;
 
-  /// Optional deterministic seed.
+  /// Sampling seed, when supported by the active backend.
+  ///
+  /// Reproducibility also depends on the model, backend and sampling settings.
   final int? seed;
 
-  /// Whether model reasoning should remain enabled.
+  /// Whether the chat template enables model thinking.
+  ///
+  /// Null uses [defaultEnableThinking]. This controls model/template behavior,
+  /// rather than merely hiding reasoning parts in the response.
   final bool? enableThinking;
 
-  /// Whether templates may emit parallel tool calls.
+  /// Whether the chat template permits multiple tool calls in one turn.
+  ///
+  /// Null uses [defaultParallelToolCalls]. Tool execution remains owned by Genkit.
   final bool? parallelToolCalls;
 
-  /// Optional source language hint for translation-style templates.
+  /// Source language hint for translation-style chat templates.
+  ///
+  /// A nonempty value overrides `source_lang_code` in [chatTemplateKwargs].
   final String? sourceLangCode;
 
-  /// Optional target language hint for translation-style templates.
+  /// Target language hint for translation-style chat templates.
+  ///
+  /// A nonempty value overrides `target_lang_code` in [chatTemplateKwargs].
   final String? targetLangCode;
 
-  /// Extra keyword arguments passed through to the chat template.
+  /// Extra globals supplied to the model's chat template.
+  ///
+  /// Accepted keys and effects depend on the template. Nonempty
+  /// [sourceLangCode] and [targetLangCode] take precedence over matching keys.
   final Map<String, dynamic>? chatTemplateKwargs;
 
   /// Serializes the config to a Genkit-friendly map.

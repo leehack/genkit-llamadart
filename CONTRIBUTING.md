@@ -13,13 +13,21 @@ For runtime setup and platform notes, see https://llamadart.leehack.com/.
 
 ## Project Layout
 
-See `ARCHITECTURE.md` for the package layering rules.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for package layering and the matching
+test layout. End-user guides live under `doc/`; README is the pub.dev entrypoint.
 
-- `lib/src/api/`: public package-facing types
-- `lib/src/core/`: runtime and `llamadart` internals
-- `lib/src/integration/genkit/`: Genkit adapter layer
+## Code and Documentation
 
-The test tree mirrors this layout.
+- Keep ordinary code comments for non-obvious constraints, compatibility or
+  safety decisions. Avoid narrating assignments, loops or assertions.
+- Write Dartdoc for every exported API, including constructors, fields, enum
+  values and methods. Explain defaults, ownership, accepted inputs, errors and
+  platform differences when they matter; do not repeat the signature.
+- Keep README focused on installation, the first successful request, feature
+  requirements and navigation. Put detailed guidance under `doc/` and runnable
+  examples under `example/`.
+- Update affected package skills with public API changes. Compile documentation
+  examples and run `dart doc --dry-run` before claiming docs are ready.
 
 ## Testing Conventions
 
@@ -28,13 +36,25 @@ The test tree mirrors this layout.
 - group related cases when they benefit from shared setup
 - place shared helpers in a nearby `test_support/` directory
 - prefer unit tests first, then Genkit integration tests, then real-model smoke tests
+- Test an observable contract or a plausible failure: conversion, request
+  routing, unsupported input, resource ownership, cancellation or telemetry.
+  A test should fail if that behavior is removed or miswired.
+- Do not test constructor field assignments or Dart's static type system.
+  Remove duplicate tests when the same assertion is covered through a stronger
+  production path; preserve that assertion in the retained test.
+- Keep tiny real-model tests for native integration, parsing and measurements
+  that fakes cannot establish. Share assertions with existing model sessions
+  instead of repeatedly loading a model just to assert nonempty output.
+- Use coverage to find untested risks, not as a reason to add execution-only
+  tests. Test unsupported/version-skew branches when the feature depends on
+  runtime capabilities.
 
 ## Agent Skills
 
 `skills/` is published to consumers' coding agents. A public API or behavior
 change updates the affected `SKILL.md` in the same PR;
-`test/tooling/package_skills_test.dart` validates each skill and analyzes its
-Dart examples.
+`test/tooling/package_documentation_test.dart` validates skill metadata and analyzes Dart
+examples from README, guides and skills in one analyzer run.
 
 ## Test Commands
 
@@ -176,8 +196,8 @@ actionlint .github/workflows/*.yml
 shellcheck -s bash .github/release_helpers.sh
 ```
 
-These tests do not create tags or publish packages. The first approved release
-will validate GitHub token dispatch and pub.dev OIDC end to end.
+These tests do not create tags or publish packages. Verify GitHub token dispatch
+and pub.dev OIDC in the actual approved release workflow.
 
 The publish workflow then:
 

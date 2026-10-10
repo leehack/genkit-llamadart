@@ -9,7 +9,6 @@ final class CompletionResult {
     required this.toolCalls,
     this.usage,
     this.finishReason,
-    this.finishMessage,
   });
 
   final String text;
@@ -17,7 +16,6 @@ final class CompletionResult {
   final List<llama.LlamaCompletionChunkToolCall> toolCalls;
   final llama.LlamaGenerationUsage? usage;
   final String? finishReason;
-  final String? finishMessage;
 }
 
 class CompletionAccumulator {
@@ -28,7 +26,6 @@ class CompletionAccumulator {
 
   llama.LlamaGenerationUsage? usage;
   String? finishReason;
-  String? finishMessage;
 
   void addChunk(llama.LlamaCompletionChunk chunk) {
     usage = chunk.usage ?? usage;
@@ -69,7 +66,6 @@ class CompletionAccumulator {
           .map((toolCall) => toolCall.toToolCall())
           .toList(growable: false),
       finishReason: finishReason,
-      finishMessage: finishMessage,
     );
   }
 }

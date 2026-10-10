@@ -22,10 +22,19 @@ final SchemanticType<Map<String, dynamic>> _jsonMapSchema = SchemanticType.map(
 );
 
 final SchemanticType<Map<String, dynamic>> _emptyToolInputSchema =
-    JsonObjectSchema(
-      name: 'ToolContextInput',
-      description: 'This tool uses the latest user request from app context.',
-      properties: const <String, Map<String, Object?>>{},
+    SchemanticType.from<Map<String, dynamic>>(
+      jsonSchema: const <String, Object?>{
+        'type': 'object',
+        'description':
+            'This tool uses the latest user request from app context.',
+        'properties': <String, Object?>{},
+        'required': <String>[],
+      },
+      parse: (json) {
+        if (json is Map<String, dynamic>) return json;
+        if (json is Map) return json.cast<String, dynamic>();
+        throw const FormatException('Expected an object for tool input.');
+      },
     );
 
 const Map<String, Map<String, dynamic>> _weatherByLocation =
@@ -123,13 +132,7 @@ Future<void> main() async {
 
   try {
     if (initialPrompt != null && initialPrompt.trim().isNotEmpty) {
-      history = await _runTurn(
-        ai,
-        history,
-        tools,
-        requestContext,
-        initialPrompt.trim(),
-      );
+      await _runTurn(ai, history, tools, requestContext, initialPrompt.trim());
       return;
     }
 
@@ -371,40 +374,4 @@ final class _AgentRequestContext {
   // Streaming context forwarding varies across supported Genkit versions, so
   // keep the current turn available as a fallback for these no-argument tools.
   String latestUserInput = 'unknown';
-}
-
-final class JsonObjectSchema extends SchemanticType<Map<String, dynamic>> {
-  JsonObjectSchema({
-    required this.name,
-    required this.properties,
-    this.requiredProperties = const <String>[],
-    this.description,
-  });
-
-  final String name;
-  final String? description;
-  final Map<String, Map<String, Object?>> properties;
-  final List<String> requiredProperties;
-
-  @override
-  Map<String, dynamic> parse(Object? json) {
-    if (json is Map<String, dynamic>) {
-      return json;
-    }
-    if (json is Map) {
-      return json.cast<String, dynamic>();
-    }
-    throw FormatException('Expected a JSON object for $name.');
-  }
-
-  @override
-  JsonSchemaMetadata get schemaMetadata => JsonSchemaMetadata(
-    name: name,
-    definition: <String, Object?>{
-      'type': 'object',
-      'properties': properties,
-      'required': requiredProperties,
-      if (description != null) 'description': description,
-    },
-  );
 }

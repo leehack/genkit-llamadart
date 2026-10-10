@@ -47,6 +47,7 @@ void main() {
           generate('queued'),
         ]);
         for (final response in responses) {
+          expect(response.text.trim(), isNotEmpty);
           expect(response.usage!.inputTokens, greaterThan(0));
           expect(response.usage!.outputTokens, greaterThan(0));
           expect(

@@ -23,9 +23,13 @@ enum LlamaModelPreparationStage {
   verifying,
 
   /// The Genkit plugin, model definition, and typed refs are being created.
+  ///
+  /// This stage does not load the native model; use warm-up for that.
   loading,
 
-  /// A [LlamaPreparedModel] is ready to use.
+  /// Source resolution finished and a [LlamaPreparedModel] can be registered.
+  ///
+  /// Native model loading remains lazy until the first request or warm-up.
   ready,
 
   /// Preparation failed.
@@ -92,6 +96,9 @@ class LlamaModelPreparationSnapshot {
   final LlamaPreparedModel? preparedModel;
 
   /// Redacted user-facing failure or cancellation message.
+  ///
+  /// Other snapshot fields can contain source URLs and local paths; select
+  /// fields deliberately before logging or exporting a snapshot.
   final String? errorMessage;
 
   /// Whether this snapshot represents active asynchronous work.
@@ -106,7 +113,10 @@ class LlamaModelPreparationSnapshot {
     };
   }
 
-  /// Best-known completion fraction, or null when unknown.
+  /// Current source's download fraction, or null when unknown.
+  ///
+  /// This is not an aggregate across the model and projector. A ready task
+  /// reports 1.0 even when the source was already cached.
   double? get fraction {
     if (stage == LlamaModelPreparationStage.ready) {
       return 1.0;
@@ -191,7 +201,10 @@ class LlamaModelPreparationTask {
   /// Latest snapshot, synchronously updated before stream events are emitted.
   LlamaModelPreparationSnapshot get snapshot => _snapshot;
 
-  /// Broadcast stream of preparation snapshots.
+  /// Broadcast stream of future preparation snapshots.
+  ///
+  /// This stream does not replay the latest value to new listeners. Read
+  /// [snapshot] for initial UI state, then listen for changes.
   Stream<LlamaModelPreparationSnapshot> get snapshots => _snapshots.stream;
 
   /// Requests cooperative cancellation for the active preparation.
@@ -201,7 +214,11 @@ class LlamaModelPreparationTask {
     _mmprojController?.cancel();
   }
 
-  /// Cancels active work and closes snapshot resources.
+  /// Cancels active preparation and closes snapshot resources.
+  ///
+  /// Idempotent. Does not dispose a successfully returned [LlamaPreparedModel];
+  /// the caller must dispose that handle separately. Pending [result] completes
+  /// with a [StateError] when disposal interrupts preparation.
   Future<void> dispose() async {
     if (_isDisposed) {
       return;

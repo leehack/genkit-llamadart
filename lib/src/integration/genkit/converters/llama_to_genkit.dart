@@ -98,7 +98,6 @@ genkit.ModelResponse toGenkitModelResponse(
   return genkit.ModelResponse(
     message: genkit.Message(role: genkit.Role.model, content: parts),
     finishReason: mapFinishReason(result.finishReason),
-    finishMessage: result.finishMessage,
     usage: toGenkitUsage(result.usage),
     latencyMs: latencyMs,
     raw: {...raw, if (result.usage != null) 'usage': result.usage!.toJson()},

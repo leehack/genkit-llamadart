@@ -70,20 +70,10 @@ the internal layout to package consumers.
 
 ## Test Layout
 
-The `test/` tree mirrors `lib/src/`.
-
-- `test/api/`
-- `test/core/`
-- `test/integration/genkit/`
-
-Conventions:
-
-- keep each file focused on one behavior or a tightly related lifecycle
-- group related cases when shared setup makes the behavior easier to understand
-- shared helpers live in nearby `test_support/` directories
-- fake runtimes and harnesses should stay out of production code
-- real-model smoke tests use the `real-model` tag and live beside the layer they
-  exercise
+The `test/api/`, `test/core/` and `test/integration/genkit/` trees mirror the
+source layers. Test doubles stay in nearby `test_support/` directories, outside
+production code. See [CONTRIBUTING.md](CONTRIBUTING.md#testing-conventions) for
+test selection and quality expectations.
 
 ## Real-Model Smoke Tests
 
