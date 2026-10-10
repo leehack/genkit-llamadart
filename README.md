@@ -43,7 +43,9 @@ a complete Genkit Web deployment; validate your chosen browser and runtime.
 
 ## Quickstart
 
-Replace `/models/chat.gguf` with your local instruct/chat model path.
+Save this as `bin/main.dart` in your Dart app, then run `dart run bin/main.dart`.
+This native Dart example downloads [Qwen3.5-0.8B Q4_K_M](https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF)
+(about 533 MB) from Hugging Face; later runs reuse the cached model.
 
 ```dart
 import 'package:genkit/genkit.dart';
@@ -51,25 +53,41 @@ import 'package:genkit/genkit.dart';
 import 'package:genkit_llamadart/genkit_llamadart.dart';
 
 Future<void> main() async {
-  final plugin = llamaDart(
-    models: const <LlamaModelDefinition>[
-      LlamaModelDefinition(
-        name: 'local-chat',
-        modelPath: '/models/chat.gguf',
-        supportsEmbeddings: false,
-      ),
-    ],
+  final prepared = await llamaDart.prepareModel(
+    name: 'local-chat',
+    source: ModelSource.huggingFace(
+      repoId: 'unsloth/Qwen3.5-0.8B-GGUF',
+      filePath: 'Qwen3.5-0.8B-Q4_K_M.gguf',
+      revision: '6ab461498e2023f6e3c1baea90a8f0fe38ab64d0',
+    ),
+    modelParams: const ModelParams(
+      contextSize: 4096,
+      device: ComputeDevice.cpu,
+    ),
+    options: ModelLoadOptions(
+      cachePolicy: ModelCachePolicy.preferCached,
+      sha256:
+          'bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517',
+    ),
+    supportsEmbeddings: false,
   );
-  final ai = Genkit(plugins: <LlamaDartPlugin>[plugin]);
+  final ai = prepared.createGenkit();
+  const config = LlamaDartGenerationConfig(
+    temperature: 1.0,
+    topP: 1.0,
+    topK: 20,
+    minP: 0,
+    penalty: 1.0,
+    presencePenalty: 2.0,
+    maxTokens: 128,
+    enableThinking: false,
+  );
 
   try {
     final response = await ai.generate(
-      model: llamaDart.model('local-chat'),
+      model: prepared.modelRef,
       prompt: 'Say hello in one sentence.',
-      config: const LlamaDartGenerationConfig(
-        temperature: 0.2,
-        maxTokens: 96,
-      ),
+      config: config,
     );
     if (response.finishReason == FinishReason.failed ||
         response.finishReason == FinishReason.aborted) {
@@ -77,17 +95,26 @@ Future<void> main() async {
     }
     print(response.text);
   } finally {
-    await plugin.dispose();
+    await prepared.dispose();
     await ai.shutdown();
   }
 }
 ```
 
-Models load on first use. Requests to the same model run one at a time;
-different model names use separate runtimes. Dispose the plugin when your app
-is done, then shut down Genkit. Disposal is terminal.
+The revision and checksum pin the downloaded weights. The 4,096-token context
+and 128-token output limit bound this first example, and CPU execution works
+without GPU setup on supported native platforms. Sampling follows
+[Qwen's nonthinking text recommendations](https://huggingface.co/Qwen/Qwen3.5-0.8B#best-practices).
+This example runs text-only on native llama.cpp; image input needs a matching
+projector.
+Use `ComputeDevice.auto` to let llamadart select a backend for your platform.
 
-Don't have a model file? [Prepare a model source](https://github.com/leehack/genkit-llamadart/blob/main/doc/model-preparation.md)
+Weights download during preparation and load into the runtime on first use.
+Requests to the same model run one at a time; different model names use separate
+runtimes. Dispose the prepared handle when your app is done, then shut down
+Genkit. Disposal is terminal.
+
+For other models, [prepare a source](https://github.com/leehack/genkit-llamadart/blob/main/doc/model-preparation.md)
 from a local path, HTTPS URL or Hugging Face repository with caching,
 checksum verification and download progress. Use an instruct/chat GGUF for
 chat, an embedding GGUF for vectors, or a `.litertlm` bundle on a supported
@@ -95,14 +122,15 @@ LiteRT-LM target. Check the model card for its license and memory requirements.
 
 ## Stream a response
 
-With the `ai` instance from the quickstart, use `generateStream` for incremental
-text and await `onResult` for the final outcome:
+Replace the contents of the quickstart's `try` block with this
+streaming code. It reuses the prepared model and sampling configuration and
+awaits `onResult` for the final outcome:
 
 ```dart
 final stream = ai.generateStream<Object?, LlamaDartGenerationConfig>(
-  model: llamaDart.model('local-chat'),
-  prompt: 'Name three uses for offline AI.',
-  config: const LlamaDartGenerationConfig(maxTokens: 128),
+  model: prepared.modelRef,
+  prompt: 'List three uses for offline AI, one short phrase per line.',
+  config: config,
 );
 await for (final chunk in stream) {
   print(chunk.text);
@@ -114,7 +142,7 @@ if (response.finishReason == FinishReason.failed ||
 }
 ```
 
-For a stop button, call `plugin.cancelActiveGeneration('local-chat')`.
+For a stop button, call `prepared.cancelActiveGeneration()`.
 For request cancellation, pass a Genkit `CancellationController` token. See
 [lifecycle and cancellation](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#lifecycle-and-cancellation).
 
