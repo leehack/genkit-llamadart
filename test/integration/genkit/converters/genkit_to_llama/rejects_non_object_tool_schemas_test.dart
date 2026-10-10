@@ -31,7 +31,7 @@ void main() {
           isA<genkit.GenkitException>().having(
             (error) => error.status,
             'status',
-            genkit.StatusCodes.INVALID_ARGUMENT,
+            genkit.StatusCode.invalidArgument,
           ),
         ),
         reason: 'Expected schema $schema to be rejected.',

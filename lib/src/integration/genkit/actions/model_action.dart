@@ -27,13 +27,6 @@ genkit.Model<LlamaDartGenerationConfig> buildModelAction({
     name: actionName,
     metadata: actionMetadataFor(definition, modelInfo: modelInfo),
     fn: (request, context) {
-      if (request == null) {
-        throw genkit.GenkitException(
-          'Model request cannot be null.',
-          status: genkit.StatusCodes.INVALID_ARGUMENT,
-        );
-      }
-
       final capture = OperationUsage();
       final total = Stopwatch()..start();
       return runZoned(() async {
@@ -81,7 +74,7 @@ Future<genkit.ModelResponse> _runModel({
   if (request.docs != null && request.docs!.isNotEmpty) {
     throw genkit.GenkitException(
       'llamadart model actions do not support `docs` yet.',
-      status: genkit.StatusCodes.INVALID_ARGUMENT,
+      status: genkit.StatusCode.invalidArgument,
     );
   }
 
@@ -89,7 +82,7 @@ Future<genkit.ModelResponse> _runModel({
   if (hasTools && !definition.supportsTools) {
     throw genkit.GenkitException(
       'Tool use is disabled for `${definition.name}`.',
-      status: genkit.StatusCodes.FAILED_PRECONDITION,
+      status: genkit.StatusCode.failedPrecondition,
     );
   }
 
@@ -97,7 +90,7 @@ Future<genkit.ModelResponse> _runModel({
       !definition.supportsConstrainedOutput) {
     throw genkit.GenkitException(
       'Constrained output is disabled for `${definition.name}`.',
-      status: genkit.StatusCodes.FAILED_PRECONDITION,
+      status: genkit.StatusCode.failedPrecondition,
     );
   }
 
@@ -115,7 +108,7 @@ Future<genkit.ModelResponse> _runModel({
     if (tools.isNotEmpty && toolChoice != llama.ToolChoice.none) {
       throw genkit.GenkitException(
         'llamadart does not support constrained structured output with tools yet.',
-        status: genkit.StatusCodes.UNIMPLEMENTED,
+        status: genkit.StatusCode.unimplemented,
       );
     }
 
@@ -234,8 +227,8 @@ Future<genkit.ModelResponse> _runStructuredModel({
       grammarLazy: template.grammarLazy,
       grammarTriggers: template.grammarTriggers
           .map((trigger) {
-            return llama.GenerationGrammarTrigger(
-              type: trigger.type,
+            return llama.GenerationGrammarTrigger.typed(
+              type: llama.GrammarTriggerType.fromWireValue(trigger.type),
               value: trigger.value,
               token: trigger.token,
             );

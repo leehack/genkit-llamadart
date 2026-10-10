@@ -72,7 +72,7 @@ class LlamaPreparedModel {
   /// thinking behavior, and other `llamadart` generation settings.
   /// Failed or aborted Genkit responses throw their original cause when present,
   /// otherwise a [genkit.GenkitException].
-  Future<genkit.GenerateResponseHelper<Output>> warmUp<Output>(
+  Future<genkit.GenerateResult<Output>> warmUp<Output>(
     genkit.Genkit ai, {
     String? systemPrompt,
     String prompt = 'Reply with one token: ready',
@@ -95,7 +95,7 @@ class LlamaPreparedModel {
             ),
           ];
 
-    final response = await ai.generate<LlamaDartGenerationConfig, Output>(
+    final response = await ai.generate<Output, LlamaDartGenerationConfig>(
       model: modelRef,
       prompt: messages == null ? prompt : null,
       messages: messages,

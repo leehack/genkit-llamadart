@@ -183,7 +183,7 @@ Future<String> streamAgentTurn(
   Tool<Map<String, dynamic>, String> clockTool,
   String prompt,
 ) async {
-  final stream = ai.generateStream<LlamaDartGenerationConfig, Object?>(
+  final stream = ai.generateStream<Object?, LlamaDartGenerationConfig>(
     model: llamaDart.model('local-agent'),
     prompt: prompt,
     tools: <Tool<Map<String, dynamic>, String>>[clockTool],

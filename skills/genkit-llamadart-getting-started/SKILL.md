@@ -36,7 +36,7 @@ description: >-
   `topK`, `minP`, `penalty`, `maxTokens`, `stop`, `seed`, `enableThinking`,
   `parallelToolCalls`, `chatTemplateKwargs`). Defaults: temperature 0.8,
   maxTokens 4096, thinking off.
-- Stream with `ai.generateStream<LlamaDartGenerationConfig, Object?>(...)`:
+- Stream with `ai.generateStream<Object?, LlamaDartGenerationConfig>(...)`:
   iterate the chunks for `chunk.text`, then `await stream.onResult` for the
   final response.
 - Model and tool errors do not throw from `generate`: the response has
@@ -52,8 +52,8 @@ description: >-
 - Always `await plugin.dispose()` (or `prepared.dispose()`) and
   `await ai.shutdown()` in a `finally`. Disposal is terminal: create a new
   plugin instead of reusing one.
-- Embeddings use `llamaDart.embedder(name)` with `ai.embed(...)` or
-  `ai.embedMany(...)`, need an embedding model with `supportsEmbeddings: true`,
+- Embeddings use `llamaDart.embedder(name)` with `ai.embed(...)`, need an
+  embedding model with `supportsEmbeddings: true`,
   and accept text-only documents.
 
 ## Examples
@@ -80,7 +80,7 @@ Future<void> main() async {
   final ai = Genkit(plugins: <LlamaDartPlugin>[plugin]);
 
   try {
-    final stream = ai.generateStream<LlamaDartGenerationConfig, Object?>(
+    final stream = ai.generateStream<Object?, LlamaDartGenerationConfig>(
       model: llamaDart.model('local-chat'),
       prompt: 'Say hello in one short sentence.',
       config: const LlamaDartGenerationConfig(

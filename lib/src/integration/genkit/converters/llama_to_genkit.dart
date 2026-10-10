@@ -214,8 +214,8 @@ genkit.GenerationUsage? toGenkitUsage(llama.LlamaGenerationUsage? usage) =>
     usage == null
     ? null
     : genkit.GenerationUsage(
-        inputTokens: usage.promptTokens.toDouble(),
-        outputTokens: usage.completionTokens.toDouble(),
-        totalTokens: usage.totalTokens.toDouble(),
-        cachedContentTokens: usage.cachedPromptTokens?.toDouble(),
+        inputTokens: usage.promptTokens,
+        outputTokens: usage.completionTokens,
+        totalTokens: usage.totalTokens,
+        cachedContentTokens: usage.cachedPromptTokens,
       );

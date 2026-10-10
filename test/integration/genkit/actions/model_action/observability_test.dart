@@ -44,9 +44,11 @@ void main() {
         ];
       final response = await testModelAction(runtime: runtime)(request());
       expect(response.usage!.inputTokens, 12);
+      expect(response.usage!.inputTokens, isA<int>());
       expect(response.usage!.outputTokens, 3);
       expect(response.usage!.totalTokens, 15);
       expect(response.usage!.cachedContentTokens, 5);
+      expect(response.usage!.cachedContentTokens, isA<int>());
       expect(response.raw!['usage']['time_to_first_token_ms'], 4);
       expect(
         response.raw!['totalLatencyMs'],

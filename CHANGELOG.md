@@ -1,5 +1,8 @@
 ## Unreleased
 
+- Upgrade to Genkit 1.0, Schemantic 1.0, and llamadart 0.11.1 with updated generation, tool choice, and embedding APIs.
+- Replace the deprecated `LiteRtLmBackendPreference` export with `ComputeDevice` for device selection.
+
 - Ship agent skills for setup and generation, model preparation, tool calling,
   and structured JSON output; install them with `dart run skills@ get`.
 

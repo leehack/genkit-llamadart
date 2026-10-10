@@ -64,7 +64,7 @@ dart run skills@ get
 
 ### Requirements
 
-- Dart SDK `^3.12.0`, Genkit `0.17.x`, and llamadart `0.9.x`
+- Dart SDK `^3.12.0`, Genkit `1.x`, llamadart `0.11.x`, and Schemantic `1.x`
 - a local model file supported by `llamadart`, or a `ModelSource` that
   resolves to one
 - the native `llamadart` runtime prerequisites for your platform
@@ -354,13 +354,14 @@ packages such as `genui_genkit_llamadart` should be treated as transitional UI
 wiring once the GenUI docs can point at the direct Genkit model-ref path above.
 
 The same prepared-model API works in backend/server apps. A server package can
-add `genkit_shelf` and expose a Genkit flow while keeping model preparation in
+add `genkit_shelf` 1.0 and `shelf`, and expose a Genkit flow while keeping model preparation in
 one place:
 
 ```dart
-import 'package:genkit/genkit.dart';
+import 'package:genkit/io.dart';
 import 'package:genkit_llamadart/genkit_llamadart.dart';
 import 'package:genkit_shelf/genkit_shelf.dart';
+import 'package:shelf/shelf_io.dart' as shelf_io;
 
 Future<void> main() async {
   final prepared = await llamaDart.prepareModel(
@@ -374,7 +375,7 @@ Future<void> main() async {
   final flow = ai.defineFlow<String, String, String, void>(
     name: 'localChat',
     fn: (prompt, context) async {
-      final stream = ai.generateStream<LlamaDartGenerationConfig, Object?>(
+      final stream = ai.generateStream<Object?, LlamaDartGenerationConfig>(
         model: prepared.modelRef,
         prompt: prompt,
         config: const LlamaDartGenerationConfig(maxTokens: 512),
@@ -390,13 +391,14 @@ Future<void> main() async {
     },
   );
 
-  await startFlowServer(flows: [flow], port: 8080);
+  final router = GenkitRouter()..addAction(flow);
+  await shelf_io.serve(router.asShelfHandler(), '127.0.0.1', 8080);
 }
 ```
 
 ## Embeddings
 
-Use `llamaDart.embedder(...)` with `ai.embed(...)` or `ai.embedMany(...)`.
+Use `llamaDart.embedder(...)` with `ai.embed(...)` for single or multiple documents.
 Embeddings currently accept text-only documents.
 
 ```dart
@@ -481,8 +483,8 @@ Future<void> main() async {
 
   try {
     final response = await ai.generate<
-      LlamaDartGenerationConfig,
-      Map<String, dynamic>
+      Map<String, dynamic>,
+      LlamaDartGenerationConfig
     >(
       model: llamaDart.model('local-json'),
       prompt: 'Summarize this review as JSON: The battery life is great.',
@@ -589,7 +591,10 @@ usage; do not assume every backend provides it.
 
 `response.latencyMs` retains its existing generation-path timing after runtime
 initialization. Usage is captured for ordinary chat and constrained JSON output.
-These are per-model-call measurements; Genkit handles multi-turn aggregation.
+These are per-model-call measurements. In Genkit Dart 1.0, `GenerateResult.usage`
+reports the final model turn rather than the sum of all tool-loop turns. Genkit
+instrumentation records each model call separately; aggregate those measurements
+in your application or collector when you need whole-run usage.
 
 Pass `observers: [yourObserver]` to `llamaDart(...)`, `prepareModel(...)`, or
 `prepareModelTask(...)` to observe engine model loads, chat/text generation,
@@ -704,6 +709,31 @@ Additional request controls include:
 - direct HTTP(S) image inputs are backend-dependent and currently supported by
   WebGPU; download the image to a local path or provide `data:` bytes for other
   compatible multimodal backends
+
+## Upgrading to Genkit 1.0
+
+The next release requires Dart 3.12, Genkit 1.0, llamadart 0.11.1, and
+Schemantic 1.0. For applications using the previous dependency versions:
+
+- Put the output type first in explicit generation type arguments:
+  `ai.generate<T, LlamaDartGenerationConfig>(...)` and
+  `ai.generateStream<T, LlamaDartGenerationConfig>(...)`.
+- Replace `GenerateResponseHelper<T>` with `GenerateResult<T>`, including
+  explicit types for results returned by `prepared.warmUp<T>(ai)`.
+- Use `ToolChoice.auto`, `ToolChoice.required`, or `ToolChoice.none` for
+  Genkit's `toolChoice`; use `StatusCode.invalidArgument` and other
+  lowerCamelCase status values when checking errors.
+- Replace `ai.embedMany(...)` with `ai.embed(...)` for multiple documents.
+- Define custom Schemantic JSON schemas with plain maps instead of `$Schema`.
+- Use `ModelParams(device: ComputeDevice.cpu)` (or `auto`, `gpu`, or `npu`)
+  for device selection. The deprecated `LiteRtLmBackendPreference` export
+  has been removed; replace it with `ComputeDevice`.
+- Use `genkit_otel` 0.2.0 or newer with Genkit 1.0.
+- Flutter Apple apps using runtime companions must upgrade them alongside
+  llamadart: core 0.11.1 pairs with `llamadart_llama_cpp_flutter` 0.0.21
+  and `llamadart_litert_lm_flutter` 0.0.13. See the
+  [llamadart 0.11.1 installation notes](https://pub.dev/packages/llamadart/versions/0.11.1#install)
+  for the matching runtime packaging.
 
 ## Upgrading to 2.0
 

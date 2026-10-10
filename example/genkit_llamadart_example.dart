@@ -33,7 +33,7 @@ Future<void> main() async {
   stdout.write('Response: ');
 
   try {
-    final stream = ai.generateStream<LlamaDartGenerationConfig, Object?>(
+    final stream = ai.generateStream<Object?, LlamaDartGenerationConfig>(
       model: llamaDart.model('local-chat'),
       prompt: prompt,
       config: const LlamaDartGenerationConfig(

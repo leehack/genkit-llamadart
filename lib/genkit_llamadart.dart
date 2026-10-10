@@ -37,11 +37,11 @@ library;
 
 export 'package:llamadart/llamadart.dart'
     show
+        ComputeDevice,
         DefaultModelDownloadManager,
         FlashAttention,
         GpuBackend,
         KvCacheType,
-        LiteRtLmBackendPreference,
         LlamaEngineObserver,
         LlamaOperationObserver,
         LlamaOperation,
