@@ -591,7 +591,10 @@ usage; do not assume every backend provides it.
 
 `response.latencyMs` retains its existing generation-path timing after runtime
 initialization. Usage is captured for ordinary chat and constrained JSON output.
-These are per-model-call measurements; Genkit handles multi-turn aggregation.
+These are per-model-call measurements. In Genkit Dart 1.0, `GenerateResult.usage`
+reports the final model turn rather than the sum of all tool-loop turns. Genkit
+instrumentation records each model call separately; aggregate those measurements
+in your application or collector when you need whole-run usage.
 
 Pass `observers: [yourObserver]` to `llamaDart(...)`, `prepareModel(...)`, or
 `prepareModelTask(...)` to observe engine model loads, chat/text generation,
