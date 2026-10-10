@@ -26,7 +26,9 @@ void main() {
   late FakeRuntime runtime;
   late LlamaDartPlugin plugin;
   late genkit.Genkit ai;
+  late int runtimeFactoryCalls;
   setUp(() {
+    runtimeFactoryCalls = 0;
     runtime = FakeRuntime()
       ..capabilitySnapshot = _supported
       ..createChunks = [textChunk('ok')]
@@ -39,7 +41,10 @@ void main() {
       ..generatedTokens = ['{}'];
     plugin = LlamaDartPlugin(
       models: const [LlamaModelDefinition(name: 'local', modelPath: '/model')],
-      runtimeFactory: () => runtime,
+      runtimeFactory: () {
+        runtimeFactoryCalls += 1;
+        return runtime;
+      },
     );
     ai = genkit.Genkit(plugins: [plugin], isDevEnv: false);
   });
@@ -265,7 +270,7 @@ void main() {
   );
 
   test(
-    'raw malformed nested controls return INVALID_ARGUMENT without values',
+    'malformed controls fail safely before loading and valid requests recover',
     () async {
       final action = (await plugin.init())
           .whereType<api.Model<LlamaDartGenerationConfig>>()
@@ -308,7 +313,15 @@ void main() {
           ),
         );
       }
+      expect(runtimeFactoryCalls, 0);
+      expect(runtime.initializeCount, 0);
+      expect(runtime.capabilityReadCount, 0);
       expect(runtime.createCallCount + runtime.generateCallCount, 0);
+      final response = await generate(const LlamaDartGenerationConfig());
+      expect(response.finishReason, genkit.FinishReason.stop);
+      expect(runtimeFactoryCalls, 1);
+      expect(runtime.initializeCount, 1);
+      expect(runtime.createCallCount, 1);
     },
   );
 

@@ -29,6 +29,15 @@ genkit.Model<LlamaDartGenerationConfig> buildModelAction({
     metadata: actionMetadataFor(definition, modelInfo: modelInfo),
     fn: (request, context) {
       checkDeclaredModelRequest(definition, request);
+      final LlamaDartGenerationConfig config;
+      try {
+        config = LlamaDartGenerationConfig.fromJson(request.config);
+      } on FormatException catch (error) {
+        throw genkit.GenkitException(
+          error.message,
+          status: genkit.StatusCode.invalidArgument,
+        );
+      }
       final capture = OperationUsage();
       final total = Stopwatch()..start();
       return runZoned(() async {
@@ -43,6 +52,7 @@ genkit.Model<LlamaDartGenerationConfig> buildModelAction({
               runtime: runtime,
               capabilities: registry.capabilitiesFor(definition.name),
               request: request,
+              config: config,
               context: context,
             );
             context.cancel?.throwIfCancelled();
@@ -75,17 +85,9 @@ Future<genkit.ModelResponse> _runModel({
   required LlamaRuntime runtime,
   required llama.LlamaEngineCapabilities? capabilities,
   required genkit.ModelRequest request,
+  required LlamaDartGenerationConfig config,
   required _ModelActionContext context,
 }) async {
-  final LlamaDartGenerationConfig config;
-  try {
-    config = LlamaDartGenerationConfig.fromJson(request.config);
-  } on FormatException catch (error) {
-    throw genkit.GenkitException(
-      error.message,
-      status: genkit.StatusCode.invalidArgument,
-    );
-  }
   final messages = toLlamaMessages(request.messages);
   checkRuntimeModelRequest(definition, request, messages, capabilities);
   final tools = toLlamaTools(request.tools);

@@ -222,7 +222,8 @@ final response = await ai.generate(
     penalty: 1, presencePenalty: 2, enableThinking: false, maxTokens: 128,
   ),
 );
-if (response.finishReason == FinishReason.failed) {
+if (response.finishReason == FinishReason.failed ||
+    response.finishReason == FinishReason.aborted) {
   throw response.cause ?? StateError('Generation failed.');
 }
 print(response.text);
@@ -269,7 +270,8 @@ final response = await ai.generate(
     ),
   ),
 );
-if (response.finishReason == FinishReason.failed) {
+if (response.finishReason == FinishReason.failed ||
+    response.finishReason == FinishReason.aborted) {
   throw response.cause ?? StateError('Generation failed.');
 }
 print(response.text);
@@ -311,8 +313,9 @@ A `draftModelDownload` object carries only the nonsecret download options above.
 
 New controls reject malformed, fractional integer, nonfinite and out-of-range
 values with `FormatException` during config decoding/serialization. Model actions
-report these errors as `INVALID_ARGUMENT`; `ai.generate()` returns a failed
-result. Existing sampling fields retain their permissive parsing behavior.
+report these errors as `INVALID_ARGUMENT` before loading a model;
+`ai.generate()` returns a failed result. Existing sampling fields retain their
+permissive parsing behavior.
 Unknown top-level keys remain ignored, while unknown nested thinking/speculation
 fields fail to avoid silently dropping intended settings.
 
