@@ -81,3 +81,12 @@ runtime behavior to prevent unverified support claims.
   and audio downloads require an explicit application-owned
   [media resolver](usage.md#resolving-remote-input-on-native-platforms); local
   paths and `data:` bytes remain available on compatible multimodal backends
+
+## Inspection and raw-text tokens
+
+Use [model inspection](model-inspection.md) for explicit loaded-runtime
+capabilities, context capacity and tokenizer access. Discovery does
+not load a model; inspection and raw token helpers do. Custom runtimes may opt
+into `LlamaRuntimeInspectionProvider` without changing the base runtime API.
+Keep backend capability labels free of paths and credentials; inspection
+publishes only recognized backend labels and a neutral unsupported reason.

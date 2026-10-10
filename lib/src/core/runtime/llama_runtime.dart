@@ -23,6 +23,23 @@ abstract interface class LlamaRuntimeCapabilityProvider {
   Future<llama.LlamaEngineCapabilities> get capabilities;
 }
 
+/// Optional read-only measurements and tokenization for a loaded runtime.
+///
+/// The plugin calls these operations after initialization, inside the same queue
+/// as generation and embeddings. Return null for unavailable measurements; never
+/// substitute requested configuration or a model metadata limit. Backend labels
+/// in [LlamaRuntimeCapabilityProvider] must not include paths or credentials.
+abstract interface class LlamaRuntimeInspectionProvider {
+  /// Actual loaded context capacity, or null when it cannot be measured.
+  Future<int?> get contextSize;
+
+  /// Encodes raw text without inference or chat-template formatting.
+  ///
+  /// [addSpecial] requests tokenizer-specific special tokens. Throw
+  /// [llama.LlamaUnsupportedException] when tokenization is unavailable.
+  Future<List<int>> tokenize(String text, {bool addSpecial = false});
+}
+
 /// Runtime operations used by the Genkit adapter.
 ///
 /// Implement [LlamaRuntimeCapabilityProvider] to confirm advanced capabilities.

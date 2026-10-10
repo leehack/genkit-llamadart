@@ -71,7 +71,8 @@ class LlamaDartPluginHandle {
   /// [mediaResolver] is retained by the plugin for native request media,
   /// separately from model preparation, without taking ownership of its client.
   /// Downloads finish before this future resolves; native model loading stays
-  /// lazy until generation, embedding or [LlamaPreparedModel.warmUp].
+  /// lazy until generation, embedding, [LlamaPreparedModel.warmUp],
+  /// [LlamaPreparedModel.inspect] or raw-text tokenization/counting.
   ///
   /// Throws [ArgumentError] for an empty [name] and propagates download,
   /// checksum and source-option errors from llamadart. [onModelProgress] and

@@ -219,7 +219,8 @@ works with ordinary `ai.generate()` and `ai.generateStream()` calls.
 
 For progress UI, render `task.snapshot` initially and subscribe to
 `task.snapshots` for subsequent changes. `loading` means plugin setup; the native
-model loads on the first request or `prepared.warmUp(ai)`.
+model loads on the first request, `prepared.warmUp(ai)` or an explicit
+[inspection/tokenization call](model-inspection.md).
 
 For a long-lived server, reuse one plugin and Genkit instance across requests.
 Stop accepting requests before disposing the plugin and shutting down Genkit.

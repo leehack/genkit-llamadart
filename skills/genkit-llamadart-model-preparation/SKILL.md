@@ -46,7 +46,7 @@ description: >-
 - `task.result` completes with an error on failure, cancellation or disposal.
   Always await it in `try`/`catch`.
 - `ready` means files are resolved and the plugin is built; the native model
-  still loads lazily on the first request. Call
+  still loads lazily on the first request, inspection or tokenization. Call
   `await prepared.warmUp(ai)` to load it behind the loading screen.
   `warmUp` throws on failure or cancellation.
 - Ownership: `task.dispose()` closes snapshot resources; `prepared.dispose()`
@@ -181,6 +181,23 @@ Future<LlamaPreparedModel> prepareVisionModel({
   );
 }
 ```
+
+## Inspect before inference
+
+Call `prepared.inspect()` to explicitly load the prepared model without
+inference, then read nullable `contextSize` and
+`capabilities`. These report runtime measurements rather than requested load
+settings. `prepared.countTokens(text)` and `prepared.tokenize(text)` count/encode
+raw text, without adding tokenizer special tokens by default. `tokenize` accepts
+`addSpecial: true` when needed. These calls share the generation queue and the
+prepared plugin's disposal lifecycle.
+
+Raw counts do not include chat-template overhead, tool schemas or media and
+must not be presented as complete conversation budgets. Unsupported tokenizers
+throw `LlamaUnsupportedException`; unknown context capacity remains null.
+Web and LiteRT-LM actual context measurement is unavailable in this adapter. For direct
+plugins use `inspectModel(name)`, `countTokens(name, text)` and
+`tokenize(name, text)` instead. Registration and listing remain lazy.
 
 ## More
 

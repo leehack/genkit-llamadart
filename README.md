@@ -141,6 +141,7 @@ For request cancellation, pass a Genkit `CancellationController` token. See
 | Structured JSON output | Grammar-capable backend; [JSON guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#structured-json-output) |
 | Text embeddings for search / RAG | Embedding model; [embedding guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#embeddings) |
 | Image and audio input | Compatible multimodal model and runtime, matching projector when required; explicit resolver for native HTTP(S) input; [media guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#image-and-audio-input) |
+| Token counts and loaded runtime diagnostics | Explicit inspection without inference; [inspection guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/model-inspection.md) |
 | Downloads, cache and progress UI | `ModelSource` and preparation tasks; [model preparation](https://github.com/leehack/genkit-llamadart/blob/main/doc/model-preparation.md) |
 | OpenTelemetry traces and metrics | Application-configured telemetry provider; [observability](https://github.com/leehack/genkit-llamadart/blob/main/doc/observability.md) |
 
@@ -186,6 +187,7 @@ dart run -DLLAMADART_MODEL_SOURCE=hf://owner/repo/model.gguf \
 
 - [Generation settings (including thinking, presence penalties and speculative decoding), tools, JSON, embeddings and cancellation](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md)
 - [Model preparation, cache policy and loading UI](https://github.com/leehack/genkit-llamadart/blob/main/doc/model-preparation.md)
+- [Raw-text token counts, context capacity and backend inspection](https://github.com/leehack/genkit-llamadart/blob/main/doc/model-inspection.md)
 - [Runtime support, discovery and custom runtimes](https://github.com/leehack/genkit-llamadart/blob/main/doc/runtime-support.md)
 - [Telemetry and engine observers](https://github.com/leehack/genkit-llamadart/blob/main/doc/observability.md)
 - [Migration to 3.0 / Genkit 1.0](https://github.com/leehack/genkit-llamadart/blob/main/doc/migration.md)
