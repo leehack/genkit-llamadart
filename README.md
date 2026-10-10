@@ -723,8 +723,8 @@ Schemantic 1.0. For applications using the previous dependency versions:
 - Replace `ai.embedMany(...)` with `ai.embed(...)` for multiple documents.
 - Define custom Schemantic JSON schemas with plain maps instead of `$Schema`.
 - Use `ModelParams(device: ComputeDevice.cpu)` (or `auto`, `gpu`, or `npu`)
-  for device selection. The old `LiteRtLmBackendPreference` export remains
-  available for migration, but is deprecated by llamadart.
+  for device selection. The deprecated `LiteRtLmBackendPreference` export
+  has been removed; replace it with `ComputeDevice`.
 - Use `genkit_otel` 0.2.0 or newer with Genkit 1.0.
 
 ## Upgrading to 2.0

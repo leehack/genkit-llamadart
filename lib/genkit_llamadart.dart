@@ -42,9 +42,6 @@ export 'package:llamadart/llamadart.dart'
         FlashAttention,
         GpuBackend,
         KvCacheType,
-        // Retained for callers migrating from the previous dependency set.
-        // ignore: deprecated_member_use
-        LiteRtLmBackendPreference,
         LlamaEngineObserver,
         LlamaOperationObserver,
         LlamaOperation,
