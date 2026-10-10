@@ -193,6 +193,10 @@ Future<void> main() async {
         )),
       ])],
     );
+    if (response.finishReason == FinishReason.failed ||
+        response.finishReason == FinishReason.aborted) {
+      throw response.cause ?? StateError('Generation failed.');
+    }
     print(response.text);
   } finally {
     await plugin.dispose();
