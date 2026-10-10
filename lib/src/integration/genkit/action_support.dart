@@ -13,11 +13,16 @@ String actionNameFor(String modelName) => '$llamaDartPluginName/$modelName';
 Map<String, dynamic> actionMetadataFor(
   LlamaModelDefinition definition, {
   required genkit.ModelInfo modelInfo,
+  bool generation = true,
 }) {
   return <String, dynamic>{
     'label': definition.name,
     'description': definition.name,
-    'model': modelInfo.toJson(),
+    'model': {
+      ...modelInfo.toJson(),
+      if (generation && modelInfo.configSchema != null)
+        'customOptions': modelInfo.configSchema,
+    },
   };
 }
 

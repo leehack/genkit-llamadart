@@ -316,7 +316,8 @@ result. Existing sampling fields retain their permissive parsing behavior.
 Unknown top-level keys remain ignored, while unknown nested thinking/speculation
 fields fail to avoid silently dropping intended settings.
 
-Discovery includes a default `model.configSchema` and loaded
+Discovery includes a default `model.configSchema` (also exposed as Genkit 1.0's
+`model.customOptions`) and loaded
 `llamadartCapabilities.generation` support flags and strategy names. Listing
 never loads a model; inspect `ready`/`state` and recheck after initialization.
 An application-supplied `modelInfo.configSchema` takes precedence. Grammar

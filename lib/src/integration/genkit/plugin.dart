@@ -111,6 +111,7 @@ class LlamaDartPlugin extends GenkitPlugin {
             final metadata = actionMetadataFor(
               definition,
               modelInfo: modelInfoFor(definition, generation: generation),
+              generation: generation,
             );
             trackCapabilityMetadata(metadata, definition, _registry);
             return metadata;

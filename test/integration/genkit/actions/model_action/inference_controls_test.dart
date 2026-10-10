@@ -390,6 +390,11 @@ void main() {
       expect(generation()['presencePenalty'], false);
       expect(runtime.initializeCount, 0);
       final schema = (retained['model'] as Map)['configSchema'] as Map;
+      expect((retained['model'] as Map)['customOptions'], schema);
+      final registered = (await ai.registry.listActions()).singleWhere(
+        (a) => a.actionType == api.ActionType.model,
+      );
+      expect((registered.metadata['model'] as Map)['customOptions'], schema);
       expect(
         (schema['properties'] as Map).keys,
         containsAll([
