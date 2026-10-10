@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:genkit/plugin.dart' as genkit;
 import 'package:llamadart/llamadart.dart' as llama;
 
+import 'media_resolver.dart';
 import 'prepared_model.dart';
 
 /// High-level stage for preparing a `llamadart` model for Genkit.
@@ -145,6 +146,7 @@ class LlamaModelPreparationTask {
     required this._supportsConstrainedOutput,
     required this._modelInfo,
     required Iterable<llama.LlamaEngineObserver> observers,
+    required this._mediaResolver,
   }) : _mmprojSource = mmprojSource,
        _observers = List<llama.LlamaEngineObserver>.unmodifiable(observers),
        _modelController = llama.ModelDownloadController(manager: manager),
@@ -176,6 +178,7 @@ class LlamaModelPreparationTask {
   final bool _supportsTools;
   final bool _supportsConstrainedOutput;
   final genkit.ModelInfo? _modelInfo;
+  final LlamaDartMediaResolver? _mediaResolver;
   final List<llama.LlamaEngineObserver> _observers;
   final llama.ModelDownloadController _modelController;
   final llama.ModelDownloadController? _mmprojController;
@@ -270,6 +273,7 @@ class LlamaModelPreparationTask {
         supportsConstrainedOutput: _supportsConstrainedOutput,
         modelInfo: _modelInfo,
         observers: _observers,
+        mediaResolver: _mediaResolver,
       );
 
       _emit(
@@ -434,6 +438,7 @@ LlamaModelPreparationTask createLlamaModelPreparationTask({
   bool supportsConstrainedOutput = true,
   genkit.ModelInfo? modelInfo,
   Iterable<llama.LlamaEngineObserver> observers = const [],
+  LlamaDartMediaResolver? mediaResolver,
 }) {
   if (name.isEmpty) {
     throw ArgumentError.value(name, 'name', 'Model name must not be empty.');
@@ -452,5 +457,6 @@ LlamaModelPreparationTask createLlamaModelPreparationTask({
     supportsConstrainedOutput: supportsConstrainedOutput,
     modelInfo: modelInfo,
     observers: observers,
+    mediaResolver: mediaResolver,
   );
 }

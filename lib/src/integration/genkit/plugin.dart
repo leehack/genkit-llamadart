@@ -2,6 +2,7 @@ import 'package:genkit/plugin.dart';
 import 'package:llamadart/llamadart.dart' as llama;
 
 import '../../api/model_definition.dart';
+import '../../api/media_resolver.dart';
 import '../../core/runtime/engine_registry.dart';
 import '../../core/runtime/llama_runtime.dart';
 import 'action_support.dart';
@@ -16,6 +17,10 @@ class LlamaDartPlugin extends GenkitPlugin {
   /// the request zone and observer errors do not fail inference. When supplying
   /// [runtimeFactory], the factory owns observer installation instead.
   ///
+  /// [mediaResolver] explicitly enables native HTTP(S) image/audio downloads.
+  /// It is application-owned, bypassed on Web and never disposed by the plugin.
+  /// Without it, existing local/data inputs and browser image URLs are retained.
+  ///
   /// Custom runtimes supplied through [runtimeFactory] must implement
   /// [LlamaRuntimeCapabilityProvider] to confirm advanced request support.
   /// Without a provider, only single-turn text requests are accepted.
@@ -24,6 +29,7 @@ class LlamaDartPlugin extends GenkitPlugin {
   LlamaDartPlugin({
     required List<LlamaModelDefinition> models,
     LlamaDartRuntimeFactory? runtimeFactory,
+    this.mediaResolver,
     Iterable<llama.LlamaEngineObserver> observers = const [],
   }) : _models = List<LlamaModelDefinition>.unmodifiable(models),
        _registry = EngineRegistry(
@@ -43,6 +49,8 @@ class LlamaDartPlugin extends GenkitPlugin {
     }
   }
 
+  /// Application-owned native remote-media resolver, or null for no downloads.
+  final LlamaDartMediaResolver? mediaResolver;
   final List<LlamaModelDefinition> _models;
   final EngineRegistry _registry;
   List<Action>? _actions;
@@ -86,7 +94,11 @@ class LlamaDartPlugin extends GenkitPlugin {
     _actions = _models
         .expand((definition) {
           return <Action>[
-            buildModelAction(definition: definition, registry: _registry),
+            buildModelAction(
+              definition: definition,
+              registry: _registry,
+              mediaResolver: mediaResolver,
+            ),
             if (definition.supportsEmbeddings)
               buildEmbedderAction(definition: definition, registry: _registry),
           ];

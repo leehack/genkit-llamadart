@@ -5,6 +5,7 @@ import 'package:llamadart/llamadart.dart' as llama;
 
 import '../../../api/generation_config.dart';
 import '../../../api/model_definition.dart';
+import '../../../api/media_resolver.dart';
 import '../../../core/runtime/engine_registry.dart';
 import '../../../core/runtime/llama_runtime.dart';
 import '../../../core/runtime/operation_usage.dart';
@@ -12,6 +13,7 @@ import '../../../core/streaming/completion_accumulator.dart';
 import '../action_support.dart';
 import '../converters/genkit_to_llama.dart';
 import '../converters/llama_to_genkit.dart';
+import '../converters/remote_media.dart';
 import '../request_support.dart';
 
 typedef _ModelActionContext =
@@ -20,6 +22,7 @@ typedef _ModelActionContext =
 genkit.Model<LlamaDartGenerationConfig> buildModelAction({
   required LlamaModelDefinition definition,
   required EngineRegistry registry,
+  LlamaDartMediaResolver? mediaResolver,
 }) {
   final modelInfo = modelInfoFor(definition);
   final actionName = actionNameFor(definition.name);
@@ -27,7 +30,8 @@ genkit.Model<LlamaDartGenerationConfig> buildModelAction({
   final action = genkit.Model<LlamaDartGenerationConfig>(
     name: actionName,
     metadata: actionMetadataFor(definition, modelInfo: modelInfo),
-    fn: (request, context) {
+    fn: (request, context) async {
+      final total = Stopwatch()..start();
       checkDeclaredModelRequest(definition, request);
       final LlamaDartGenerationConfig config;
       try {
@@ -38,10 +42,13 @@ genkit.Model<LlamaDartGenerationConfig> buildModelAction({
           status: genkit.StatusCode.invalidArgument,
         );
       }
-      final messages = toLlamaMessages(request.messages);
       final tools = toLlamaTools(request.tools);
+      final messages = await resolveLlamaMessages(
+        request.messages,
+        resolver: mediaResolver,
+        cancel: context.cancel,
+      );
       final capture = OperationUsage();
-      final total = Stopwatch()..start();
       return runZoned(() async {
         final response = await registry.withRuntime(definition.name, (
           runtime,

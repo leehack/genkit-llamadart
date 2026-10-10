@@ -7,6 +7,7 @@ import 'embed_config.dart';
 import 'generation_config.dart';
 import 'model_preparation.dart';
 import 'model_definition.dart';
+import 'media_resolver.dart';
 import 'prepared_model.dart';
 
 /// Global handle used to configure and reference the `llamadart` plugin.
@@ -40,14 +41,21 @@ class LlamaDartPluginHandle {
   /// [observers] observe every default engine in the caller's request zone.
   /// They may receive sensitive content; exporting it requires app opt-in.
   /// Observer failures are isolated by llamadart.
+  /// [mediaResolver] optionally downloads native HTTP(S) image/audio input;
+  /// it is application-owned and is not used for model downloads or on Web.
   ///
   /// Throws [ArgumentError] if model names are duplicated. The caller owns the
   /// returned plugin and must dispose it when finished.
   LlamaDartPlugin call({
     required List<LlamaModelDefinition> models,
     Iterable<llama.LlamaEngineObserver> observers = const [],
+    LlamaDartMediaResolver? mediaResolver,
   }) {
-    return LlamaDartPlugin(models: models, observers: observers);
+    return LlamaDartPlugin(
+      models: models,
+      observers: observers,
+      mediaResolver: mediaResolver,
+    );
   }
 
   /// Resolves a `llamadart` [llama.ModelSource] into a Genkit-ready model.
@@ -60,6 +68,8 @@ class LlamaDartPluginHandle {
   /// with [mmprojOptions] and wired into the produced [LlamaModelDefinition].
   ///
   /// [observers] are copied before preparation and attached to the engine.
+  /// [mediaResolver] is retained by the plugin for native request media,
+  /// separately from model preparation, without taking ownership of its client.
   /// Downloads finish before this future resolves; native model loading stays
   /// lazy until generation, embedding or [LlamaPreparedModel.warmUp].
   ///
@@ -84,6 +94,7 @@ class LlamaDartPluginHandle {
     bool supportsConstrainedOutput = true,
     ModelInfo? modelInfo,
     Iterable<llama.LlamaEngineObserver> observers = const [],
+    LlamaDartMediaResolver? mediaResolver,
   }) async {
     if (name.isEmpty) {
       throw ArgumentError.value(name, 'name', 'Model name must not be empty.');
@@ -116,6 +127,7 @@ class LlamaDartPluginHandle {
       supportsConstrainedOutput: supportsConstrainedOutput,
       modelInfo: modelInfo,
       observers: observerSnapshot,
+      mediaResolver: mediaResolver,
     );
   }
 
@@ -128,7 +140,8 @@ class LlamaDartPluginHandle {
   /// download controller internals.
   ///
   /// [observers] are copied and attached to the prepared engine for telemetry
-  /// alongside download progress. The task starts on the next microtask.
+  /// alongside download progress. [mediaResolver] is retained for native
+  /// request media after preparation and remains application-owned. The task starts on the next microtask.
   /// Dispose both the task and its resulting [LlamaPreparedModel]; disposing
   /// the task alone does not dispose a successfully prepared plugin.
   /// Throws [ArgumentError] for an empty [name].
@@ -145,6 +158,7 @@ class LlamaDartPluginHandle {
     bool supportsConstrainedOutput = true,
     ModelInfo? modelInfo,
     Iterable<llama.LlamaEngineObserver> observers = const [],
+    LlamaDartMediaResolver? mediaResolver,
   }) {
     return createLlamaModelPreparationTask(
       name: name,
@@ -159,6 +173,7 @@ class LlamaDartPluginHandle {
       supportsConstrainedOutput: supportsConstrainedOutput,
       modelInfo: modelInfo,
       observers: observers,
+      mediaResolver: mediaResolver,
     );
   }
 

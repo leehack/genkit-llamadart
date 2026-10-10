@@ -3,15 +3,19 @@ import 'dart:async';
 import 'package:genkit_llamadart/genkit_llamadart.dart';
 import 'package:test/test.dart';
 
+import 'test_support/rejecting_media_resolver.dart';
+
 void main() {
   test(
     'prepareModelTask emits progress, loading, and ready snapshots',
     () async {
+      final resolver = RejectingMediaResolver();
       final manager = _FakeDownloadManager();
       final task = llamaDart.prepareModelTask(
         name: 'chat',
         source: ModelSource.url(Uri.parse('https://example.com/chat.gguf')),
         downloadManager: manager,
+        mediaResolver: resolver,
         supportsEmbeddings: false,
       );
       final snapshots = <LlamaModelPreparationSnapshot>[];
@@ -22,6 +26,8 @@ void main() {
       });
 
       final prepared = await task.result;
+      addTearDown(prepared.dispose);
+      await expectResolverUsed(prepared.plugin, resolver);
 
       expect(prepared.definition.name, 'chat');
       expect(prepared.definition.modelPath, '/cache/chat.gguf');
