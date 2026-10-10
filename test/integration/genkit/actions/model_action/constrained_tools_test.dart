@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:genkit/genkit.dart' as genkit;
 import 'package:llamadart/llamadart.dart' as llama;
 import 'package:test/test.dart';
@@ -124,6 +126,43 @@ void main() {
       },
     );
   }
+
+  test(
+    'schema-valid final values preserve literal tool-call markup as data',
+    () async {
+      const literal =
+          '<tool_call>{"name":"lookup","arguments":{"value":null}}</tool_call>';
+      for (final value in <Object>[
+        literal,
+        '<tool_call>',
+        {'example': literal},
+      ]) {
+        for (final choice in [genkit.ToolChoice.auto, genkit.ToolChoice.none]) {
+          final encoded = jsonEncode(value);
+          final fake = runtime(
+            choice == genkit.ToolChoice.auto
+                ? '{"response":$encoded}'
+                : encoded,
+          );
+          final chunks = <genkit.ModelResponseChunk>[];
+          final response = await testModelAction(runtime: fake)(
+            request(choice: choice, schema: {'const': value}),
+            onChunk: chunks.add,
+          );
+          expect(response.text, encoded);
+          expect(
+            response.message!.content.any((part) => part.isToolRequest),
+            isFalse,
+          );
+          expect(chunks, hasLength(1));
+          expect(
+            chunks.single.content.any((part) => part.isToolRequest),
+            isFalse,
+          );
+        }
+      }
+    },
+  );
 
   for (final invalid in [
     '{"tool_call":{"name":"lookup","arguments":{"value":',

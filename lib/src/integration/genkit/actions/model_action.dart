@@ -332,9 +332,10 @@ Future<genkit.ModelResponse> _runStructuredModel({
   }
 
   context.cancel?.throwIfCancelled();
+  final generatedText = rawOutput.toString();
   final parsed = llama.ChatTemplateEngine.parse(
     template.format,
-    rawOutput.toString(),
+    generatedText,
     parseToolCalls: activeTools,
     tools: activeTools ? tools : null,
     thinkingForcedOpen: template.thinkingForcedOpen,
@@ -349,7 +350,7 @@ Future<genkit.ModelResponse> _runStructuredModel({
   if (envelopeSchema != null) {
     final raw = llama.ChatTemplateEngine.parse(
       template.format,
-      rawOutput.toString(),
+      generatedText,
       parseToolCalls: false,
       thinkingForcedOpen: template.thinkingForcedOpen,
       parser: template.parser,
@@ -377,7 +378,7 @@ Future<genkit.ModelResponse> _runStructuredModel({
     ),
     latencyMs: started.elapsedMilliseconds.toDouble(),
     raw: rawResponseMetadata(definition, structured: true),
-    allowToolCalls: activeTools,
+    allowToolCalls: activeTools && parsed.toolCalls.isNotEmpty,
   );
   context.cancel?.throwIfCancelled();
   if (context.streamingRequested) {

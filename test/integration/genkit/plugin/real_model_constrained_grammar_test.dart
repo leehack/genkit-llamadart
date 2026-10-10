@@ -2,6 +2,8 @@
 @TestOn('vm')
 library;
 
+import 'dart:convert';
+
 import 'package:llamadart/llamadart.dart' as llama;
 import 'package:llamadart/src/core/grammar/json_schema_converter.dart';
 import 'package:genkit_llamadart/src/integration/genkit/converters/constrained_tools.dart';
@@ -72,6 +74,21 @@ void main() {
           '{"tool_call":{"name":"lookup","arguments":{"value":null}': false,
         });
       }
+      const literal =
+          '<tool_call>{"name":"lookup","arguments":{"value":null}}</tool_call>';
+      final literalSchema = constrainedToolSchema(
+        tools,
+        llama.ToolChoice.auto,
+        {'type': 'string', 'const': literal},
+      );
+      validateCompiledGrammar(
+        path,
+        JsonSchemaConverter.convert(literalSchema),
+        {
+          jsonEncode({'response': literal}): true,
+          jsonEncode({'response': 'different text'}): false,
+        },
+      );
       final schema = constrainedToolSchema(tools, llama.ToolChoice.auto, {
         r'$ref': '#/properties/value',
         'properties': {
