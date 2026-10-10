@@ -27,6 +27,18 @@ void main() {
       textChunk('<tool_call>{"name":"lookup"'),
       stopChunk(),
     ],
+    'complete call followed by incomplete call': [
+      textChunk(
+        '<tool_call>{"name":"lookup","arguments":{}}</tool_call><tool_call>',
+      ),
+      stopChunk(),
+    ],
+    'complete call followed by unmatched end': [
+      textChunk(
+        '<tool_call>{"name":"lookup","arguments":{}}</tool_call></tool_call>',
+      ),
+      stopChunk(),
+    ],
     'token-limited call': [
       toolCallChunk(id: 'call', name: 'lookup', arguments: '{}'),
       textChunk('', finishReason: 'length'),

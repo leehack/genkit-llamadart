@@ -122,9 +122,9 @@ _InlineToolExtractionResult? _extractInlineToolCalls(String text) {
   final matches = _inlineToolCallPattern
       .allMatches(text)
       .toList(growable: false);
-  final starts = '<tool_call>'.allMatches(text).length;
-  final ends = '</tool_call>'.allMatches(text).length;
-  if (starts != matches.length || ends != matches.length) {
+  final remainingText = text.replaceAll(_inlineToolCallPattern, '').trim();
+  if (remainingText.contains('<tool_call>') ||
+      remainingText.contains('</tool_call>')) {
     throw _invalidToolCall();
   }
   if (matches.isEmpty) {
@@ -161,7 +161,6 @@ _InlineToolExtractionResult? _extractInlineToolCalls(String text) {
     );
   }
 
-  final remainingText = text.replaceAll(_inlineToolCallPattern, '').trim();
   return _InlineToolExtractionResult(
     toolRequests: toolRequests,
     remainingText: remainingText,
