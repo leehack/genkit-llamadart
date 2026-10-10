@@ -5,7 +5,7 @@ import 'package:llamadart/llamadart.dart' show ModelParams;
 ///
 /// Use one definition per local model you want to register. The same
 /// definition controls the model name, native loading parameters, optional
-/// multimodal projector path, and which Genkit capabilities are advertised.
+/// multimodal projector path, and which Genkit capabilities are permitted.
 ///
 /// ```dart
 /// const chatModel = LlamaModelDefinition(
@@ -47,9 +47,13 @@ class LlamaModelDefinition {
   final String? mmprojPath;
 
   /// Whether this definition should register a Genkit embedder action.
+  ///
+  /// The loaded runtime must also report embedding support to accept requests.
   final bool supportsEmbeddings;
 
-  /// Whether this definition should accept Genkit tool requests.
+  /// Whether this definition permits Genkit tool requests and tool history.
+  ///
+  /// The loaded runtime must also report tool-calling support.
   ///
   /// Enabled tools must use object-shaped input schemas and arguments because
   /// `llamadart` represents tool arguments as `Map<String, dynamic>`. Local
@@ -57,7 +61,9 @@ class LlamaModelDefinition {
   /// before their parameters are mapped.
   final bool supportsTools;
 
-  /// Whether this definition should accept constrained JSON output requests.
+  /// Whether this definition permits constrained JSON output requests.
+  ///
+  /// The loaded runtime must also report structured output and grammar support.
   ///
   /// Disable this for `.litertlm` LiteRT-LM bundles until `llamadart` exposes
   /// grammar constraints for that backend.
@@ -65,8 +71,8 @@ class LlamaModelDefinition {
 
   /// Optional Genkit model metadata override.
   ///
-  /// Values in `modelInfo.supports` override advertised capability metadata,
-  /// but do not bypass request enforcement by [supportsEmbeddings],
-  /// [supportsTools], or [supportsConstrainedOutput].
+  /// Custom keys in `modelInfo.supports` are preserved. Standard support keys
+  /// are derived from the loaded runtime and the definition's permission flags;
+  /// supplied values cannot override unknown or unsupported capabilities.
   final ModelInfo? modelInfo;
 }

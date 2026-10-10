@@ -25,7 +25,27 @@ class EngineRegistry {
   final Map<String, LlamaModelDefinition> _definitions;
   final LlamaRuntimeFactory _runtimeFactory;
   final Map<String, _EngineEntry> _entries = {};
+  final Map<String, List<void Function()>> _capabilityListeners = {};
   Future<void>? _disposeFuture;
+
+  llama.LlamaEngineCapabilities? capabilitiesFor(String modelName) =>
+      _entries[modelName]?.capabilities;
+
+  String capabilityStateFor(String modelName) {
+    final entry = _entries[modelName];
+    if (entry == null || !entry.capabilitiesChecked) return 'unloaded';
+    return entry.capabilities == null ? 'unverified' : 'verified';
+  }
+
+  void onCapabilitiesChanged(String modelName, void Function() listener) {
+    (_capabilityListeners[modelName] ??= []).add(listener);
+  }
+
+  void _notifyCapabilities(String modelName) {
+    for (final listener in _capabilityListeners[modelName] ?? []) {
+      listener();
+    }
+  }
 
   Future<T> withRuntime<T>(
     String modelName,
@@ -43,7 +63,11 @@ class EngineRegistry {
 
     final entry = _entries.putIfAbsent(
       modelName,
-      () => _EngineEntry(definition, _runtimeFactory),
+      () => _EngineEntry(
+        definition,
+        _runtimeFactory,
+        () => _notifyCapabilities(modelName),
+      ),
     );
     return entry.run(operation, beforeInitialize: beforeInitialize);
   }
@@ -82,10 +106,18 @@ class EngineRegistry {
 }
 
 class _EngineEntry {
-  _EngineEntry(this._definition, this._runtimeFactory);
+  _EngineEntry(
+    this._definition,
+    this._runtimeFactory,
+    this._onCapabilitiesChanged,
+  );
 
   final LlamaModelDefinition _definition;
   final LlamaRuntimeFactory _runtimeFactory;
+  final void Function() _onCapabilitiesChanged;
+
+  llama.LlamaEngineCapabilities? capabilities;
+  bool capabilitiesChecked = false;
 
   Future<void> _tail = Future<void>.value();
   Future<LlamaRuntime>? _loading;
@@ -113,6 +145,7 @@ class _EngineEntry {
         final loading = capture == null ? null : (Stopwatch()..start());
         final runtime = await _ensureRuntime();
         capture?.initializationMs = loading!.elapsedMicroseconds / 1000;
+        await _readCapabilities(runtime);
         final result = await operation(runtime);
         completer.complete(result);
       } catch (error, stackTrace) {
@@ -129,10 +162,31 @@ class _EngineEntry {
     final runtime = _runtime;
     _runtime = null;
     _loading = null;
+    capabilities = null;
+    capabilitiesChecked = false;
+    _onCapabilitiesChanged();
 
     if (runtime != null) {
       await runtime.dispose();
     }
+  }
+
+  Future<void> _readCapabilities(LlamaRuntime runtime) async {
+    // Never reuse a snapshot if a custom runtime changes or unloads its model.
+    capabilities = null;
+    capabilitiesChecked = true;
+    _onCapabilitiesChanged();
+    if (runtime is! LlamaRuntimeCapabilityProvider) return;
+    try {
+      capabilities =
+          await (runtime as LlamaRuntimeCapabilityProvider).capabilities;
+    } catch (_) {
+      throw llama.LlamaStateException(
+        'Unable to verify runtime capabilities. Retry the request or check '
+        'the LlamaRuntimeCapabilityProvider implementation.',
+      );
+    }
+    _onCapabilitiesChanged();
   }
 
   Future<LlamaRuntime> _ensureRuntime() async {

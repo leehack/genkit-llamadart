@@ -26,7 +26,9 @@ description: >-
   resolved before parameters are mapped.
 - The model definition must keep `supportsTools: true` (the default).
   Requests with tools on a model registered with `supportsTools: false` fail
-  with `FAILED_PRECONDITION`.
+  with `FAILED_PRECONDITION`. The loaded runtime must also confirm tool calling;
+  unsupported runtimes fail before generation with `UNIMPLEMENTED`. The same
+  checks apply to tool request/result history even without new tool definitions.
 - Constrained structured output (`outputConstrained: true`) cannot be combined
   with tools; such requests fail with `UNIMPLEMENTED`. Run the tool turn first,
   then ask for JSON in a separate request without tools.

@@ -12,6 +12,7 @@ import '../../../core/streaming/completion_accumulator.dart';
 import '../action_support.dart';
 import '../converters/genkit_to_llama.dart';
 import '../converters/llama_to_genkit.dart';
+import '../request_support.dart';
 
 typedef _ModelActionContext =
     genkit.ActionFnArg<genkit.ModelResponseChunk, genkit.ModelRequest, void>;
@@ -23,10 +24,11 @@ genkit.Model<LlamaDartGenerationConfig> buildModelAction({
   final modelInfo = modelInfoFor(definition);
   final actionName = actionNameFor(definition.name);
 
-  return genkit.Model<LlamaDartGenerationConfig>(
+  final action = genkit.Model<LlamaDartGenerationConfig>(
     name: actionName,
     metadata: actionMetadataFor(definition, modelInfo: modelInfo),
     fn: (request, context) {
+      checkDeclaredModelRequest(definition, request);
       final capture = OperationUsage();
       final total = Stopwatch()..start();
       return runZoned(() async {
@@ -39,6 +41,7 @@ genkit.Model<LlamaDartGenerationConfig> buildModelAction({
             final response = await _runModel(
               definition: definition,
               runtime: runtime,
+              capabilities: registry.capabilitiesFor(definition.name),
               request: request,
               context: context,
             );
@@ -63,39 +66,20 @@ genkit.Model<LlamaDartGenerationConfig> buildModelAction({
       }, zoneValues: {operationUsageKey: capture});
     },
   );
+  trackCapabilityMetadata(action.metadata, definition, registry);
+  return action;
 }
 
 Future<genkit.ModelResponse> _runModel({
   required LlamaModelDefinition definition,
   required LlamaRuntime runtime,
+  required llama.LlamaEngineCapabilities? capabilities,
   required genkit.ModelRequest request,
   required _ModelActionContext context,
 }) async {
-  if (request.docs != null && request.docs!.isNotEmpty) {
-    throw genkit.GenkitException(
-      'llamadart model actions do not support `docs` yet.',
-      status: genkit.StatusCode.invalidArgument,
-    );
-  }
-
-  final hasTools = request.tools?.isNotEmpty ?? false;
-  if (hasTools && !definition.supportsTools) {
-    throw genkit.GenkitException(
-      'Tool use is disabled for `${definition.name}`.',
-      status: genkit.StatusCode.failedPrecondition,
-    );
-  }
-
-  if (shouldUseStructuredGeneration(request.output) &&
-      !definition.supportsConstrainedOutput) {
-    throw genkit.GenkitException(
-      'Constrained output is disabled for `${definition.name}`.',
-      status: genkit.StatusCode.failedPrecondition,
-    );
-  }
-
   final config = LlamaDartGenerationConfig.fromJson(request.config);
   final messages = toLlamaMessages(request.messages);
+  checkRuntimeModelRequest(definition, request, messages, capabilities);
   final tools = toLlamaTools(request.tools);
   final params = toGenerationParams(config);
   final toolChoice = toLlamaToolChoice(

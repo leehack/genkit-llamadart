@@ -43,6 +43,7 @@ export 'package:llamadart/llamadart.dart'
         GpuBackend,
         KvCacheType,
         LlamaEngineObserver,
+        LlamaEngineCapabilities,
         LlamaOperationObserver,
         LlamaOperation,
         LlamaOperationResult,
@@ -79,4 +80,9 @@ export 'src/api/model_preparation.dart'
 export 'src/api/model_definition.dart' show LlamaModelDefinition;
 export 'src/api/plugin_handle.dart' show LlamaDartPluginHandle, llamaDart;
 export 'src/api/prepared_model.dart' show LlamaPreparedModel;
+export 'src/core/runtime/llama_runtime.dart'
+    show
+        LlamaDartRuntime,
+        LlamaDartRuntimeFactory,
+        LlamaRuntimeCapabilityProvider;
 export 'src/integration/genkit/plugin.dart' show LlamaDartPlugin;

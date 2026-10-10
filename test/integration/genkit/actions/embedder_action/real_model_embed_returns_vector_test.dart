@@ -16,6 +16,11 @@ void main() {
     );
 
     try {
+      final listed = await integration.plugin.list();
+      Map<String, dynamic> supports() =>
+          (listed.first.metadata['model'] as Map<String, dynamic>)['supports']
+              as Map<String, dynamic>;
+      expect(supports()['embeddings'], false);
       final embeddings = await integration.ai.embed(
         embedder: llamaDart.embedder('real-embed'),
         document: DocumentData(
@@ -26,6 +31,11 @@ void main() {
 
       expect(embeddings, hasLength(1));
       expectFiniteEmbedding(embeddings.single);
+      expect(supports()['embeddings'], true);
+      expect(
+        (listed.first.metadata['llamadartCapabilities'] as Map)['state'],
+        'verified',
+      );
     } finally {
       await integration.plugin.dispose();
       await integration.ai.shutdown();

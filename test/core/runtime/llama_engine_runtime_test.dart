@@ -23,6 +23,14 @@ void main() {
     expect(engine.params, same(params));
   });
 
+  test('capability provider delegates the active engine snapshot', () async {
+    final engine = _RecordingEngine();
+    final runtime = LlamaEngineRuntime(engine: engine);
+    addTearDown(runtime.dispose);
+    expect(runtime, isA<LlamaRuntimeCapabilityProvider>());
+    expect(await runtime.capabilities, same(engine.snapshot));
+  });
+
   test('failed loading can retry without a projector', () async {
     final error = llama.LlamaModelException('load failed');
     final engine = _RecordingEngine()..loadError = error;
@@ -86,6 +94,13 @@ void main() {
 }
 
 class _RecordingEngine implements llama.LlamaEngine {
+  final snapshot = const llama.LlamaEngineCapabilities(
+    isSupported: true,
+    supportsToolCalling: true,
+  );
+  @override
+  Future<llama.LlamaEngineCapabilities> get capabilities async => snapshot;
+
   final loads = <llama.LlamaModel>[];
   llama.ModelParams? params;
   Map<String, dynamic>? kwargs;

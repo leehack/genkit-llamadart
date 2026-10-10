@@ -70,6 +70,27 @@ Optional environment variables for smoke tests:
 Auto-downloaded smoke-test models are cached under
 `.dart_tool/llamadart_test_models` by default.
 
+Optional native LiteRT media qualification uses a locally supplied multimodal
+bundle and fixtures; it does not download a large model in default CI:
+
+```bash
+LLAMADART_INTEGRATION_LITERT_MODEL_PATH=/models/gemma-4-E2B-it.litertlm \
+LLAMADART_INTEGRATION_LITERT_IMAGE_PATH=/fixtures/image.png \
+LLAMADART_INTEGRATION_LITERT_AUDIO_PATH=/fixtures/audio.wav \
+dart test test/integration/genkit/plugin/real_litert_capabilities_test.dart
+```
+
+Use a bundle with confirmed built-in image and audio encoders, a valid PNG and
+16 kHz mono PCM WAV. The test exercises CPU text, image and audio generation
+without a projector, and unsupported strict JSON and embedding requests. Native
+runtime setup follows llamadart's platform instructions. For a standalone Dart
+validation override, point `LLAMADART_LITERT_LM_LIB_DIR` to the verified pinned
+runtime bundle; llamadart 0.11.1 uses `litert-lm-native` v0.17.0-8.
+Without these three fixture paths this targeted test is explicitly skipped.
+Browser tests of the adapter guards use deterministic runtimes and can run with
+`dart test -p chrome test/integration/genkit/plugin/runtime_capabilities_test.dart`;
+they validate Web guards, not real Web inference or deployment.
+
 ## Test Models
 
 The default auto-downloaded models are intentionally tiny and CPU-friendly:

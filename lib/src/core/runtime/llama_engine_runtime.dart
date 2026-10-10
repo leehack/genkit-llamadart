@@ -4,7 +4,8 @@ import '../../api/model_definition.dart';
 import 'llama_runtime.dart';
 import 'operation_usage.dart';
 
-class LlamaEngineRuntime implements LlamaRuntime {
+class LlamaEngineRuntime
+    implements LlamaRuntime, LlamaRuntimeCapabilityProvider {
   LlamaEngineRuntime({
     llama.LlamaEngine? engine,
     Iterable<llama.LlamaEngineObserver> observers = const [],
@@ -17,6 +18,10 @@ class LlamaEngineRuntime implements LlamaRuntime {
 
   final llama.LlamaEngine _engine;
   bool _initialized = false;
+
+  @override
+  Future<llama.LlamaEngineCapabilities> get capabilities =>
+      _engine.capabilities;
 
   @override
   Future<void> initialize(LlamaModelDefinition definition) async {

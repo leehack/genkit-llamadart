@@ -5,6 +5,7 @@ import '../../../api/model_definition.dart';
 import '../../../core/runtime/engine_registry.dart';
 import '../action_support.dart';
 import '../converters/genkit_to_llama.dart';
+import '../request_support.dart';
 
 genkit.Embedder<LlamaDartEmbedConfig> buildEmbedderAction({
   required LlamaModelDefinition definition,
@@ -12,7 +13,7 @@ genkit.Embedder<LlamaDartEmbedConfig> buildEmbedderAction({
 }) {
   final actionName = actionNameFor(definition.name);
 
-  return genkit.Embedder<LlamaDartEmbedConfig>(
+  final action = genkit.Embedder<LlamaDartEmbedConfig>(
     name: actionName,
     metadata: actionMetadataFor(
       definition,
@@ -32,6 +33,13 @@ genkit.Embedder<LlamaDartEmbedConfig> buildEmbedderAction({
           .toList(growable: false);
 
       final embeddings = await registry.withRuntime(definition.name, (runtime) {
+        final capabilities = registry.capabilitiesFor(definition.name);
+        checkRuntimeReady(definition, capabilities);
+        requireRuntimeCapability(
+          definition,
+          supported: capabilities?.supportsEmbeddings,
+          feature: 'embeddings',
+        );
         return runtime.embedBatch(
           texts,
           normalize: config.normalize ?? LlamaDartEmbedConfig.defaultNormalize,
@@ -52,4 +60,6 @@ genkit.Embedder<LlamaDartEmbedConfig> buildEmbedderAction({
       );
     },
   );
+  trackCapabilityMetadata(action.metadata, definition, registry);
+  return action;
 }
