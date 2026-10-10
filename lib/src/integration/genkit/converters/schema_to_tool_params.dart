@@ -36,20 +36,7 @@ List<llama.ToolParam> schemaToToolParams(Map<String, dynamic>? schema) {
     );
   }
 
-  final requiredNames = _parseRequiredSet(normalized['required']);
-  final properties = propertiesRaw.cast<String, dynamic>();
-
-  return properties.entries
-      .map((entry) {
-        return _mapSchemaToToolParam(
-          entry.key,
-          entry.value is Map<String, dynamic>
-              ? entry.value as Map<String, dynamic>
-              : Map<String, dynamic>.from(entry.value as Map),
-          required: requiredNames.contains(entry.key),
-        );
-      })
-      .toList(growable: false);
+  return _mapObjectProperties(normalized);
 }
 
 bool _isObjectRootSchema(Map<String, dynamic> schema) {

@@ -62,31 +62,54 @@ void main() {
     });
   });
 
-  test('Dart examples analyze against the public API', () async {
-    final Directory snippets = Directory(
-      p.join('.dart_tool', 'package_skill_snippets'),
-    );
-    if (snippets.existsSync()) {
-      snippets.deleteSync(recursive: true);
-    }
-    snippets.createSync(recursive: true);
-    addTearDown(() => snippets.deleteSync(recursive: true));
-
-    int count = 0;
-    skills.forEach((String directoryName, String markdown) {
-      final String prefix = directoryName.replaceAll('-', '_');
-      for (final RegExpMatch block in _dartBlock.allMatches(markdown)) {
-        File(
-          p.join(snippets.path, '${prefix}_${count++}.dart'),
-        ).writeAsStringSync(block.group(1)!);
+  test(
+    'README, guides and skill examples analyze against the public API',
+    () async {
+      final Directory snippets = Directory(
+        p.join('.dart_tool', 'package_documentation_snippets'),
+      );
+      if (snippets.existsSync()) {
+        snippets.deleteSync(recursive: true);
       }
-    });
-    expect(count, greaterThan(0));
+      snippets.createSync(recursive: true);
+      addTearDown(() => snippets.deleteSync(recursive: true));
 
-    final ProcessResult result = await Process.run(
-      Platform.resolvedExecutable,
-      ['analyze', snippets.path],
-    );
-    expect(result.exitCode, 0, reason: '${result.stdout}\n${result.stderr}');
-  }, timeout: const Timeout(Duration(minutes: 3)));
+      int count = 0;
+      final documents = {
+        ...skills,
+        'readme': File('README.md').readAsStringSync(),
+        for (final file in Directory('doc').listSync().whereType<File>())
+          if (file.path.endsWith('.md'))
+            p.basenameWithoutExtension(file.path): file.readAsStringSync(),
+      };
+      documents.forEach((String name, String markdown) {
+        final String prefix = name.replaceAll('-', '_');
+        for (final RegExpMatch block in _dartBlock.allMatches(markdown)) {
+          var code = block.group(1)!;
+          if (!RegExp(r'^import ', multiLine: true).hasMatch(code)) {
+            code =
+                '''
+import 'package:genkit/genkit.dart';
+import 'package:genkit_llamadart/genkit_llamadart.dart';
+
+Future<void> example(Genkit ai) async {
+$code
+}
+''';
+          }
+          File(
+            p.join(snippets.path, '${prefix}_${count++}.dart'),
+          ).writeAsStringSync(code);
+        }
+      });
+      expect(count, greaterThan(0));
+
+      final ProcessResult result = await Process.run(
+        Platform.resolvedExecutable,
+        ['analyze', snippets.path],
+      );
+      expect(result.exitCode, 0, reason: '${result.stdout}\n${result.stderr}');
+    },
+    timeout: const Timeout(Duration(minutes: 3)),
+  );
 }

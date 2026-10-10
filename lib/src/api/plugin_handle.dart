@@ -24,39 +24,25 @@ import 'prepared_model.dart';
 /// ```
 const LlamaDartPluginHandle llamaDart = LlamaDartPluginHandle();
 
-/// Factory and typed reference helper for the `llamadart` Genkit plugin.
+/// Configures local models and creates typed Genkit model and embedder refs.
 ///
-/// ```dart
-/// import 'package:genkit/genkit.dart';
-/// import 'package:genkit_llamadart/genkit_llamadart.dart';
-///
-/// final plugin = llamaDart(
-///   models: const <LlamaModelDefinition>[
-///     LlamaModelDefinition(
-///       name: 'local-chat',
-///       modelPath: '/models/chat.gguf',
-///       supportsEmbeddings: false,
-///     ),
-///   ],
-/// );
-///
-/// final ai = Genkit(plugins: <LlamaDartPlugin>[plugin]);
-/// final response = await ai.generate(
-///   model: llamaDart.model('local-chat'),
-///   prompt: 'Say hello.',
-/// );
-/// ```
+/// Use the global [llamaDart] handle. [call] registers existing local files;
+/// [prepareModel] resolves a source through llamadart's cache; [prepareModelTask]
+/// additionally exposes preparation progress and cancellation.
 class LlamaDartPluginHandle {
   /// Creates a plugin handle.
   const LlamaDartPluginHandle();
 
-  /// Creates a plugin instance for the provided model definitions.
+  /// Registers local model files without loading their runtimes.
   ///
   /// Each definition registers a Genkit model action, plus an embedder action
   /// when `supportsEmbeddings` is enabled.
   /// [observers] observe every default engine in the caller's request zone.
   /// They may receive sensitive content; exporting it requires app opt-in.
   /// Observer failures are isolated by llamadart.
+  ///
+  /// Throws [ArgumentError] if model names are duplicated. The caller owns the
+  /// returned plugin and must dispose it when finished.
   LlamaDartPlugin call({
     required List<LlamaModelDefinition> models,
     Iterable<llama.LlamaEngineObserver> observers = const [],
@@ -74,6 +60,12 @@ class LlamaDartPluginHandle {
   /// with [mmprojOptions] and wired into the produced [LlamaModelDefinition].
   ///
   /// [observers] are copied before preparation and attached to the engine.
+  /// Downloads finish before this future resolves; native model loading stays
+  /// lazy until generation, embedding or [LlamaPreparedModel.warmUp].
+  ///
+  /// Throws [ArgumentError] for an empty [name] and propagates download,
+  /// checksum and source-option errors from llamadart. [onModelProgress] and
+  /// [onMmprojProgress] report their respective sources independently.
   ///
   /// The returned [LlamaPreparedModel] exposes the normal plugin and typed refs,
   /// so generation still uses `Genkit.generate` with `llamaDart.model(name)`.
@@ -136,7 +128,10 @@ class LlamaDartPluginHandle {
   /// download controller internals.
   ///
   /// [observers] are copied and attached to the prepared engine for telemetry
-  /// alongside download progress.
+  /// alongside download progress. The task starts on the next microtask.
+  /// Dispose both the task and its resulting [LlamaPreparedModel]; disposing
+  /// the task alone does not dispose a successfully prepared plugin.
+  /// Throws [ArgumentError] for an empty [name].
   LlamaModelPreparationTask prepareModelTask({
     required String name,
     required llama.ModelSource source,
@@ -178,7 +173,9 @@ class LlamaDartPluginHandle {
   /// Returns a typed Genkit embedder reference.
   ///
   /// The [name] must match a [LlamaModelDefinition.name] registered on the
-  /// plugin instance and that model must support embeddings.
+  /// plugin instance with embeddings enabled. Creating a ref does not register
+  /// an action or verify runtime support; the loaded model must be eligible for
+  /// embeddings when used.
   EmbedderRef<LlamaDartEmbedConfig> embedder(String name) {
     return embedderRef<LlamaDartEmbedConfig>(actionNameFor(name));
   }

@@ -11,13 +11,12 @@ String actionNameFor(String modelName) => '$llamaDartPluginName/$modelName';
 
 Map<String, dynamic> actionMetadataFor(
   LlamaModelDefinition definition, {
-  genkit.ModelInfo? modelInfo,
+  required genkit.ModelInfo modelInfo,
 }) {
   return <String, dynamic>{
     'label': definition.name,
     'description': definition.name,
-    if (modelInfo != null) 'model': modelInfo.toJson(),
-    if (modelInfo == null) 'model': <String, dynamic>{'label': definition.name},
+    'model': modelInfo.toJson(),
   };
 }
 
@@ -44,8 +43,6 @@ void trackCapabilityMetadata(
   EngineRegistry registry,
 ) {
   void refresh() {
-    // Keep labels, schemas and framework/app annotations stable; only support
-    // changes when the runtime is probed.
     final model = metadata['model'] as Map<String, dynamic>;
     model['supports'] = <String, dynamic>{
       ...?model['supports'] as Map<String, dynamic>?,

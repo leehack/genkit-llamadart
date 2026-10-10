@@ -35,6 +35,9 @@ class LlamaPreparedModel {
   final genkit.ModelRef<LlamaDartGenerationConfig> modelRef;
 
   /// Typed Genkit embedder reference, or null when embeddings were disabled.
+  ///
+  /// A non-null ref permits embedding requests; the loaded runtime and model
+  /// must also support embeddings.
   final genkit.EmbedderRef<LlamaDartEmbedConfig>? embedderRef;
 
   /// Cache entry returned by the `llamadart` download/cache manager for the
@@ -70,6 +73,8 @@ class LlamaPreparedModel {
   /// [systemPrompt] can prime an expensive instruction prefix before the first
   /// user-visible turn. Override [config] to control max tokens, temperature,
   /// thinking behavior, and other `llamadart` generation settings.
+  /// This performs inference; it is not just a file/cache check. A system
+  /// prompt requires system-message delivery support from the runtime.
   /// Failed or aborted Genkit responses throw their original cause when present,
   /// otherwise a [genkit.GenkitException].
   Future<genkit.GenerateResult<Output>> warmUp<Output>(
@@ -111,9 +116,10 @@ class LlamaPreparedModel {
     return response;
   }
 
-  /// Cancels the in-flight generation for this prepared model, if any. Lets a
-  /// caller stop a slow or unwanted run (e.g. on a timeout or a user "stop")
-  /// without holding the underlying `LlamaEngine`.
+  /// Requests cancellation of this model's active generation, if any.
+  ///
+  /// Bypasses the request queue and leaves separately queued requests intact.
+  /// No-op while loading or idle; it does not cancel model downloads.
   void cancelActiveGeneration() {
     plugin.cancelActiveGeneration(definition.name);
   }

@@ -2,7 +2,10 @@ import 'package:llamadart/llamadart.dart' as llama;
 
 import '../../api/model_definition.dart';
 
-/// Creates a runtime owned and serialized by the plugin.
+/// Creates a fresh runtime owned by one registered model.
+///
+/// The plugin serializes its requests and disposes it after queued work settles.
+/// Do not return the same mutable runtime for different model names.
 typedef LlamaDartRuntimeFactory = LlamaDartRuntime Function();
 
 // Preserve the internal spellings used by existing runtime implementations.
@@ -23,7 +26,15 @@ abstract interface class LlamaRuntimeCapabilityProvider {
 /// Runtime operations used by the Genkit adapter.
 ///
 /// Implement [LlamaRuntimeCapabilityProvider] to confirm advanced capabilities.
+/// The plugin initializes a runtime once, then runs one operation at a time
+/// for that model. Cancellation can arrive while an operation is active.
+///
+/// Implementations may import `package:llamadart/llamadart.dart` for the chat,
+/// completion and tool types in this contract.
 abstract class LlamaDartRuntime {
+  /// Creates a runtime implementation for one model's serialized requests.
+  LlamaDartRuntime();
+
   /// Loads the model and optional projector from [definition].
   Future<void> initialize(LlamaModelDefinition definition);
 
@@ -40,7 +51,11 @@ abstract class LlamaDartRuntime {
     Map<String, dynamic>? chatTemplateKwargs,
   });
 
-  /// Applies the model's chat template and optional output constraints.
+  /// Formats chat input and returns decoding constraints for [generate].
+  ///
+  /// When [responseFormat] requests JSON, return the grammar, triggers, stops
+  /// and preserved tokens required to enforce it. Reject unsupported constraints
+  /// instead of returning a best-effort unconstrained prompt.
   Future<llama.LlamaChatTemplateResult> chatTemplate(
     List<llama.LlamaChatMessage> messages, {
     bool addAssistant = true,
@@ -62,14 +77,18 @@ abstract class LlamaDartRuntime {
     List<llama.LlamaContentPart>? parts,
   });
 
-  /// Embeds a batch of texts, optionally normalizing their vectors.
+  /// Embeds texts in input order, returning one vector for each input.
+  ///
+  /// Honor [normalize] or reject it explicitly when unsupported.
   Future<List<List<double>>> embedBatch(
     List<String> texts, {
     bool normalize = true,
   });
 
-  /// Cancels the generation currently running on this runtime, if any. Returns
-  /// immediately; the in-flight [create] / [generate] stream ends shortly after.
+  /// Requests cooperative cancellation of the active generation, if any.
+  ///
+  /// Returns immediately; the active [create] or [generate] stream must settle
+  /// without requiring another request to enter the operation queue.
   void cancelGeneration();
 
   /// Releases runtime resources after queued requests finish.

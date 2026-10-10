@@ -1,38 +1,18 @@
-/// Genkit integration for local `llamadart` models.
+/// Local model generation and embeddings for Genkit Dart applications.
 ///
-/// This package lets Genkit applications run local models in-process through
-/// `llamadart`, without needing an OpenAI-compatible HTTP server.
+/// Register local files with [llamaDart] and [LlamaModelDefinition], or resolve
+/// downloads through [LlamaDartPluginHandle.prepareModel]. Use
+/// [LlamaDartPluginHandle.prepareModelTask] for progress and cancellation UI.
 ///
-/// Use [llamaDart] to:
+/// Genkit owns tool execution and request orchestration. This adapter supplies
+/// model calls through llamadart and checks the loaded runtime's capabilities.
+/// Configure requests with [LlamaDartGenerationConfig] or [LlamaDartEmbedConfig].
 ///
-/// - create a plugin from one or more [LlamaModelDefinition] values
-/// - reference a registered Genkit model with `llamaDart.model(...)`
-/// - reference a registered Genkit embedder with `llamaDart.embedder(...)`
+/// Models load lazily. Dispose [LlamaDartPlugin] or [LlamaPreparedModel] when
+/// finished, and shut down the caller-owned Genkit instance separately.
 ///
-/// ```dart
-/// import 'package:genkit/genkit.dart';
-/// import 'package:genkit_llamadart/genkit_llamadart.dart';
-///
-/// final plugin = llamaDart(
-///   models: const <LlamaModelDefinition>[
-///     LlamaModelDefinition(
-///       name: 'local-chat',
-///       modelPath: '/models/chat.gguf',
-///       supportsEmbeddings: false,
-///     ),
-///   ],
-/// );
-///
-/// final ai = Genkit(plugins: <LlamaDartPlugin>[plugin]);
-/// final response = await ai.generate(
-///   model: llamaDart.model('local-chat'),
-///   prompt: 'Say hello in one short sentence.',
-/// );
-/// ```
-///
-/// Main docs and runnable examples live in `README.md`.
-/// For native `llamadart` installation and platform guidance, see
-/// https://llamadart.leehack.com/.
+/// See the [getting-started guide](https://pub.dev/packages/genkit_llamadart)
+/// and [runtime installation guide](https://llamadart.leehack.com/).
 library;
 
 export 'package:llamadart/llamadart.dart'

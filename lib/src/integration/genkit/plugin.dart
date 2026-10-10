@@ -10,7 +10,7 @@ import 'actions/model_action.dart';
 
 /// `GenkitPlugin` implementation backed by local `llamadart` runtimes.
 class LlamaDartPlugin extends GenkitPlugin {
-  /// Creates a plugin that registers one model and embedder per definition.
+  /// Registers a model action and, when enabled, an embedder per definition.
   ///
   /// [observers] are copied and attached to default engines. Callbacks inherit
   /// the request zone and observer errors do not fail inference. When supplying
@@ -19,7 +19,8 @@ class LlamaDartPlugin extends GenkitPlugin {
   /// Custom runtimes supplied through [runtimeFactory] must implement
   /// [LlamaRuntimeCapabilityProvider] to confirm advanced request support.
   /// Without a provider, only single-turn text requests are accepted.
-  /// Model names must be unique within the plugin instance.
+  /// Model names must be unique within the plugin instance; duplicate names
+  /// throw [ArgumentError]. Registration and listing do not load model files.
   LlamaDartPlugin({
     required List<LlamaModelDefinition> models,
     LlamaDartRuntimeFactory? runtimeFactory,
@@ -60,9 +61,12 @@ class LlamaDartPlugin extends GenkitPlugin {
     return _registry.dispose();
   }
 
-  /// Cancels the in-flight generation for [modelName] on this plugin's runtime.
+  /// Requests cancellation of [modelName]'s active generation.
+  ///
   /// Bypasses the operation queue, so it stops a running generation instead of
   /// waiting behind it. No-op when nothing is generating for that model.
+  /// Throws [StateError] for a name not registered on this plugin. Separately
+  /// queued requests can still run afterward.
   void cancelActiveGeneration(String modelName) {
     _registry.cancelActiveGeneration(modelName);
   }
