@@ -6,6 +6,7 @@ import '../integration/genkit/plugin.dart';
 import 'embed_config.dart';
 import 'generation_config.dart';
 import 'model_definition.dart';
+import 'model_inspection.dart';
 
 /// Result of preparing a `llamadart` model source for Genkit registration.
 ///
@@ -115,6 +116,27 @@ class LlamaPreparedModel {
     }
     return response;
   }
+
+  /// Loads this model if needed and returns a read-only runtime snapshot.
+  ///
+  /// Does not generate text. Shares the plugin's operation queue and disposal
+  /// lifecycle; see [LlamaDartPlugin.inspectModel] for unavailable measurements.
+  Future<LlamaModelInspection> inspect() =>
+      plugin.inspectModel(definition.name);
+
+  /// Tokenizes raw [text] without chat formatting or inference.
+  ///
+  /// Defaults to not adding tokenizer special tokens. Loads this model if needed; see
+  /// [LlamaDartPlugin.tokenize] for queueing and unsupported-runtime errors.
+  Future<List<int>> tokenize(String text, {bool addSpecial = false}) =>
+      plugin.tokenize(definition.name, text, addSpecial: addSpecial);
+
+  /// Counts raw-text tokens without added special tokens or chat formatting.
+  ///
+  /// Loads this model if needed without inference. This is not a conversation,
+  /// tool or media budget; see [LlamaDartPlugin.countTokens].
+  Future<int> countTokens(String text) =>
+      plugin.countTokens(definition.name, text);
 
   /// Requests cancellation of this model's active generation, if any.
   ///

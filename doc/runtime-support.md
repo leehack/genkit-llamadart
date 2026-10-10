@@ -80,3 +80,12 @@ runtime behavior to prevent unverified support claims.
 - direct HTTP(S) image inputs are backend-dependent and currently supported by
   WebGPU; download the image to a local path or provide `data:` bytes for other
   compatible multimodal backends
+
+## Inspection and raw-text tokens
+
+Use [model inspection](model-inspection.md) for explicit loaded-runtime
+capabilities, context capacity and tokenizer access. Discovery does
+not load a model; inspection and raw token helpers do. Custom runtimes may opt
+into `LlamaRuntimeInspectionProvider` without changing the base runtime API.
+Keep backend capability labels free of paths and credentials; inspection
+publishes only recognized backend labels and a neutral unsupported reason.

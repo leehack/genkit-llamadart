@@ -182,6 +182,23 @@ Future<LlamaPreparedModel> prepareVisionModel({
 }
 ```
 
+## Inspect before inference
+
+Call `prepared.inspect()` to explicitly load the prepared model without
+inference, then read nullable `contextSize` and
+`capabilities`. These report runtime measurements rather than requested load
+settings. `prepared.countTokens(text)` and `prepared.tokenize(text)` count/encode
+raw text, without adding tokenizer special tokens by default. `tokenize` accepts
+`addSpecial: true` when needed. These calls share the generation queue and the
+prepared plugin's disposal lifecycle.
+
+Raw counts do not include chat-template overhead, tool schemas or media and
+must not be presented as complete conversation budgets. Unsupported tokenizers
+throw `LlamaUnsupportedException`; unknown context capacity remains null.
+Web and LiteRT-LM actual context measurement is unavailable in this adapter. For direct
+plugins use `inspectModel(name)`, `countTokens(name, text)` and
+`tokenize(name, text)` instead. Registration and listing remain lazy.
+
 ## More
 
 - Preparation task example:

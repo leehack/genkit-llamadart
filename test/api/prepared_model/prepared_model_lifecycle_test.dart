@@ -6,6 +6,23 @@ import '../../core/runtime/test_support/fake_runtime.dart';
 
 void main() {
   test(
+    'prepared inspection helpers share the plugin runtime without inference',
+    () async {
+      final runtime = _PreparedInspectionRuntime();
+      final prepared = _preparedModel(runtime: runtime);
+      addTearDown(prepared.dispose);
+      expect((await prepared.inspect()).contextSize, 1024);
+      expect(await prepared.tokenize('hello'), [7, 8]);
+      expect(await prepared.tokenize('hello', addSpecial: true), [1, 7, 8]);
+      expect(await prepared.countTokens('hello'), 2);
+      expect(runtime.initializeCount, 1);
+      expect(runtime.createCallCount, 0);
+      await prepared.dispose();
+      expect(() => prepared.inspect(), throwsStateError);
+    },
+  );
+
+  test(
     'createGenkit and warmUp run a configurable generation request',
     () async {
       final runtime = FakeRuntime()
@@ -171,4 +188,16 @@ llama.ModelCacheEntry _entry([String modelPath = '/cache/local.gguf']) {
     createdAt: now,
     updatedAt: now,
   );
+}
+
+class _PreparedInspectionRuntime extends FakeRuntime
+    implements LlamaRuntimeInspectionProvider {
+  @override
+  Future<int?> get contextSize async => 1024;
+  @override
+  Future<List<int>> tokenize(String text, {bool addSpecial = false}) async => [
+    if (addSpecial) 1,
+    7,
+    8,
+  ];
 }

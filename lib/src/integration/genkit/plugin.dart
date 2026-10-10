@@ -2,6 +2,7 @@ import 'package:genkit/plugin.dart';
 import 'package:llamadart/llamadart.dart' as llama;
 
 import '../../api/model_definition.dart';
+import '../../api/model_inspection.dart';
 import '../../core/runtime/engine_registry.dart';
 import '../../core/runtime/llama_runtime.dart';
 import 'action_support.dart';
@@ -60,6 +61,71 @@ class LlamaDartPlugin extends GenkitPlugin {
   Future<void> dispose() {
     return _registry.dispose();
   }
+
+  /// Loads [modelName] if needed and returns read-only runtime diagnostics.
+  ///
+  /// Serialized with generation and embeddings; performs no inference. Unknown
+  /// custom-runtime measurements are null. Throws [StateError] for an unknown
+  /// model or after disposal, and propagates loading/probe failures. Registration
+  /// and [list] remain lazy. Snapshot fields contain no model paths or metadata.
+  Future<LlamaModelInspection> inspectModel(String modelName) {
+    return _registry.withRuntime(modelName, (runtime) async {
+      final capabilities = _registry.capabilitiesFor(modelName);
+      final provider =
+          capabilities?.isSupported != false &&
+              runtime is LlamaRuntimeInspectionProvider
+          ? runtime as LlamaRuntimeInspectionProvider
+          : null;
+      final contextSize = await provider?.contextSize;
+      return LlamaModelInspection(
+        capabilities: capabilities,
+        contextSize: contextSize != null && contextSize > 0
+            ? contextSize
+            : null,
+      );
+    });
+  }
+
+  /// Tokenizes raw [text] with [modelName], loading it if needed.
+  ///
+  /// Runs in the model's queue without inference. Defaults to not adding tokenizer
+  /// special tokens. The returned IDs are immutable. This does not apply a chat
+  /// template, tools or media, so it cannot predict complete request usage.
+  /// Throws [llama.LlamaUnsupportedException] without tokenizer support;
+  /// unknown models and disposed plugins throw [StateError].
+  Future<List<int>> tokenize(
+    String modelName,
+    String text, {
+    bool addSpecial = false,
+  }) {
+    return _registry.withRuntime(modelName, (runtime) async {
+      if (_registry.capabilitiesFor(modelName)?.isSupported == false) {
+        throw llama.LlamaUnsupportedException(
+          'Raw-text tokenization requires a supported loaded runtime. '
+          'The capability probe reports this runtime unavailable.',
+        );
+      }
+      if (runtime is! LlamaRuntimeInspectionProvider) {
+        throw llama.LlamaUnsupportedException(
+          'Raw-text tokenization requires a runtime implementing '
+          'LlamaRuntimeInspectionProvider. The custom runtime does not provide it.',
+        );
+      }
+      return List<int>.unmodifiable(
+        await (runtime as LlamaRuntimeInspectionProvider).tokenize(
+          text,
+          addSpecial: addSpecial,
+        ),
+      );
+    });
+  }
+
+  /// Counts raw-text tokens without adding special tokens or running inference.
+  ///
+  /// Has the same loading, queueing and error behavior as [tokenize]. Use request
+  /// usage/timings for observed inference; this is not a formatted chat budget.
+  Future<int> countTokens(String modelName, String text) async =>
+      (await tokenize(modelName, text)).length;
 
   /// Requests cancellation of [modelName]'s active generation.
   ///

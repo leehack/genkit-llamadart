@@ -21,6 +21,10 @@ void main() {
           LlamaModelDefinition(
             name: 'real-capabilities',
             modelPath: path,
+            modelParams: const ModelParams(
+              contextSize: 1024,
+              device: ComputeDevice.cpu,
+            ),
             supportsEmbeddings: false,
           ),
         ],
@@ -36,6 +40,19 @@ void main() {
               as Map<String, dynamic>;
       expect(supports()['multiturn'], false);
       expect(observer.chats, 0);
+      final inspection = await plugin.inspectModel('real-capabilities');
+      expect(inspection.contextSize, 1024);
+      expect(inspection.capabilities!.backendName, 'CPU');
+      expect(inspection.capabilities!.isSupported, true);
+      final tokens = await plugin.tokenize('real-capabilities', 'Hello.');
+      expect(tokens, hasLength(2));
+      expect(await plugin.countTokens('real-capabilities', 'Hello.'), 2);
+      expect(await plugin.countTokens('real-capabilities', ''), 0);
+      expect(
+        observer.chats,
+        0,
+        reason: 'Inspection must not perform inference.',
+      );
       final response = await action(
         genkit.ModelRequest(
           messages: [

@@ -3,7 +3,35 @@ import 'package:genkit_llamadart/src/core/runtime/llama_engine_runtime.dart';
 import 'package:llamadart/llamadart.dart' as llama;
 import 'package:test/test.dart';
 
+const bool _isWeb = bool.fromEnvironment('dart.library.js_interop');
+
 void main() {
+  test('inspection delegates actual context and tokenizer options', () async {
+    final engine = _InspectionEngine();
+    final runtime = LlamaEngineRuntime(engine: engine);
+    addTearDown(runtime.dispose);
+    expect(await runtime.contextSize, _isWeb ? isNull : 4096);
+    expect(await runtime.tokenize('hello'), [3, 4]);
+    expect(engine.lastText, 'hello');
+    expect(engine.lastAddSpecial, false);
+    await runtime.tokenize('with special', addSpecial: true);
+    expect(engine.lastAddSpecial, true);
+    engine.actualContext = 0;
+    expect(await runtime.contextSize, isNull);
+  });
+
+  test(
+    'LiteRT metadata context is not misreported as actual context',
+    () async {
+      final engine = _InspectionEngine()
+        ..runtimeKind = llama.LlamaRuntime.liteRtLm;
+      final runtime = LlamaEngineRuntime(engine: engine);
+      addTearDown(runtime.dispose);
+      expect(await runtime.contextSize, isNull);
+      expect(engine.contextReads, 0);
+    },
+  );
+
   test('loads a typed model, projector and parameters exactly once', () async {
     final engine = _RecordingEngine();
     final runtime = LlamaEngineRuntime(engine: engine);
@@ -135,5 +163,30 @@ class _RecordingEngine implements llama.LlamaEngine {
       return Future.value(const llama.LlamaChatTemplateResult(prompt: ''));
     }
     throw UnsupportedError('Unexpected engine call: ${invocation.memberName}');
+  }
+}
+
+class _InspectionEngine extends _RecordingEngine {
+  llama.LlamaRuntime runtimeKind = llama.LlamaRuntime.llamaCpp;
+  @override
+  llama.LlamaRuntime? get runtime => runtimeKind;
+  int actualContext = 4096;
+  int contextReads = 0;
+  String? lastText;
+  bool? lastAddSpecial;
+  @override
+  Future<llama.LlamaEngineCapabilities> get capabilities async =>
+      llama.LlamaEngineCapabilities(isSupported: true, runtime: runtimeKind);
+  @override
+  Future<int> getContextSize() async {
+    contextReads++;
+    return actualContext;
+  }
+
+  @override
+  Future<List<int>> tokenize(String text, {bool addSpecial = true}) async {
+    lastText = text;
+    lastAddSpecial = addSpecial;
+    return [3, 4];
   }
 }

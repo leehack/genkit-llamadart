@@ -5,7 +5,10 @@ import 'llama_runtime.dart';
 import 'operation_usage.dart';
 
 class LlamaEngineRuntime
-    implements LlamaRuntime, LlamaRuntimeCapabilityProvider {
+    implements
+        LlamaRuntime,
+        LlamaRuntimeCapabilityProvider,
+        LlamaRuntimeInspectionProvider {
   LlamaEngineRuntime({
     llama.LlamaEngine? engine,
     Iterable<llama.LlamaEngineObserver> observers = const [],
@@ -22,6 +25,18 @@ class LlamaEngineRuntime
   @override
   Future<llama.LlamaEngineCapabilities> get capabilities =>
       _engine.capabilities;
+
+  @override
+  Future<int?> get contextSize async {
+    if (const bool.fromEnvironment('dart.library.js_interop')) return null;
+    if (_engine.runtime != llama.LlamaRuntime.llamaCpp) return null;
+    final size = await _engine.getContextSize();
+    return size > 0 ? size : null;
+  }
+
+  @override
+  Future<List<int>> tokenize(String text, {bool addSpecial = false}) =>
+      _engine.tokenize(text, addSpecial: addSpecial);
 
   @override
   Future<void> initialize(LlamaModelDefinition definition) async {
