@@ -163,9 +163,15 @@ Local `file://` URLs cannot include query parameters or fragments. Provide
 
 - Genkit can drive multi-turn tool loops through this plugin; see the
   [agent example](../example/genkit_llamadart_agent_example.dart).
-- Tool callbacks return `ToolResult.response(value)`. Multipart tool-result
-  content is rejected with `UNIMPLEMENTED`; return text or structured `output`
-  instead.
+- Tool callbacks return `ToolResult.response(value)` for text or structured
+  output, or `ToolResult.response(value, parts: [TextPart(text: '...')])` for a
+  text presentation. Nonempty text parts are joined in order with a newline
+  and used as the model-facing result; `output` stays in Genkit history without
+  being appended a second time. Empty text values are preserved. Missing or
+  empty `parts` falls back to the normal `output` representation.
+  Image, audio, resource and other non-text result parts fail with
+  `UNIMPLEMENTED` before the next model call; multimodal tool results remain
+  unsupported. Genkit continues to own tool execution, interrupts and resume.
 - Tool input schemas and tool-request inputs must be JSON objects. Primitive or
   list root inputs cannot be represented by `llamadart`'s map argument API and
   fail with `INVALID_ARGUMENT`.
