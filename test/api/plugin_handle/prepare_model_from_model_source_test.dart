@@ -3,8 +3,11 @@ import 'dart:io';
 import 'package:genkit_llamadart/genkit_llamadart.dart';
 import 'package:test/test.dart';
 
+import 'test_support/rejecting_media_resolver.dart';
+
 void main() {
   test('prepareModel resolves a remote source and preserves options', () async {
+    final resolver = RejectingMediaResolver();
     final manager = _FakeDownloadManager();
     final source = ModelSource.url(
       Uri.parse('https://example.com/models/chat.gguf'),
@@ -25,6 +28,7 @@ void main() {
       source: source,
       options: options,
       downloadManager: manager,
+      mediaResolver: resolver,
       onModelProgress: (progress) {
         observedProgress = progress;
       },
@@ -33,6 +37,8 @@ void main() {
       supportsConstrainedOutput: false,
     );
 
+    addTearDown(prepared.dispose);
+    await expectResolverUsed(prepared.plugin, resolver);
     expect(manager.calls, hasLength(1));
     expect(manager.calls.single.source, same(source));
     expect(manager.calls.single.options, same(options));

@@ -6,7 +6,10 @@ import 'package:llamadart/llamadart.dart' as llama;
 import '../../../api/generation_config.dart';
 import 'schema_to_tool_params.dart';
 
-List<llama.LlamaChatMessage> toLlamaMessages(List<genkit.Message> messages) {
+List<llama.LlamaChatMessage> toLlamaMessages(
+  List<genkit.Message> messages, {
+  Map<(String, String?), llama.LlamaContentPart> mediaOverrides = const {},
+}) {
   final converted = <llama.LlamaChatMessage>[];
 
   for (final message in messages) {
@@ -24,17 +27,10 @@ List<llama.LlamaChatMessage> toLlamaMessages(List<genkit.Message> messages) {
       }
 
       for (final part in toolResponses) {
-        _validateToolResponse(part.toolResponse);
         converted.add(
           llama.LlamaChatMessage.withContent(
             role: llama.LlamaChatRole.tool,
-            content: [
-              llama.LlamaToolResultContent(
-                id: part.toolResponse.ref,
-                name: part.toolResponse.name,
-                result: _normalizeToolResultOutput(part.toolResponse.output),
-              ),
-            ],
+            content: [_toLlamaToolResult(part.toolResponse)],
           ),
         );
       }
@@ -43,7 +39,12 @@ List<llama.LlamaChatMessage> toLlamaMessages(List<genkit.Message> messages) {
 
     final parts = <llama.LlamaContentPart>[];
     for (final part in message.content) {
-      final convertedPart = _toLlamaPart(part);
+      final media = part.isMedia ? part.media! : null;
+      final convertedPart =
+          (media == null
+              ? null
+              : mediaOverrides[(media.url, media.contentType)]) ??
+          _toLlamaPart(part);
       if (convertedPart != null) {
         parts.add(convertedPart);
       }
@@ -203,13 +204,7 @@ llama.LlamaContentPart? _toLlamaPart(genkit.Part part) {
   }
 
   if (part.isToolResponse) {
-    final toolResponse = part.toolResponse!;
-    _validateToolResponse(toolResponse);
-    return llama.LlamaToolResultContent(
-      id: toolResponse.ref,
-      name: toolResponse.name,
-      result: _normalizeToolResultOutput(toolResponse.output),
-    );
+    return _toLlamaToolResult(part.toolResponse!);
   }
 
   if (part.isReasoning) {
@@ -254,7 +249,7 @@ llama.LlamaContentPart _toLlamaMediaPart(genkit.Media media) {
   }
   final String? contentType;
   try {
-    contentType = media.contentType ?? _inferContentType(media.url);
+    contentType = media.contentType ?? inferMediaContentType(media.url);
   } on FormatException {
     throw genkit.GenkitException(
       'Invalid media data URL; check its MIME type and encoded payload.',
@@ -303,7 +298,7 @@ llama.LlamaContentPart _toLlamaMediaPart(genkit.Media media) {
   );
 }
 
-String? _inferContentType(String url) {
+String? inferMediaContentType(String url) {
   final uri = Uri.tryParse(url);
   if (uri != null && uri.scheme == 'data') {
     return UriData.parse(url).mimeType;
@@ -374,11 +369,24 @@ String _normalizeToolResultOutput(Object? output) {
   }
 }
 
-void _validateToolResponse(genkit.ToolResponse response) {
-  if (response.content?.isNotEmpty ?? false) {
-    throw genkit.GenkitException(
-      'Multipart tool results are not supported by llamadart; return structured output or text.',
-      status: genkit.StatusCode.unimplemented,
+llama.LlamaToolResultContent _toLlamaToolResult(genkit.ToolResponse response) =>
+    llama.LlamaToolResultContent(
+      id: response.ref,
+      name: response.name,
+      result: response.content?.isNotEmpty == true
+          ? response.content!.map(_toolResultText).join('\n')
+          : _normalizeToolResultOutput(response.output),
     );
+
+String _toolResultText(Object? part) {
+  final value = part is genkit.Part ? part.toJson() : part;
+  if (value is Map &&
+      value['text'] is String &&
+      value.keys.every((key) => key == 'text' || key == 'metadata')) {
+    return value['text'] as String;
   }
+  throw genkit.GenkitException(
+    'llamadart tool-result content supports text parts only; return TextPart values or structured output.',
+    status: genkit.StatusCode.unimplemented,
+  );
 }

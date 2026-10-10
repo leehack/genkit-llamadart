@@ -62,6 +62,8 @@ export 'src/api/model_preparation.dart'
         LlamaModelPreparationSourceRole,
         LlamaModelPreparationStage,
         LlamaModelPreparationTask;
+export 'src/api/media_resolver.dart'
+    show LlamaDartMediaResolver, HttpLlamaDartMediaResolver;
 export 'src/api/model_inspection.dart' show LlamaModelInspection;
 export 'src/api/model_definition.dart' show LlamaModelDefinition;
 export 'src/api/plugin_handle.dart' show LlamaDartPluginHandle, llamaDart;

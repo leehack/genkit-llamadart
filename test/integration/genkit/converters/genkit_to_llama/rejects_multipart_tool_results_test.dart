@@ -3,7 +3,7 @@ import 'package:genkit_llamadart/src/integration/genkit/converters/genkit_to_lla
 import 'package:test/test.dart';
 
 void main() {
-  test('multipart tool results fail explicitly for every message role', () {
+  test('non-text tool results fail with redacted errors for every role', () {
     for (final role in [Role.tool, Role.user]) {
       expect(
         () => toLlamaMessages([
@@ -15,7 +15,14 @@ void main() {
                   name: 'lookup',
                   output: 'ok',
                   content: [
-                    {'text': 'extra'},
+                    {'text': 'supported'},
+                    {
+                      'media': {
+                        'url':
+                            'https://USER_SENTINEL:SECRET_SENTINEL@host/PATH_SENTINEL?token=TOKEN_SENTINEL',
+                        'contentType': 'image/png',
+                      },
+                    },
                   ],
                 ),
               ),
@@ -23,11 +30,13 @@ void main() {
           ),
         ]),
         throwsA(
-          isA<GenkitException>().having(
-            (e) => e.status,
-            'status',
-            StatusCode.unimplemented,
-          ),
+          isA<GenkitException>()
+              .having((e) => e.status, 'status', StatusCode.unimplemented)
+              .having(
+                (e) => e.toString(),
+                'safe error',
+                isNot(contains('SENTINEL')),
+              ),
         ),
       );
     }

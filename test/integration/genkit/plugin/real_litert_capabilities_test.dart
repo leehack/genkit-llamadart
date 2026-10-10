@@ -3,13 +3,16 @@ library;
 
 import 'dart:io';
 
+import 'package:http/http.dart' as http;
+
 import 'package:genkit/plugin.dart' as genkit;
 import 'package:genkit_llamadart/genkit_llamadart.dart';
+import 'package:llamadart/llamadart.dart' as llama;
 import 'package:test/test.dart';
 
 void main() {
   test(
-    'real native LiteRT media works without a projector and strict JSON stays guarded',
+    'real native LiteRT local and resolved HTTP media work without a projector',
     () async {
       final path =
           Platform.environment['LLAMADART_INTEGRATION_LITERT_MODEL_PATH'];
@@ -23,7 +26,32 @@ void main() {
         );
         return;
       }
+      final mediaServer = await HttpServer.bind(
+        InternetAddress.loopbackIPv4,
+        0,
+      );
+      addTearDown(() => mediaServer.close(force: true));
+      var mediaRequests = 0;
+      mediaServer.listen((request) async {
+        final isImage = request.uri.path == '/image.png';
+        final bytes = await File(isImage ? imagePath : audioPath).readAsBytes();
+        mediaRequests++;
+        request.response.headers.contentType = ContentType.parse(
+          isImage ? 'image/png' : 'audio/wav',
+        );
+        request.response.add(bytes);
+        await request.response.close();
+      });
+      final client = http.Client();
+      addTearDown(client.close);
+      final capture = _MediaCapture();
       final plugin = LlamaDartPlugin(
+        observers: [capture],
+        mediaResolver: HttpLlamaDartMediaResolver(
+          client: client,
+          allowUri: (uri) =>
+              uri.host == '127.0.0.1' && uri.port == mediaServer.port,
+        ),
         models: [
           LlamaModelDefinition(
             name: 'real-litert',
@@ -89,6 +117,35 @@ void main() {
         ]),
       );
       expect(audio.text.trim(), isNotEmpty);
+      for (final (path, type) in [
+        ('image.png', 'image/png'),
+        ('audio.wav', 'audio/wav'),
+      ]) {
+        final remote = await model(
+          request([
+            genkit.TextPart(text: 'Describe this input briefly.'),
+            genkit.MediaPart(
+              media: genkit.Media(
+                url: 'http://127.0.0.1:${mediaServer.port}/$path',
+                contentType: type,
+              ),
+            ),
+          ]),
+        );
+        expect(remote.text.trim(), isNotEmpty);
+        final part = capture.chats.last.messages.single.parts.last;
+        final actual = part is llama.LlamaImageContent
+            ? part.bytes
+            : (part as llama.LlamaAudioContent).bytes;
+        expect(
+          actual,
+          await File(type == 'image/png' ? imagePath : audioPath).readAsBytes(),
+        );
+        print(
+          'Native LiteRT remote $type: finishReason=${remote.finishReason}, text=${remote.text}',
+        );
+      }
+      expect(mediaRequests, 2);
       await expectLater(
         model(
           genkit.ModelRequest(
@@ -128,4 +185,13 @@ void main() {
     },
     timeout: const Timeout(Duration(minutes: 4)),
   );
+}
+
+final class _MediaCapture extends LlamaEngineObserver {
+  final chats = <LlamaChatOperation>[];
+  @override
+  LlamaOperationObserver? onStart(LlamaOperation operation) {
+    if (operation is LlamaChatOperation) chats.add(operation);
+    return null;
+  }
 }

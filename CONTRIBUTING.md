@@ -102,7 +102,10 @@ dart test test/integration/genkit/plugin/real_litert_capabilities_test.dart
 
 Use a bundle with confirmed built-in image and audio encoders, a valid PNG and
 16 kHz mono PCM WAV. The test exercises CPU text, image and audio generation
-without a projector, and unsupported strict JSON and embedding requests. Native
+without a projector, the same fixtures served through a bounded loopback HTTP
+resolver, and unsupported strict JSON and embedding requests. Engine observers
+verify the downloaded bytes reach native chat input. The HTTP fixture server
+and caller-owned client are closed in teardown. Native
 runtime setup follows llamadart's platform instructions. For a standalone Dart
 validation override, point `LLAMADART_LITERT_LM_LIB_DIR` to the verified pinned
 runtime bundle; llamadart 0.11.1 uses `litert-lm-native` v0.17.0-8.
@@ -145,8 +148,10 @@ resolved llamadart version, native artifact and result in PR/release evidence.
 
 The model must request a real tool, receive its result through Genkit, and
 return the verification code supplied only by the handler. It covers `auto`,
-`required`, `none`, truncation, cancellation and recovery. Its tool input also
-requires a null value; the serialized adapter schema is compiled with the
+`required`, `none`, truncation, cancellation and recovery. The required-tool
+path qualifies text-only multipart results: the model must return the code
+supplied only in text parts, while structured output remains separate in Genkit
+history. The tool input requires a null value; its adapter schema is compiled with the
 pinned native grammar sampler and checked against valid null, invalid string/
 number, missing-field and incomplete-output candidates using the Qwen3
 vocabulary. Genkit 1.0 retains
