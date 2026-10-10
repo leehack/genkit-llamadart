@@ -122,6 +122,40 @@ They are meant for smoke testing package behavior, not for judging output
 quality. See [ARCHITECTURE.md](ARCHITECTURE.md#real-model-smoke-tests) for
 their sources and verification.
 
+### Real tool-model qualification
+
+Run this optional production Genkit tool-loop qualification before releasing
+tool-adapter changes:
+
+```bash
+LLAMADART_AUTO_DOWNLOAD_TOOL_MODEL=1 \
+dart test test/integration/genkit/plugin/real_model_tool_calling_test.dart -j 1
+```
+
+This separate opt-in downloads Qwen3-1.7B-Q4_K_M (~1.1 GB), not the default tiny
+CI fixtures. Revision `d7f544eead698dbd1f15126ef60b45a1e1933222` and SHA-256
+`b139949c5bd74937ad8ed8c8cf3d9ffb1e99c866c823204dc42c0d91fa181897`
+are verified before loading, including local paths supplied through
+`LLAMADART_INTEGRATION_TOOL_MODEL_PATH`. The test uses native llama.cpp CPU,
+4096-token context, greedy sampling and seed 42. Record OS/architecture,
+resolved llamadart version, native artifact and result in PR/release evidence.
+
+The model must request a real tool, receive its result through Genkit, and
+return the verification code supplied only by the handler. It covers `auto`,
+`required`, `none`, truncation, cancellation and recovery. Genkit 1.0 retains
+`required` on every turn, so explicit application middleware switches to `none`
+after the tool result to permit a final answer. Adapter semantics are unchanged.
+
+Malformed and disallowed calls use deterministic negative fixtures through
+`Genkit.generate` in `rejects_invalid_tool_calls_test.dart`; no handler may run.
+Streamed deltas may be incomplete, but final calls must have valid object
+arguments and must not be token-limited. With `toolChoice.none`, inline
+tool-looking text stays inert. This native run does not qualify Web/mobile.
+
+The default real-model suite skips this fixture unless its own opt-in/path is
+supplied. It is discoverable through the `tool-model` tag.
+
+
 ## Before Opening A PR
 
 Run:

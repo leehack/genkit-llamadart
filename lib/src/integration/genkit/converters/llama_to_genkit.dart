@@ -74,10 +74,24 @@ genkit.ModelResponse toGenkitModelResponse(
   CompletionResult result, {
   required double latencyMs,
   required Map<String, dynamic> raw,
+  bool allowToolCalls = true,
 }) {
-  final fallback = result.toolCalls.isEmpty
+  if (result.toolCalls.isNotEmpty &&
+      (!allowToolCalls || result.finishReason == 'length')) {
+    throw _invalidToolCall();
+  }
+  for (final call in result.toolCalls) {
+    if (call.function?.name == null || call.function!.name!.isEmpty) {
+      throw _invalidToolCall();
+    }
+    _decodeFinalToolArguments(call.function?.arguments);
+  }
+  final fallback = allowToolCalls && result.toolCalls.isEmpty
       ? _extractInlineToolCalls(result.text)
       : null;
+  if (fallback != null && result.finishReason == 'length') {
+    throw _invalidToolCall();
+  }
   final fallbackToolRequests =
       fallback?.toolRequests ?? const <genkit.ToolRequestPart>[];
   final visibleText = fallback?.remainingText ?? result.text;
@@ -108,6 +122,11 @@ _InlineToolExtractionResult? _extractInlineToolCalls(String text) {
   final matches = _inlineToolCallPattern
       .allMatches(text)
       .toList(growable: false);
+  final starts = '<tool_call>'.allMatches(text).length;
+  final ends = '</tool_call>'.allMatches(text).length;
+  if (starts != matches.length || ends != matches.length) {
+    throw _invalidToolCall();
+  }
   if (matches.isEmpty) {
     return null;
   }
@@ -121,12 +140,12 @@ _InlineToolExtractionResult? _extractInlineToolCalls(String text) {
 
     final decoded = _tryDecodeMap(payload);
     if (decoded == null) {
-      return null;
+      throw _invalidToolCall();
     }
 
     final name = decoded['name'];
     if (name is! String || name.isEmpty) {
-      return null;
+      throw _invalidToolCall();
     }
 
     final id = decoded['id'];
@@ -135,7 +154,7 @@ _InlineToolExtractionResult? _extractInlineToolCalls(String text) {
         toolRequest: genkit.ToolRequest(
           ref: id is String && id.isNotEmpty ? id : 'call_$i',
           name: name,
-          input: _coerceToolInput(decoded['arguments']),
+          input: _decodeFinalToolInput(decoded['arguments']),
         ),
         metadata: <String, dynamic>{'rawToolCall': payload},
       ),
@@ -149,7 +168,7 @@ _InlineToolExtractionResult? _extractInlineToolCalls(String text) {
   );
 }
 
-Map<String, dynamic> _coerceToolInput(Object? value) {
+Map<String, dynamic> _decodeFinalToolInput(Object? value) {
   if (value == null) {
     return const <String, dynamic>{};
   }
@@ -160,10 +179,23 @@ Map<String, dynamic> _coerceToolInput(Object? value) {
     return value.cast<String, dynamic>();
   }
   if (value is String) {
-    return _decodeToolArguments(value);
+    return _decodeFinalToolArguments(value);
   }
-  return <String, dynamic>{'value': value};
+  throw _invalidToolCall();
 }
+
+Map<String, dynamic> _decodeFinalToolArguments(String? raw) {
+  if (raw == null || raw.isEmpty) return const {};
+  final decoded = _tryDecodeMap(raw);
+  if (decoded == null) throw _invalidToolCall();
+  return decoded;
+}
+
+genkit.GenkitException _invalidToolCall() => genkit.GenkitException(
+  'The model returned an invalid, truncated or disallowed tool call. '
+  'No tool was executed; check the model template, tool choice and token limit.',
+  status: genkit.StatusCode.dataLoss,
+);
 
 Map<String, dynamic>? _tryDecodeMap(String raw) {
   try {
