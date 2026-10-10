@@ -43,11 +43,15 @@ genkit.Model<LlamaDartGenerationConfig> buildModelAction({
         );
       }
       final tools = toLlamaTools(request.tools);
-      final messages = await resolveLlamaMessages(
-        request.messages,
-        resolver: mediaResolver,
-        cancel: context.cancel,
-      );
+      final messages =
+          !const bool.fromEnvironment('dart.library.io') ||
+              mediaResolver == null
+          ? toLlamaMessages(request.messages)
+          : await resolveLlamaMessages(
+              request.messages,
+              resolver: mediaResolver,
+              cancel: context.cancel,
+            );
       final capture = OperationUsage();
       return runZoned(() async {
         final response = await registry.withRuntime(definition.name, (
