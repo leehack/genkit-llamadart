@@ -68,6 +68,14 @@ More concretely:
 `lib/genkit_llamadart.dart` re-exports the supported public API without exposing
 the internal layout to package consumers.
 
+## Planned Session Ownership
+
+The current runtime registry owns one queued runtime per model name, not per
+Genkit session. KV-state persistence and live LoRA updates require a separate
+owner; see the [isolation implementation contract](doc/runtime-isolation-design.md)
+for boundaries, source evidence and qualification required before adding APIs.
+This design does not change runtime behavior.
+
 ## Test Layout
 
 The `test/api/`, `test/core/` and `test/integration/genkit/` trees mirror the
