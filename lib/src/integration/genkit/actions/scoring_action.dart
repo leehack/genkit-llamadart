@@ -33,9 +33,13 @@ buildScoringAction({
               'reusePromptPrefix': {'type': 'boolean'},
             },
           },
-          parse: (value) => value is LlamaDartScoringRequest
-              ? value
-              : LlamaDartScoringRequest.fromJson(value),
+          parse: (value) {
+            if (value is LlamaDartScoringRequest) {
+              validateScoringRequest(value);
+              return value;
+            }
+            return LlamaDartScoringRequest.fromJson(value);
+          },
         ),
         outputSchema: SchemanticType.from(
           jsonSchema: {
@@ -158,42 +162,57 @@ buildScoringAction({
 const _integerSchema = {'type': 'integer', 'minimum': 0, 'maximum': 2147483647};
 
 LlamaDartTokenScores _parseScores(dynamic json) {
-  if (json is LlamaDartTokenScores) return json;
-  if (json is! Map<String, dynamic>) throw _invalidScores();
-  try {
-    List<llama.LlamaTokenLogprob> tokens(dynamic values) => (values as List)
-        .map(
-          (dynamic value) => llama.LlamaTokenLogprob(
-            token: value['token'] as int,
-            bytes: (value['bytes'] as List).cast<int>(),
-            logprob: (value['logprob'] as num).toDouble(),
-          ),
-        )
-        .toList();
-    final result = LlamaDartTokenScores.fromScores(
-      llama.LlamaNextTokenScores(
-        candidates: tokens(json['candidates']),
-        top: tokens(json['top']),
-        promptTokens: json['promptTokens'] as int,
-      ),
-    );
-    _validateScores(result);
-    return result;
-  } on TypeError {
+  if (json is LlamaDartTokenScores) {
+    _validateScores(json);
+    return json;
+  }
+  if (json is! Map<String, dynamic> ||
+      json.length != 3 ||
+      json['promptTokens'] is! int) {
     throw _invalidScores();
   }
+  List<llama.LlamaTokenLogprob> tokens(dynamic values) {
+    if (values is! List) throw _invalidScores();
+    return values.map((dynamic value) {
+      if (value is! Map<String, dynamic> ||
+          value.length != 3 ||
+          value['token'] is! int ||
+          value['bytes'] is! List ||
+          (value['bytes'] as List).any((byte) => byte is! int) ||
+          value['logprob'] is! num) {
+        throw _invalidScores();
+      }
+      return llama.LlamaTokenLogprob(
+        token: value['token'] as int,
+        bytes: (value['bytes'] as List).cast<int>(),
+        logprob: (value['logprob'] as num).toDouble(),
+      );
+    }).toList();
+  }
+
+  final result = LlamaDartTokenScores.fromScores(
+    llama.LlamaNextTokenScores(
+      candidates: tokens(json['candidates']),
+      top: tokens(json['top']),
+      promptTokens: json['promptTokens'] as int,
+    ),
+  );
+  _validateScores(result);
+  return result;
 }
 
 void _validateScores(LlamaDartTokenScores scores) {
   if (scores.promptTokens < 1 ||
-      [...scores.candidates, ...scores.top].any(
-        (value) =>
-            value.token < 0 ||
-            value.token > 2147483647 ||
-            value.bytes.any((byte) => byte < 0 || byte > 255) ||
-            !value.logprob.isFinite ||
-            value.logprob > 0,
-      )) {
+      scores.candidates
+          .followedBy(scores.top)
+          .any(
+            (value) =>
+                value.token < 0 ||
+                value.token > 2147483647 ||
+                value.bytes.any((byte) => byte < 0 || byte > 255) ||
+                !value.logprob.isFinite ||
+                value.logprob > 0,
+          )) {
     throw _invalidScores();
   }
 }

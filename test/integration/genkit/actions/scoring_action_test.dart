@@ -13,6 +13,70 @@ import '../../../core/runtime/test_support/fake_runtime.dart';
 
 void main() {
   test(
+    'result schema rejects malformed typed/JSON values with a safe error',
+    () async {
+      final plugin = _plugin(_ScoringRuntime());
+      addTearDown(plugin.dispose);
+      final schema = plugin.scorer('local').outputSchema!;
+      for (final value in [
+        LlamaDartTokenScores.fromScores(
+          LlamaNextTokenScores(
+            candidates: [],
+            top: [_token(1, double.nan)],
+            promptTokens: 1,
+          ),
+        ),
+        {
+          'candidates': [],
+          'top': [true],
+          'promptTokens': 1,
+        },
+        {
+          'candidates': [],
+          'top': [],
+          'promptTokens': 1,
+          'extra': 'private output',
+        },
+        {
+          'candidates': [],
+          'top': [
+            {
+              'token': 1,
+              'bytes': [65],
+              'logprob': -1,
+              'extra': 'private output',
+            },
+          ],
+          'promptTokens': 1,
+        },
+        {
+          'candidates': [],
+          'top': [
+            {
+              'token': 1,
+              'bytes': [65.5],
+              'logprob': -1,
+            },
+          ],
+          'promptTokens': 1,
+        },
+      ]) {
+        expect(
+          () => schema.parse(value),
+          throwsA(
+            isA<genkit.GenkitException>()
+                .having((e) => e.status, 'status', genkit.StatusCode.dataLoss)
+                .having(
+                  (e) => e.toString(),
+                  'safe error',
+                  isNot(contains('private output')),
+                ),
+          ),
+        );
+      }
+    },
+  );
+  test(
     'registered typed/raw calls preserve scoring settings and JSON bytes',
     () async {
       final runtime = _ScoringRuntime();
@@ -92,6 +156,12 @@ void main() {
           scorer(request),
           _status(genkit.StatusCode.invalidArgument),
         );
+        if (request != null) {
+          expect(
+            () => scorer.inputSchema!.parse(request),
+            _status(genkit.StatusCode.invalidArgument),
+          );
+        }
       }
       for (final json in [
         'not an object',
