@@ -48,6 +48,86 @@ void main() {
     },
   );
 
+  test(
+    'factory reentrant opening reserves admission before allocation',
+    () async {
+      late LlamaDartRuntimePool pool;
+      Future<void>? nestedRejected;
+      var allocations = 0;
+      pool = LlamaDartRuntimePool(
+        model: _model,
+        maxOwners: 1,
+        runtimeFactory: () {
+          allocations++;
+          nestedRejected = expectLater(
+            pool.open(),
+            throwsA(isA<LlamaStateException>()),
+          );
+          return _Runtime('A');
+        },
+      );
+      addTearDown(pool.close);
+      final owner = await pool.open();
+      await nestedRejected;
+      expect(allocations, 1);
+      expect(await owner.generate('safe'), 'A');
+    },
+  );
+
+  test(
+    'factory closing drains allocated cleanup before terminal close',
+    () async {
+      late LlamaDartRuntimePool pool;
+      final runtime = _Runtime('A')..disposing = Completer<void>();
+      Future<void>? closing;
+      var closed = false;
+      pool = LlamaDartRuntimePool(
+        model: _model,
+        runtimeFactory: () {
+          closing = pool.close().then((_) => closed = true);
+          return runtime;
+        },
+      );
+      final rejected = expectLater(
+        pool.open(),
+        throwsA(isA<LlamaStateException>()),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(runtime.disposeCount, 1);
+      expect(closed, isFalse);
+      expect(runtime.initializeCount, 0);
+      runtime.disposing!.complete();
+      await rejected;
+      await closing;
+      expect(closed, isTrue);
+      await expectLater(pool.open(), throwsA(isA<LlamaStateException>()));
+    },
+  );
+
+  test('factory allocation failure releases reserved admission', () async {
+    var attempts = 0;
+    final pool = LlamaDartRuntimePool(
+      model: _model,
+      maxOwners: 1,
+      runtimeFactory: () {
+        if (attempts++ == 0) throw StateError('/secret/factory');
+        return _Runtime('A');
+      },
+    );
+    addTearDown(pool.close);
+    await expectLater(
+      pool.open(),
+      throwsA(
+        predicate<Object>(
+          (error) =>
+              error is LlamaStateException &&
+              !error.toString().contains('/secret'),
+        ),
+      ),
+    );
+    expect(await (await pool.open()).generate('recovered'), 'A');
+  });
+
   test('factory cannot return an already owned runtime', () async {
     final runtime = _Runtime('A');
     final pool = LlamaDartRuntimePool(
@@ -83,7 +163,9 @@ void main() {
       owner.generate('closed'),
       throwsA(isA<LlamaStateException>()),
     );
+    await Future<void>.delayed(Duration.zero);
     expect(runtime.disposeCount, 0);
+    expect(runtime.prompts, ['first']);
     runtime.blocked!.complete();
     expect(await active, 'A');
     expect(await queued, 'A');
@@ -271,6 +353,7 @@ void main() {
       reusePromptPrefix: false,
     );
     candidates.clear();
+    await Future<void>.delayed(Duration.zero);
     expect(runtime.scoredCandidates, isNull);
     runtime.blocked!.complete();
     await active;
@@ -358,6 +441,7 @@ class _Runtime extends FakeRuntime implements LlamaRuntimeScoringProvider {
   final Completer<void> started = Completer<void>();
   Completer<void>? blocked;
   Completer<void>? loading;
+  Completer<void>? disposing;
   List<int>? scoredCandidates;
   bool? scoreReuse;
   bool cancelError = false;
@@ -366,6 +450,12 @@ class _Runtime extends FakeRuntime implements LlamaRuntimeScoringProvider {
   Future<void> initialize(LlamaModelDefinition definition) async {
     await loading?.future;
     await super.initialize(definition);
+  }
+
+  @override
+  Future<void> dispose() async {
+    await super.dispose();
+    await disposing?.future;
   }
 
   @override

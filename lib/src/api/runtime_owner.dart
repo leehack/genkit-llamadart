@@ -86,23 +86,25 @@ final class LlamaDartRuntimePool {
         'The isolated runtime pool is full. Close an owner before opening another.',
       );
     }
-    final LlamaDartRuntime runtime;
-    try {
-      runtime = _factory();
-    } catch (_) {
-      throw llama.LlamaStateException(
-        'Unable to allocate an isolated native runtime. Check runtime installation.',
-      );
-    }
-    if (_seenRuntimes[runtime] == true) {
-      throw llama.LlamaStateException(
-        'The runtime factory reused an owned runtime. Return a fresh independent context.',
-      );
-    }
-    _seenRuntimes[runtime] = true;
-    final owner = LlamaDartRuntimeOwner._(this, runtime);
+    final owner = LlamaDartRuntimeOwner._(this);
     _owners.add(owner);
     try {
+      final LlamaDartRuntime runtime;
+      try {
+        runtime = _factory();
+      } catch (_) {
+        throw llama.LlamaStateException(
+          'Unable to allocate an isolated native runtime. Check runtime installation.',
+        );
+      }
+      if (_seenRuntimes[runtime] == true) {
+        throw llama.LlamaStateException(
+          'The runtime factory reused an owned runtime. Return a fresh independent context.',
+        );
+      }
+      _seenRuntimes[runtime] = true;
+      owner._allocated = runtime;
+      if (owner._closed || _closing != null) throw _unavailable();
       await owner._run(
         (_) => runtime.initialize(_model),
         cancellation: cancellation,
@@ -134,10 +136,11 @@ final class LlamaDartRuntimePool {
 /// and results are sensitive: choose an appropriate Genkit telemetry policy.
 /// This owner buffers generation; it exposes no mutable engine or chat history.
 final class LlamaDartRuntimeOwner {
-  LlamaDartRuntimeOwner._(this._pool, this._runtime);
+  LlamaDartRuntimeOwner._(this._pool);
 
   final LlamaDartRuntimePool _pool;
-  final LlamaDartRuntime _runtime;
+  LlamaDartRuntime? _allocated;
+  LlamaDartRuntime get _runtime => _allocated!;
   Future<void> _tail = Future<void>.value();
   Future<void>? _closing;
   Timer? _idle;
@@ -234,7 +237,7 @@ final class LlamaDartRuntimeOwner {
     _idle?.cancel();
     return _closing ??= _tail.then((_) async {
       try {
-        await _runtime.dispose();
+        await _allocated?.dispose();
         _pool._owners.remove(this);
       } catch (_) {
         throw llama.LlamaStateException(
