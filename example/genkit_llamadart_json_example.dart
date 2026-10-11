@@ -18,15 +18,7 @@ final SchemanticType<Map<String, dynamic>> _reviewSchema =
         'required': <String>['summary', 'sentiment'],
         'additionalProperties': false,
       },
-      parse: (json) {
-        if (json is Map<String, dynamic>) {
-          return json;
-        }
-        if (json is Map) {
-          return json.cast<String, dynamic>();
-        }
-        throw FormatException('Expected a JSON object.');
-      },
+      parse: (json) => (json as Map).cast<String, dynamic>(),
     );
 
 Future<void> main() async {
@@ -40,7 +32,6 @@ Future<void> main() async {
     stdout.write('JSON stream: ');
     final stream = ai
         .generateStream<Map<String, dynamic>, LlamaDartGenerationConfig>(
-          model: prepared.modelRef,
           prompt: prompt,
           outputSchema: _reviewSchema,
           outputFormat: 'json',

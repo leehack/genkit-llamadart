@@ -4,7 +4,6 @@ import 'support/chat_model.dart';
 
 Future<void> main() async {
   final prepared = await prepareExampleChat('inspection');
-  final ai = prepared.createGenkit();
   try {
     final snapshot = await prepared.inspect();
     print('Backend: ${snapshot.capabilities?.backendName}');
@@ -20,10 +19,6 @@ Future<void> main() async {
       print('${token.token}: ${token.text} (${token.probability})');
     }
   } finally {
-    try {
-      await prepared.dispose();
-    } finally {
-      await ai.shutdown();
-    }
+    await prepared.dispose();
   }
 }

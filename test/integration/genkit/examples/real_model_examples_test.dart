@@ -51,7 +51,19 @@ void main() {
       final agent = await run('agent');
       expect(agent, contains('Tool: lookup_demo_temperature(Seoul)'));
       expect(agent, contains('19'));
-      expect(await run('json'), contains('Parsed output:'));
+      final jsonOutput = await run('json');
+      const marker = 'Parsed output: ';
+      expect(jsonOutput, contains(marker));
+      final review = jsonDecode(jsonOutput.split(marker).last) as Map;
+      expect(review.keys, unorderedEquals(['summary', 'sentiment']));
+      expect(
+        review['summary'],
+        isA<String>().having((s) => s.trim(), 'text', isNotEmpty),
+      );
+      expect(
+        review['sentiment'],
+        isA<String>().having((s) => s.trim(), 'text', isNotEmpty),
+      );
       final retrieval = jsonDecode(await run('retrieval')) as Map;
       expect(retrieval['answer'], contains('17'));
       expect(retrieval['sources'], ['returns']);

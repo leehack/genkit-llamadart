@@ -192,12 +192,30 @@ void main() {
       final flow = defineLocalRetrievalFlow(ai, [
         _document('returns', 'Return window: 17 days.'),
       ]);
-      await expectLater(flow('return window'), throwsA(isA<Exception>()));
+      await expectLater(
+        flow('return window'),
+        throwsA(
+          isA<GenkitException>().having(
+            (error) => error.status,
+            'status',
+            StatusCode.failedPrecondition,
+          ),
+        ),
+      );
       runtime.capabilitySnapshot = const llama.LlamaEngineCapabilities(
         isSupported: true,
         supportsGrammar: false,
       );
-      await expectLater(flow('return window'), throwsA(isA<Exception>()));
+      await expectLater(
+        flow('return window'),
+        throwsA(
+          isA<GenkitException>().having(
+            (error) => error.status,
+            'status',
+            StatusCode.unimplemented,
+          ),
+        ),
+      );
       expect(runtime.generateCallCount, 1);
     },
   );
