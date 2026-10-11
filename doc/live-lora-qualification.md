@@ -29,7 +29,7 @@ The test verifies converted sizes and checksums before creating engines.
 In a temporary workspace, download the pinned source pair and upstream scripts.
 Conversion was qualified with Python 3.12.14, torch 2.11.0, transformers 4.57.6,
 numpy 2.2.6, gguf 0.19.0, safetensors 0.8.0, sentencepiece 0.2.2 and
- tokenizers 0.22.2. Use an isolated environment for upstream requirements:
+tokenizers 0.22.2. Use an isolated environment for upstream requirements:
 
 ```bash
 git clone https://github.com/ggml-org/llama.cpp.git upstream

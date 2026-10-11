@@ -8,6 +8,8 @@
 /// model calls through llamadart and checks the loaded runtime's capabilities.
 /// Configure requests with [LlamaDartGenerationConfig] or [LlamaDartEmbedConfig].
 /// Use [LlamaDartPlugin.scorer] for typed raw next-token probabilities.
+/// [LlamaDartRuntimePool] provides dedicated native raw-prompt contexts and live
+/// LoRA controls for application-authorized flows outside the shared registry.
 ///
 /// Models load lazily. Dispose [LlamaDartPlugin] or [LlamaPreparedModel] when
 /// finished, and shut down the caller-owned Genkit instance separately.
