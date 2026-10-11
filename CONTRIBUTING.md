@@ -313,3 +313,6 @@ Laya encoder and head checksums before running. See [decision flows](doc/decisio
 for the exact fixtures and command. Ordinary CI skips it without explicit model
 paths; the fast schema tests validate complete output and reject malformed
 answer shapes without loading weights.
+
+For public runtime-owner qualification, see
+[the opt-in native owner proof](doc/runtime-owners.md#real-model-qualification).

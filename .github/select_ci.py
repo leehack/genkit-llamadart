@@ -9,7 +9,7 @@ PROSE = {
     "doc/decision-flows.md", "doc/media-models.md", "doc/migration.md",
     "doc/model-inspection.md", "doc/model-preparation.md",
     "doc/next-token-scoring.md", "doc/observability.md",
-    "doc/runtime-isolation-design.md", "doc/runtime-support.md", "doc/usage.md",
+    "doc/runtime-isolation-design.md", "doc/runtime-owners.md", "doc/runtime-support.md", "doc/usage.md",
 }
 
 

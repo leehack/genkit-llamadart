@@ -108,3 +108,7 @@ publishes only recognized backend labels and a neutral unsupported reason.
 Dedicated [batch speech/image models](media-models.md) use `LlamaDartMediaPlugin`
 and separate typed engines. Their listed metadata describes accepted shapes;
 readiness is checked from the engine before each operation. This preview is native only.
+
+Dedicated native raw-prompt contexts are available through the opt-in
+[application-owned runtime pool](runtime-owners.md). Web and LiteRT-LM are
+unsupported for this helper; the ordinary plugin support above is unchanged.

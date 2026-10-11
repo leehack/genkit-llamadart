@@ -22,6 +22,7 @@ export 'package:llamadart/llamadart.dart'
         DefaultModelDownloadManager,
         FlashAttention,
         GpuBackend,
+        GenerationParams,
         KvCacheType,
         LlamaEngineObserver,
         LlamaEngineCapabilities,
@@ -89,3 +90,6 @@ export 'src/api/media_model.dart'
         LlamaDartTextToSpeechModel,
         LlamaDartImageModel;
 export 'src/integration/genkit/media_plugin.dart' show LlamaDartMediaPlugin;
+
+export 'src/api/runtime_owner.dart'
+    show LlamaDartRuntimePool, LlamaDartRuntimeOwner;
