@@ -139,7 +139,13 @@ void main() {
               _status(status).having(
                 (error) => error.toString(),
                 'sanitized diagnostic',
-                isNot(contains(privateDiagnostic)),
+                isNot(
+                  anyOf(
+                    contains('/private/models'),
+                    contains('token='),
+                    contains('secret'),
+                  ),
+                ),
               ),
             ),
           );

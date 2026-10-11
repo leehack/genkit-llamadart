@@ -20,31 +20,28 @@ Future<String> _fixture(String variable, String hash) async {
 }
 
 Future<File> _mismatchedHead(String path, Directory directory) async {
-  final source = File(path);
-  final reader = await source.open();
-  final Map<String, dynamic> header;
-  final int originalLength;
-  try {
-    originalLength = ByteData.sublistView(
-      await reader.read(8),
-    ).getUint64(0, Endian.little);
-    header =
-        jsonDecode(utf8.decode(await reader.read(originalLength)))
-            as Map<String, dynamic>;
-  } finally {
-    await reader.close();
-  }
-  header['head.layers.0.norm1.weight']['shape'] = [512, 2];
-  final json = utf8.encode(jsonEncode(header));
-  final length = (json.length + 7) ~/ 8 * 8;
-  final bytes = Uint8List(8 + length)..fillRange(8, 8 + length, 32);
-  ByteData.sublistView(bytes).setUint64(0, length, Endian.little);
-  bytes.setRange(8, 8 + json.length, json);
   final target = File('${directory.path}/mismatched.safetensors');
-  await target.writeAsBytes(bytes);
-  await source
-      .openRead(8 + originalLength)
-      .pipe(target.openWrite(mode: FileMode.append));
+  await File(path).copy(target.path);
+  final file = await target.open(mode: FileMode.append);
+  try {
+    await file.setPosition(0);
+    final length = ByteData.sublistView(
+      await file.read(8),
+    ).getUint64(0, Endian.little);
+    final header =
+        jsonDecode(utf8.decode(await file.read(length)))
+            as Map<String, dynamic>;
+    header['head.layers.0.norm1.weight']['shape'] = [512, 2];
+    final json = utf8.encode(jsonEncode(header));
+    expect(json.length, lessThanOrEqualTo(length));
+    final bytes = Uint8List(length)
+      ..fillRange(0, length, 32)
+      ..setRange(0, json.length, json);
+    await file.setPosition(8);
+    await file.writeFrom(bytes);
+  } finally {
+    await file.close();
+  }
   return target;
 }
 

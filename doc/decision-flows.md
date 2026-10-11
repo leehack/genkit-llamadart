@@ -71,11 +71,11 @@ explicitly. Genkit cancellation is checked before and after inference; the
 published decision API cannot interrupt an in-flight encoder pass. There are
 no partial answers or streamed chunks. Inference and capability-probe errors map
 to neutral Genkit diagnostics without retaining raw native errors or paths. The
-upstream model label is the safe constant `laya-rl-agent`. Applications exposing a flow over a
-network should provide authorization, input limits and telemetry policy: Genkit
-traces can record the ticket and decision result. Startup loading happens before
-Genkit is created and retains native CLI diagnostics; do not forward those
-diagnostics to remote users.
+upstream model label is the safe constant `laya-rl-agent`. Applications exposing
+a flow over a network should provide authorization, input limits and telemetry
+policy: Genkit traces can record the ticket and decision result. Startup loading
+happens before Genkit is created and retains native CLI diagnostics; do not
+forward those diagnostics to remote users.
 
 This recipe is qualified on macOS arm64 with native llama.cpp on CPU using the
 published `llamadart 0.11.1` API. Other native platforms and GPU execution are
@@ -104,5 +104,5 @@ probabilities and usage, and exercises blank/wrong-type input, upstream NUL
 validation, cancellation and use after disposal. A second real test verifies
 borrowed encoder ownership, malformed and shape-mismatched head recovery,
 concurrent requests and rejection after encoder disposal. Both skip before file
-access or downloads when either path is absent. This is bounded routing and lifecycle
-qualification, not an accuracy benchmark. No model weights are shipped.
+access or downloads when either path is absent. This is bounded routing and
+lifecycle qualification, not an accuracy benchmark. No model weights are shipped.
