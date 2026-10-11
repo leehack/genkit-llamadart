@@ -77,7 +77,7 @@ jobs:
         if: steps.changes.outputs.runtime == 'true'
         env:
           LLAMADART_AUTO_DOWNLOAD_TEST_MODELS: '1'
-        run: dart test -t real-model
+        run: dart test -t real-model -j 1
 
       - name: Verify publish readiness
         run: flutter pub publish --dry-run
