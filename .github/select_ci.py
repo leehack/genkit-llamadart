@@ -4,6 +4,15 @@ import os
 import subprocess
 
 
+PROSE = {
+    "README.md", "CHANGELOG.md", "ARCHITECTURE.md", "CONTRIBUTING.md", "LICENSE",
+    "doc/decision-flows.md", "doc/media-models.md", "doc/migration.md",
+    "doc/model-inspection.md", "doc/model-preparation.md",
+    "doc/next-token-scoring.md", "doc/observability.md",
+    "doc/runtime-isolation-design.md", "doc/runtime-support.md", "doc/usage.md",
+}
+
+
 def changed_paths():
     if os.environ.get("EVENT_NAME") != "pull_request":
         return None
@@ -23,9 +32,7 @@ def changed_paths():
 
 
 def select(paths):
-    prose = {"README.md", "CHANGELOG.md", "ARCHITECTURE.md", "CONTRIBUTING.md", "LICENSE"}
-    # Only these known documentation files can bypass runtime validation.
-    return {"runtime": not paths or any(path not in prose for path in paths)}
+    return {"runtime": not paths or any(path not in PROSE for path in paths)}
 
 
 if __name__ == "__main__":

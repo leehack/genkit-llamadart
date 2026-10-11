@@ -78,7 +78,12 @@ void main() {
       final documents = {
         ...skills,
         'readme': File('README.md').readAsStringSync(),
-        for (final file in Directory('doc').listSync().whereType<File>())
+        'architecture': File('ARCHITECTURE.md').readAsStringSync(),
+        'contributing': File('CONTRIBUTING.md').readAsStringSync(),
+        'changelog': File('CHANGELOG.md').readAsStringSync(),
+        for (final file in Directory(
+          'doc',
+        ).listSync(recursive: true).whereType<File>())
           if (file.path.endsWith('.md'))
             p.basenameWithoutExtension(file.path): file.readAsStringSync(),
       };
