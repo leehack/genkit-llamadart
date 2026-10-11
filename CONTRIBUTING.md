@@ -70,7 +70,7 @@ Real-model smoke tests with auto-download:
 
 ```bash
 LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 \
-dart test -t real-model
+dart test -t real-model -j 1
 ```
 
 Real-model smoke tests with local files:
@@ -78,7 +78,7 @@ Real-model smoke tests with local files:
 ```bash
 LLAMADART_INTEGRATION_MODEL_PATH=/models/tiny-chat.gguf \
 LLAMADART_INTEGRATION_EMBED_MODEL_PATH=/models/tiny-embed.gguf \
-dart test -t real-model
+dart test -t real-model -j 1
 ```
 
 Optional environment variables for smoke tests:
@@ -123,8 +123,8 @@ The default auto-downloaded models are intentionally tiny and CPU-friendly:
 
 They are meant for smoke testing package behavior, not for judging output
 quality. The observer/lifecycle smoke fixture explicitly uses CPU, a 1024-token
-context and one generation/batch thread so concurrent CI model sessions have
-bounded resources.
+context and one generation/batch thread to bound resource use. Run real-model
+tests with one test worker, as CI does, to avoid overlapping native inference.
 See [ARCHITECTURE.md](ARCHITECTURE.md#real-model-smoke-tests) for their sources
 and verification.
 
@@ -180,7 +180,7 @@ Run:
 dart format --output=none --set-exit-if-changed .
 dart analyze
 dart test -x real-model
-LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 dart test -t real-model
+LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 dart test -t real-model -j 1
 dart pub publish --dry-run
 ```
 
