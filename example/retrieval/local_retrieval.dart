@@ -4,7 +4,7 @@ import 'package:genkit/genkit.dart';
 import 'package:genkit_llamadart/genkit_llamadart.dart';
 import 'package:schemantic/schemantic.dart';
 
-/// Selects whole text documents by word overlap, preserving order on ties.
+/// Selects whole text documents by ASCII word overlap, preserving order on ties.
 ///
 /// Documents need a unique `metadata['id']` containing only letters, digits,
 /// `_` or `-`. Other metadata is excluded from model context. Media parts are

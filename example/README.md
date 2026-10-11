@@ -79,8 +79,8 @@ imports in your own application, add `llamadart` explicitly as well as
 | --- | --- | --- |
 | [Image input](genkit_llamadart_multimodal_example.dart) | `dart run example/genkit_llamadart_multimodal_example.dart /models/vision.gguf /models/mmproj.gguf image.png` | Supply a vision model and its **matching** projector; no weights are downloaded |
 | [Transcription](genkit_llamadart_transcription_example.dart) | `dart run example/genkit_llamadart_transcription_example.dart input.wav` | Downloads pinned Qwen3-ASR model/projector, about 1 GB; use a short trusted WAV |
-| [Speech synthesis](genkit_llamadart_speech_example.dart) | `dart run example/genkit_llamadart_speech_example.dart output.wav` | Downloads pinned Qwen3-TTS model/projector, several GB; writes “Hello from Genkit.” as a complete WAV |
-| [Image generation](genkit_llamadart_image_example.dart) | `dart run example/genkit_llamadart_image_example.dart output.png` | Downloads pinned SDXS, about 650 MB; enable its native runtime first |
+| [Speech synthesis](genkit_llamadart_speech_example.dart) | `dart run example/genkit_llamadart_speech_example.dart output.wav` | Downloads pinned Qwen3-TTS model/projector, about 1.5 GB; writes “Hello from Genkit.” as a complete WAV |
+| [Image generation](genkit_llamadart_image_example.dart) | `dart run example/genkit_llamadart_image_example.dart output.png` | Downloads pinned SDXS, about 683 MB; enable its native runtime first |
 
 Transcription/speech accept local model and projector paths after the WAV path;
 image generation accepts a local SDXS path after the output path. The output

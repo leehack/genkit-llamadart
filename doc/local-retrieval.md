@@ -17,7 +17,7 @@ repository root so the example can find its files.
 ## How the recipe works
 
 The [flow helper](../example/retrieval/local_retrieval.dart) ranks documents by
-word overlap with the question, with a basic trailing-`s` normalization and
+ASCII English-word overlap with the question, with a basic trailing-`s` normalization and
 input order preserved for ties. It selects up
 to three whole passages within 3,000 JSON-encoded characters. Oversized passages
 are skipped, not cut mid-sentence. It supports questions up to 512 characters.
