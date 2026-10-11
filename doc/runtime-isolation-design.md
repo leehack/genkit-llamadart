@@ -1,9 +1,10 @@
 # Isolated state and LoRA: implementation contract
 
-This is the design-first slice of [#36](https://github.com/leehack/genkit-llamadart/issues/36)
-and [#46](https://github.com/leehack/genkit-llamadart/issues/46). It adds no session,
-KV-state or live LoRA API. Both issues remain open until the qualification below
-passes. Applications can already configure load-time adapters through
+This contract guides [#36](https://github.com/leehack/genkit-llamadart/issues/36)
+and [#46](https://github.com/leehack/genkit-llamadart/issues/46).
+[Dedicated native owners](runtime-owners.md) now provide bounded raw generation,
+scoring, cancellation and cleanup. KV checkpoints and live LoRA remain deferred.
+Both issues remain open until their remaining qualification passes. Applications can already configure load-time adapters through
 `ModelParams.loras`; changing an adapter on a loaded plugin runtime is not exposed.
 
 ## Why a separate owner is required
@@ -26,7 +27,7 @@ shared loaded weights or inexpensive sessions.
 Genkit can host a typed provider action/flow for this owner without changing
 standard `generate` parameters. The application authenticates and authorizes
 session access; a caller-supplied session ID is never authorization. Names and
-public signatures should be chosen only after the isolation proof.
+public owner handles remain within trusted application code.
 
 ## Ordering and lifecycle
 
@@ -198,8 +199,9 @@ control and provenance. Single-token batches eliminate the observed difference.
 This does not identify a specific kernel or prove a corrupt state file.
 
 Broader chat checkpoints, sampler/RNG continuation, message-history recovery,
-model/build/adapter identity enforcement, transactional storage, admission limits
-and a maintained session owner remain unimplemented. GPU, Web, other native
+model/build/adapter identity enforcement and transactional checkpoint storage
+remain unimplemented. Bounded native owners are available separately; they expose
+no state files or chat recovery. GPU, Web, other native
 platforms and model families are unqualified. No live-LoRA base/adapter proof has
 been run. Issues #36/#46 remain open; this supplies a bounded prerequisite only.
 

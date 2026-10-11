@@ -1,5 +1,7 @@
 ## Unreleased
 
+- Add bounded application-owned native raw-prompt runtimes with isolated queues, cancellation and cleanup.
+
 - Expose typed Genkit actions for raw next-token probabilities with live capability checks and the shared model queue.
 
 - Combine constrained JSON and tool calls on native llama.cpp, with complete-output validation before streaming or tool dispatch; preserve literal tool markup in final JSON.
