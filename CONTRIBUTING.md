@@ -26,6 +26,8 @@ test layout. End-user guides live under `doc/`; README is the pub.dev entrypoint
 - Keep README focused on installation, the first successful request, feature
   requirements and navigation. Put detailed guidance under `doc/` and runnable
   examples under `example/`.
+- Use absolute HTTPS links in README, CHANGELOG and the example index so
+  navigation works when pub.dev renders them. In-page anchors can stay local.
 - Update affected package skills with public API changes. Compile documentation
   examples and run `dart doc --dry-run` before claiming docs are ready.
 

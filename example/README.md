@@ -11,7 +11,7 @@ is listed; later runs reuse llamadart's cache.
 dart run example/genkit_llamadart_example.dart
 ```
 
-The [pub.dev example](genkit_llamadart_example.dart) is a standalone Qwen3.5
+The [pub.dev example](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_example.dart) is a standalone Qwen3.5
 quickstart with a pinned Hugging Face revision, 4,096-token context and model
 sampling settings. It downloads about 533 MB. To use an existing model instead:
 
@@ -25,17 +25,17 @@ Model quality and supported options can differ with that override.
 
 | Example | Run with `dart run example/…` | What it demonstrates |
 | --- | --- | --- |
-| [Streaming](genkit_llamadart_streaming_example.dart) | `genkit_llamadart_streaming_example.dart` | Incremental text plus the final `onResult` outcome |
-| [Agent](genkit_llamadart_agent_example.dart) | `genkit_llamadart_agent_example.dart` | Typed city arguments, deterministic sampling, a Genkit tool loop and multi-turn history; fixtures are **demo data**, not live weather |
-| [Structured JSON](genkit_llamadart_json_example.dart) | `genkit_llamadart_json_example.dart` | Grammar-constrained streaming and parsed output; native grammar support required |
-| [Local retrieval](genkit_llamadart_retrieval_example.dart) | `genkit_llamadart_retrieval_example.dart` | Search three local text files, bound context and return an answer with source IDs |
-| [Inspection and scoring](genkit_llamadart_inspection_example.dart) | `genkit_llamadart_inspection_example.dart` | Loaded backend/context, raw token counts and next-token probabilities; native decoder required |
-| [Embeddings](genkit_llamadart_embedding_example.dart) | `genkit_llamadart_embedding_example.dart` | Normalized text vectors; downloads a pinned Jina embedding GGUF, about 20 MB |
-| [Download/cache](genkit_llamadart_source_prepare_example.dart) | `genkit_llamadart_source_prepare_example.dart` | Source preparation and cache reuse; pinned SmolLM2, about 88 MB |
-| [Preparation UI](genkit_llamadart_preparation_task_example.dart) | `genkit_llamadart_preparation_task_example.dart` | Download/load snapshots and warm-up; pinned SmolLM2, about 88 MB |
-| [Decisions](genkit_llamadart_decision_example.dart) | `genkit_llamadart_decision_example.dart` | Non-generative Laya choice, score and yes/no in a typed flow; downloads encoder/head, about 380 MB |
-| [Dedicated owner](genkit_llamadart_owner_example.dart) | `genkit_llamadart_owner_example.dart /models/base.gguf` | Application-owned raw completion and cancellation in a Genkit flow |
-| [Live LoRA](genkit_llamadart_lora_example.dart) | `genkit_llamadart_lora_example.dart /models/base.gguf /models/adapter.gguf` | Apply and clear a compatible ordinary LoRA on one native owner, without reloading weights |
+| [Streaming](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_streaming_example.dart) | `genkit_llamadart_streaming_example.dart` | Incremental text plus the final `onResult` outcome |
+| [Agent](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_agent_example.dart) | `genkit_llamadart_agent_example.dart` | Typed city arguments, deterministic sampling, a Genkit tool loop and multi-turn history; fixtures are **demo data**, not live weather |
+| [Structured JSON](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_json_example.dart) | `genkit_llamadart_json_example.dart` | Grammar-constrained streaming and parsed output; native grammar support required |
+| [Local retrieval](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_retrieval_example.dart) | `genkit_llamadart_retrieval_example.dart` | Search three local text files, bound context and return an answer with source IDs |
+| [Inspection and scoring](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_inspection_example.dart) | `genkit_llamadart_inspection_example.dart` | Loaded backend/context, raw token counts and next-token probabilities; native decoder required |
+| [Embeddings](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_embedding_example.dart) | `genkit_llamadart_embedding_example.dart` | Normalized text vectors; downloads a pinned Jina embedding GGUF, about 20 MB |
+| [Download/cache](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_source_prepare_example.dart) | `genkit_llamadart_source_prepare_example.dart` | Source preparation and cache reuse; pinned SmolLM2, about 88 MB |
+| [Preparation UI](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_preparation_task_example.dart) | `genkit_llamadart_preparation_task_example.dart` | Download/load snapshots and warm-up; pinned SmolLM2, about 88 MB |
+| [Decisions](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_decision_example.dart) | `genkit_llamadart_decision_example.dart` | Non-generative Laya choice, score and yes/no in a typed flow; downloads encoder/head, about 380 MB |
+| [Dedicated owner](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_owner_example.dart) | `genkit_llamadart_owner_example.dart /models/base.gguf` | Application-owned raw completion and cancellation in a Genkit flow |
+| [Live LoRA](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_lora_example.dart) | `genkit_llamadart_lora_example.dart /models/base.gguf /models/adapter.gguf` | Apply and clear a compatible ordinary LoRA on one native owner, without reloading weights |
 
 For a one-shot agent request instead of the interactive prompt:
 
@@ -63,9 +63,9 @@ LLAMADART_MODEL_PATH=/models/embedding.gguf \
 
 Raw token counts omit the chat template, tools and media. Scoring measures
 immediate raw continuation probabilities; it is not chat confidence or a
-multi-token answer score. See [inspection](../doc/model-inspection.md),
-[scoring](../doc/next-token-scoring.md), [decisions](../doc/decision-flows.md)
-and [owner/LoRA limitations](../doc/runtime-owners.md).
+multi-token answer score. See [inspection](https://github.com/leehack/genkit-llamadart/blob/main/doc/model-inspection.md),
+[scoring](https://github.com/leehack/genkit-llamadart/blob/main/doc/next-token-scoring.md), [decisions](https://github.com/leehack/genkit-llamadart/blob/main/doc/decision-flows.md)
+and [owner/LoRA limitations](https://github.com/leehack/genkit-llamadart/blob/main/doc/runtime-owners.md).
 
 ## Images and speech
 
@@ -77,16 +77,16 @@ imports in your own application, add `llamadart` explicitly as well as
 
 | Example | Command | Models/setup |
 | --- | --- | --- |
-| [Image input](genkit_llamadart_multimodal_example.dart) | `dart run example/genkit_llamadart_multimodal_example.dart /models/vision.gguf /models/mmproj.gguf image.png` | Supply a vision model and its **matching** projector; no weights are downloaded |
-| [Transcription](genkit_llamadart_transcription_example.dart) | `dart run example/genkit_llamadart_transcription_example.dart input.wav` | Downloads pinned Qwen3-ASR model/projector, about 1 GB; use a short trusted WAV |
-| [Speech synthesis](genkit_llamadart_speech_example.dart) | `dart run example/genkit_llamadart_speech_example.dart output.wav` | Downloads pinned Qwen3-TTS model/projector, about 1.5 GB; writes “Hello from Genkit.” as a complete WAV |
-| [Image generation](genkit_llamadart_image_example.dart) | `dart run example/genkit_llamadart_image_example.dart output.png` | Downloads pinned SDXS, about 683 MB; enable its native runtime first |
+| [Image input](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_multimodal_example.dart) | `dart run example/genkit_llamadart_multimodal_example.dart /models/vision.gguf /models/mmproj.gguf image.png` | Supply a vision model and its **matching** projector; no weights are downloaded |
+| [Transcription](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_transcription_example.dart) | `dart run example/genkit_llamadart_transcription_example.dart input.wav` | Downloads pinned Qwen3-ASR model/projector, about 1 GB; use a short trusted WAV |
+| [Speech synthesis](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_speech_example.dart) | `dart run example/genkit_llamadart_speech_example.dart output.wav` | Downloads pinned Qwen3-TTS model/projector, about 1.5 GB; writes “Hello from Genkit.” as a complete WAV |
+| [Image generation](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_image_example.dart) | `dart run example/genkit_llamadart_image_example.dart output.png` | Downloads pinned SDXS, about 683 MB; enable its native runtime first |
 
 Transcription/speech accept local model and projector paths after the WAV path;
 image generation accepts a local SDXS path after the output path. The output
 commands overwrite the named file, so choose a new path when retaining outputs.
 Image input accepts local PNG/JPEG files; remote input needs an explicit resolver
-and URL policy. See [media input](../doc/usage.md#image-and-audio-input).
+and URL policy. See [media input](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#image-and-audio-input).
 
 For image generation, add this hook configuration to the application's
 `pubspec.yaml`, then run `dart pub get` before the image command:
@@ -99,12 +99,12 @@ hooks:
 ```
 
 The model pairs, backend requirements, output limits and supported controls are
-in the [speech/image guide](../doc/media-models.md). These examples do not add
+in the [speech/image guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/media-models.md). These examples do not add
 browser support or accept arbitrary model families through the Qwen adapters.
 
 ## Telemetry
 
-The [observability example](genkit_llamadart_observability_example.dart) needs
+The [observability example](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_observability_example.dart) needs
 an application-configured OTLP collector. It records model and runtime spans,
 token usage and timing metrics, with prompt/output capture disabled:
 
@@ -115,6 +115,6 @@ LLAMADART_MODEL_PATH=/models/chat.gguf \
   dart run example/genkit_llamadart_observability_example.dart
 ```
 
-See [collector setup and privacy](../doc/observability.md). When copying this
+See [collector setup and privacy](https://github.com/leehack/genkit-llamadart/blob/main/doc/observability.md). When copying this
 example into an app, add `genkit_otel` and `dartastic_opentelemetry` to its
 package dependencies.

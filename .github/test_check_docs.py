@@ -2,10 +2,37 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from check_docs import anchors, check_links, destinations, documents
+from check_docs import anchors, check_links, check_pub_links, destinations, documents
 
 
 class DocumentationTest(unittest.TestCase):
+    def test_pub_links_reject_relative_paths_even_when_targets_exist(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            readme = root / "README.md"
+            (root / "guide.md").write_text("# Guide\n")
+            readme.write_text(
+                "[inline](guide.md)\n![image](./guide.md)\n"
+                "[reference]: /guide.md\n"
+                "[protocol-relative](//github.com/leehack/genkit-llamadart)\n"
+            )
+            errors = check_pub_links(root, readme)
+            self.assertEqual(len(errors), 4)
+            self.assertTrue(all("absolute HTTPS" in error for error in errors))
+
+    def test_pub_links_allow_https_and_in_page_anchors_and_ignore_code(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            readme = root / "README.md"
+            readme.write_text(
+                "# Guide\n[section](#guide)\n"
+                "[file](https://github.com/leehack/genkit-llamadart/blob/main/README.md)\n"
+                "![badge](https://example.invalid/badge.svg)\n"
+                "[reference]: https://example.invalid/guide\n"
+                "```markdown\n[example](relative.md)\n```\n"
+            )
+            self.assertEqual(check_pub_links(root, readme), [])
+
     def test_example_guides_are_checked(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
