@@ -21,6 +21,8 @@ and rendered tool results, including text-part joining. Omitted input reasoning
 is excluded. Output counts final text, reasoning and compact JSON tool arguments
 once, after streaming. These counts exclude templates, tool names/schemas,
 configuration, metadata, media URLs/encoded bytes and hidden runtime work.
+If returned tool arguments cannot be JSON-encoded, `outputCharacters` remains
+null while the response and its other usage measurements are preserved.
 
 For batch synthesis/image prompts, input text includes the newlines joining
 text parts. Media counts count parts/files, not frames, patches, samples or

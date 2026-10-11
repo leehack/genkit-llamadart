@@ -23,9 +23,6 @@ Future<List<Message>> normalizeResourceMessages(
   final result = <Message>[];
 
   Future<List<Part>> expand(List<Part> parts, int depth) async {
-    if (depth > 4) {
-      throw const FormatException('Resource nesting exceeds the limit.');
-    }
     final output = <Part>[];
     void append(Part part, String content) {
       if (content.length > 16384) {
@@ -55,6 +52,9 @@ Future<List<Message>> normalizeResourceMessages(
         final text = _jsonData(part.data);
         append(TextPart(text: text), text);
       } else if (part.isResource) {
+        if (depth >= 4) {
+          throw const FormatException('Resource nesting exceeds the limit.');
+        }
         final uri = part.resource!['uri'];
         if (part.resource!.length != 1 || uri is! String) {
           throw const FormatException(

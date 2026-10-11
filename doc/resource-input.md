@@ -36,6 +36,7 @@ or JSON nesting levels, 64 JSON nodes per data part, and 16 KiB of expanded text
 plus media URLs. Recursive resources, unsupported parts, oversized input and
 resolution failures produce bounded diagnostics without raw transport errors.
 These limits do not include the chat template and are not a token budget.
+The nesting limit is checked before calling a resource action beyond it.
 
 Image/audio media stays typed. Media transport, payload limits and decoding
 remain governed by the compatible model and your application-owned

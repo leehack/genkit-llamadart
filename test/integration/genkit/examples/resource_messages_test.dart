@@ -265,6 +265,7 @@ void main() {
   });
 
   test('acyclic resource chains respect the nesting limit', () async {
+    final resolved = <int>[];
     final resources = <String, ResourceAction>{};
     for (var i = 0; i < 5; i++) {
       final next = i + 1;
@@ -272,14 +273,17 @@ void main() {
       resources[uri] = ai.defineResource(
         name: 'source$i',
         uri: uri,
-        fn: (_, _) async => ResourceOutput(
-          content: [
-            if (next < 5)
-              ResourcePart(resource: {'uri': 'app://chain/$next'})
-            else
-              TextPart(text: 'leaf'),
-          ],
-        ),
+        fn: (_, _) async {
+          resolved.add(next - 1);
+          return ResourceOutput(
+            content: [
+              if (next < 5)
+                ResourcePart(resource: {'uri': 'app://chain/$next'})
+              else
+                TextPart(text: 'leaf'),
+            ],
+          );
+        },
       );
     }
     await expectLater(
@@ -294,6 +298,19 @@ void main() {
           'Resource nesting exceeds the limit.',
         ),
       ),
+    );
+    expect(resolved, [0, 1, 2, 3]);
+    resolved.clear();
+    final allowed = await normalizeResourceMessages(
+      input(ResourcePart(resource: {'uri': 'app://chain/1'})),
+      resources,
+    );
+    expect(resolved, [1, 2, 3, 4]);
+    expect(
+      allowed.single.content
+          .where((part) => part.isText)
+          .map((part) => part.text),
+      contains('leaf'),
     );
   });
 
