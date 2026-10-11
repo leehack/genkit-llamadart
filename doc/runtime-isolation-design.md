@@ -161,8 +161,47 @@ follow the application's [telemetry policy](observability.md).
    positive/negative isolation tests and model evidence. Update public Dartdoc,
    support docs and changelog only for behavior actually delivered.
 
-This document is source inspection, not real-model isolation qualification.
-No save/resume or live-LoRA model proof has been run for this adapter slice.
+## Bounded native checkpoint proof
+
+The opt-in [native proof](../test/integration/genkit/runtime/real_model_isolation_test.dart)
+uses application-owned `LlamaEngine` instances, outside the shared plugin registry.
+It qualifies the prerequisite on macOS arm64 CPU with published llamadart 0.11.1
+and native artifact `v0.5.0-2` (llama.cpp `7fe450e19305b828c199d602c23a8337aaa1f03b`).
+It verifies the pinned tiny SmolLM2 model's size and SHA-256 before loading.
+
+Run the narrow configuration:
+
+```bash
+LLAMADART_RUN_ISOLATION_PROOF=1 LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 \
+dart test -t isolation-model -j 1
+```
+
+| Check | Qualified result |
+| --- | --- |
+| Separate A/B contexts | Interleaved A scoring/save/restore leaves B's counters and cached-prefix continuation intact. |
+| Raw-prompt state | A saves immediately after scoring; restore returns the same special-token-aware 12-token prompt sequence. |
+| Reuse and parity | Restore reuses 11 tokens, re-evaluates the final token for logits, and matches fresh scoring and eight-token greedy continuation. |
+| Lifecycle and cancellation | Close/reopen preserves restore/reuse; cancelling A after both streams emit leaves B's output and cancellation outcome unchanged. |
+| Failed restore | Insufficient token capacity and corrupt files reject; uncertain engines are disposed rather than reused. |
+
+**This result requires `batchSize: 1` and `microBatchSize: 1`**, a 512-token
+context and one CPU thread for generation and batching. It is a qualification
+control, not a performance recommendation or a general session implementation.
+Default CI skips the proof before fixture/cache access unless explicitly enabled.
+
+Automatic batching fails the score/continuation parity assertions on this exact
+model/runtime. To reproduce that qualification failure, use the same command
+with `LLAMADART_ISOLATION_BATCH_SIZE=0`. Direct llama.cpp C calls on the published
+library reproduce the score changes exactly; see
+[llamadart #1003](https://github.com/leehack/llamadart/issues/1003) for the native
+control and provenance. Single-token batches eliminate the observed difference.
+This does not identify a specific kernel or prove a corrupt state file.
+
+Broader chat checkpoints, sampler/RNG continuation, message-history recovery,
+model/build/adapter identity enforcement, transactional storage, admission limits
+and a maintained session owner remain unimplemented. GPU, Web, other native
+platforms and model families are unqualified. No live-LoRA base/adapter proof has
+been run. Issues #36/#46 remain open; this supplies a bounded prerequisite only.
 
 ## Source evidence
 
