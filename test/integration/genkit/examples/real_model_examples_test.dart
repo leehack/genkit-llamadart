@@ -60,6 +60,19 @@ void main() {
               as Map;
       expect(unknown['sources'], isEmpty);
       expect(unknown['answer'], contains("don't know"));
+      final missingFact =
+          jsonDecode(
+                await run('retrieval', ['What is the returns manager salary?']),
+              )
+              as Map;
+      expect(
+        missingFact['answer'].toString().toLowerCase(),
+        matches(
+          r"not contain|not provided|not mentioned|no information|don't know|do not know",
+        ),
+      );
+      expect(missingFact['answer'], isNot(matches(r'\d')));
+      expect(missingFact['sources'], everyElement('returns'));
     },
     timeout: const Timeout(Duration(minutes: 10)),
   );
