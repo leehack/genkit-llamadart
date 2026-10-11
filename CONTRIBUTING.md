@@ -316,3 +316,7 @@ answer shapes without loading weights.
 
 For public runtime-owner qualification, see
 [the opt-in native owner proof](doc/runtime-owners.md#real-model-qualification).
+
+Live source-based LoRA routing has fast owner/runtime tests. Its opt-in real
+base/adapter pair proof and conversion provenance are in
+[the live LoRA qualification guide](doc/live-lora-qualification.md).

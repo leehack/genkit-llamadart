@@ -1,5 +1,7 @@
 ## Unreleased
 
+- Apply, rescale, remove and clear live LoRA adapters on dedicated native owners without reloading the base model.
+
 - Add bounded application-owned native raw-prompt runtimes with isolated queues, cancellation and cleanup.
 
 - Expose typed Genkit actions for raw next-token probabilities with live capability checks and the shared model queue.

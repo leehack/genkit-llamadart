@@ -80,7 +80,8 @@ export 'src/core/runtime/llama_runtime.dart'
         LlamaDartRuntimeFactory,
         LlamaRuntimeCapabilityProvider,
         LlamaRuntimeInspectionProvider,
-        LlamaRuntimeScoringProvider;
+        LlamaRuntimeScoringProvider,
+        LlamaRuntimeLoraProvider;
 export 'src/integration/genkit/plugin.dart' show LlamaDartPlugin;
 
 export 'src/api/media_model.dart'

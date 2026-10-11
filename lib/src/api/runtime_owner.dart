@@ -12,7 +12,7 @@ import 'model_definition.dart';
 /// Each [open] creates a fresh runtime outside the plugin's shared model registry.
 /// Use handles in application-authorized Genkit flows. The application owns
 /// authorization and message history; this pool has no session IDs, checkpoint
-/// storage or live-adapter mutations. Each owner loads its own context and model;
+/// storage. Live-adapter mutations stay within their owner. Each owner loads its own context and model;
 /// shared weight files do not imply shared allocations or cheap sessions.
 final class LlamaDartRuntimePool {
   /// Creates a native-only pool without loading the model.
@@ -215,6 +215,72 @@ final class LlamaDartRuntimeOwner {
       );
     }, cancellation: cancellation);
   }
+
+  /// Applies or rescales one compatible adapter between inference operations.
+  ///
+  /// [scale] must be finite. [download] belongs only to this adapter source;
+  /// base-model credentials/checksums are never copied to it. Its cancellation
+  /// token stops downloads. [onProgress] is application-owned and can contain
+  /// source information; do not export it without a telemetry policy.
+  ///
+  /// An explicit native live-LoRA probe runs before resolution/download. Success
+  /// invalidates native prompt-prefix reuse; replay committed history with the
+  /// new configuration. A source/native failure faults and closes this owner;
+  /// other owners keep their adapters and context. Genkit cancellation waits for
+  /// native work to settle; use [download]'s token for prompt download cancellation.
+  Future<void> setLoraSource(
+    llama.ModelSource source, {
+    double scale = 1,
+    llama.ModelLoadOptions download = llama.ModelLoadOptions.defaults,
+    llama.ModelDownloadProgressCallback? onProgress,
+    genkit.CancellationToken? cancellation,
+  }) {
+    if (!scale.isFinite) throw ArgumentError('LoRA scale must be finite.');
+    return _withLora(
+      (provider) => provider.setLoraSource(
+        source,
+        scale: scale,
+        download: download,
+        onProgress: onProgress,
+      ),
+      cancellation: cancellation,
+    );
+  }
+
+  /// Removes the adapter previously applied from [source] in the same queue.
+  ///
+  /// Cached prefixes are invalidated on success. Removal never mutates another
+  /// owner's context. Capability or mutation failure closes the uncertain owner.
+  Future<void> removeLoraSource(
+    llama.ModelSource source, {
+    genkit.CancellationToken? cancellation,
+  }) => _withLora(
+    (provider) => provider.removeLoraSource(source),
+    cancellation: cancellation,
+  );
+
+  /// Clears this owner's active adapters and invalidates cached prefix reuse.
+  ///
+  /// Serialized with inference; failure closes this owner before reuse.
+  Future<void> clearLoras({genkit.CancellationToken? cancellation}) =>
+      _withLora(
+        (provider) => provider.clearLoras(),
+        cancellation: cancellation,
+      );
+
+  Future<void> _withLora(
+    Future<void> Function(LlamaRuntimeLoraProvider provider) operation, {
+    genkit.CancellationToken? cancellation,
+  }) => _run((_) async {
+    if (_runtime is! LlamaRuntimeLoraProvider ||
+        !await (_runtime as LlamaRuntimeLoraProvider).supportsLiveLora) {
+      throw llama.LlamaUnsupportedException(
+        'Live LoRA requires a supported native adapter API and explicit runtime probe.',
+      );
+    }
+    _checkCancellation(cancellation);
+    await operation(_runtime as LlamaRuntimeLoraProvider);
+  }, cancellation: cancellation);
 
   /// Requests cancellation only of this owner's active generation.
   ///

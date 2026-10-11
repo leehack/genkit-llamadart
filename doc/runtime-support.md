@@ -71,9 +71,10 @@ runtime behavior to prevent unverified support claims.
 ## Limitations
 
 - Genkit sessions do not own the plugin's model runtime. Load-time LoRA through
-  `ModelParams.loras` is available; live adapter changes and KV-state save/restore
-  are not exposed. Their [isolation design](runtime-isolation-design.md) requires
-  dedicated ownership and real-model qualification before implementation.
+  `ModelParams.loras` is available; live source-based changes use
+  [dedicated native owners](runtime-owners.md#live-lora), outside the shared
+  registry. KV-state save/restore remains deferred under the
+  [isolation design](runtime-isolation-design.md).
 - model paths are local filesystem paths after `ModelSource` resolution
 - embeddings are text-only
 - LiteRT-LM `.litertlm` bundles can be used for chat and tool-call flows, but
