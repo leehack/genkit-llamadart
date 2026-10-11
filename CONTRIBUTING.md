@@ -58,7 +58,7 @@ examples from README, guides and skills in one analyzer run.
 
 ## Test Commands
 
-Known prose-only PRs run package analysis, publication checks, local documentation
+Known documentation-only PRs run package analysis, publication checks, local documentation
 links/anchors and Dart snippet analysis without model downloads. Runtime changes,
 runnable examples, unknown paths and every main push retain full validation.
 New prose files need explicit classification in `.github/select_ci.py`.
