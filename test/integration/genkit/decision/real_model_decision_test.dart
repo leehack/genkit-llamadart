@@ -2,7 +2,9 @@
 @TestOn('vm')
 library;
 
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:genkit/genkit.dart';
@@ -15,6 +17,35 @@ Future<String> _fixture(String variable, String hash) async {
   final path = Platform.environment[variable]!;
   expect((await sha256.bind(File(path).openRead()).first).toString(), hash);
   return path;
+}
+
+Future<File> _mismatchedHead(String path, Directory directory) async {
+  final source = File(path);
+  final reader = await source.open();
+  final Map<String, dynamic> header;
+  final int originalLength;
+  try {
+    originalLength = ByteData.sublistView(
+      await reader.read(8),
+    ).getUint64(0, Endian.little);
+    header =
+        jsonDecode(utf8.decode(await reader.read(originalLength)))
+            as Map<String, dynamic>;
+  } finally {
+    await reader.close();
+  }
+  header['head.layers.0.norm1.weight']['shape'] = [512, 2];
+  final json = utf8.encode(jsonEncode(header));
+  final length = (json.length + 7) ~/ 8 * 8;
+  final bytes = Uint8List(8 + length)..fillRange(8, 8 + length, 32);
+  ByteData.sublistView(bytes).setUint64(0, length, Endian.little);
+  bytes.setRange(8, 8 + json.length, json);
+  final target = File('${directory.path}/mismatched.safetensors');
+  await target.writeAsBytes(bytes);
+  await source
+      .openRead(8 + originalLength)
+      .pipe(target.openWrite(mode: FileMode.append));
+  return target;
 }
 
 void main() {
@@ -176,6 +207,25 @@ void main() {
           head: llama.ModelSource.path(badHead.path),
         ),
         throwsA(isA<llama.LlamaException>()),
+      );
+      expect(encoder.isReady, isTrue);
+      final mismatched = await _mismatchedHead(headPath, malformed);
+      await expectLater(
+        llama.DecisionEngine.attach(
+          encoder,
+          head: llama.ModelSource.path(mismatched.path),
+        ),
+        throwsA(
+          isA<llama.LlamaModelException>().having(
+            (error) => error.message,
+            'encoder/head dimension validation',
+            allOf(
+              contains('head.layers.0.norm1.weight'),
+              contains('[512, 2]'),
+              contains('[1024]'),
+            ),
+          ),
+        ),
       );
       expect(encoder.isReady, isTrue);
       final decisions = await llama.DecisionEngine.attach(
