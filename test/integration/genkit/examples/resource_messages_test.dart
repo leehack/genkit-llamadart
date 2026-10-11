@@ -214,6 +214,122 @@ void main() {
     );
   });
 
+  test('allowlisted actions must match the requested URI', () async {
+    var resolved = false;
+    final resource = ai.defineResource(
+      name: 'returns',
+      uri: 'app://faq/other',
+      fn: (_, _) async {
+        resolved = true;
+        return ResourceOutput(content: [TextPart(text: 'unused')]);
+      },
+    );
+    await expectLater(
+      normalizeResourceMessages(input(reference), {
+        'app://faq/returns': resource,
+      }),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'diagnostic',
+          'Resource is not explicitly approved.',
+        ),
+      ),
+    );
+    expect(resolved, isFalse);
+  });
+
+  test('unsafe source IDs fail before resource resolution', () async {
+    var resolved = false;
+    final resource = ai.defineResource(
+      name: 'unsafe/source',
+      uri: 'app://faq/returns',
+      fn: (_, _) async {
+        resolved = true;
+        return ResourceOutput(content: [TextPart(text: 'unused')]);
+      },
+    );
+    await expectLater(
+      normalizeResourceMessages(input(reference), {
+        'app://faq/returns': resource,
+      }),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'diagnostic',
+          'Resource action needs a safe source ID.',
+        ),
+      ),
+    );
+    expect(resolved, isFalse);
+  });
+
+  test('acyclic resource chains respect the nesting limit', () async {
+    final resources = <String, ResourceAction>{};
+    for (var i = 0; i < 5; i++) {
+      final next = i + 1;
+      final uri = 'app://chain/$i';
+      resources[uri] = ai.defineResource(
+        name: 'source$i',
+        uri: uri,
+        fn: (_, _) async => ResourceOutput(
+          content: [
+            if (next < 5)
+              ResourcePart(resource: {'uri': 'app://chain/$next'})
+            else
+              TextPart(text: 'leaf'),
+          ],
+        ),
+      );
+    }
+    await expectLater(
+      normalizeResourceMessages(
+        input(ResourcePart(resource: {'uri': 'app://chain/0'})),
+        resources,
+      ),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'diagnostic',
+          'Resource nesting exceeds the limit.',
+        ),
+      ),
+    );
+  });
+
+  test('shallow JSON respects the node limit', () async {
+    await expectLater(
+      normalizeResourceMessages(
+        input(DataPart(data: {'values': List.filled(63, 0)})),
+        {},
+      ),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'diagnostic',
+          'JSON data exceeds the nesting/node limit.',
+        ),
+      ),
+    );
+  });
+
+  test('acyclic JSON respects the nesting limit', () async {
+    Object value = 0;
+    for (var i = 0; i < 4; i++) {
+      value = [value];
+    }
+    await expectLater(
+      normalizeResourceMessages(input(DataPart(data: {'value': value})), {}),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'diagnostic',
+          'JSON data exceeds the nesting/node limit.',
+        ),
+      ),
+    );
+  });
+
   test(
     'cancellation is passed to resource actions and prevents delivery',
     () async {
