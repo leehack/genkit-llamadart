@@ -24,7 +24,10 @@ Future<void> main(List<String> args) async {
     );
     print(await complete('Once upon a time'));
   } finally {
-    await pool.close();
-    await ai.shutdown();
+    try {
+      await pool.close();
+    } finally {
+      await ai.shutdown();
+    }
   }
 }

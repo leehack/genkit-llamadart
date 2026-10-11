@@ -18,15 +18,12 @@ import 'package:genkit_llamadart/genkit_llamadart.dart';
 Future<void> main() async {
   final pool = LlamaDartRuntimePool(
     model: const LlamaModelDefinition(name: 'raw', modelPath: '/models/chat.gguf'),
-    maxOwners: 2,
-    maxQueuedOperations: 8,
-    idleTimeout: const Duration(minutes: 5),
+    maxOwners: 1,
   );
   try {
     final owner = await pool.open();
     print(await owner.generate('Once upon a time',
       params: const GenerationParams(maxTokens: 32, temp: 0)));
-    await owner.close();
   } finally {
     await pool.close();
   }

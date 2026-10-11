@@ -336,6 +336,36 @@ void main() {
     },
   );
 
+  test(
+    'scoring rejects missing providers and withdrawn scoring support',
+    () async {
+      final missing = FakeRuntime()..capabilitySnapshot = _native;
+      final withdrawn = _Runtime('A');
+      for (final runtime in [missing, withdrawn]) {
+        final pool = LlamaDartRuntimePool(
+          model: _model,
+          runtimeFactory: () => runtime,
+        );
+        final owner = await pool.open();
+        if (identical(runtime, withdrawn)) {
+          withdrawn.capabilitySnapshot = const llama.LlamaEngineCapabilities(
+            isSupported: true,
+            runtime: llama.LlamaRuntime.llamaCpp,
+            supportsNextTokenScoring: false,
+          );
+        }
+        await expectLater(
+          owner.scoreNextToken('must not evaluate', topK: 1),
+          throwsA(isA<LlamaUnsupportedException>()),
+        );
+        expect(withdrawn.scoredCandidates, isNull);
+        expect(owner.isClosed, isTrue);
+        expect(runtime.disposeCount, 1);
+        await pool.close();
+      }
+    },
+  );
+
   test('scoring snapshots candidates and shares generation ordering', () async {
     final runtime = _Runtime('A')..blocked = Completer<void>();
     final pool = LlamaDartRuntimePool(
