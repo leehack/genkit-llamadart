@@ -70,9 +70,9 @@ final SchemanticType<Map<String, dynamic>> triageOutputSchema =
 ///
 /// Rejects blank input with `INVALID_ARGUMENT`, a disposed engine with
 /// `FAILED_PRECONDITION`, an unsupported runtime with `UNIMPLEMENTED`, and an
-/// unexpected upstream response shape with `DATA_LOSS`. Inference failures use
-/// neutral Genkit diagnostics without raw native errors or paths. No streamed
-/// chunks are emitted.
+/// unexpected upstream response shape with `DATA_LOSS`. Inference and probe
+/// failures use neutral Genkit diagnostics without raw native errors or paths.
+/// No streamed chunks are emitted.
 Flow<String, Map<String, dynamic>, void, void> defineDecisionTriageFlow(
   Genkit ai,
   llama.DecisionEngine decisions,
@@ -94,19 +94,19 @@ Flow<String, Map<String, dynamic>, void, void> defineDecisionTriageFlow(
         status: StatusCode.failedPrecondition,
       );
     }
-    if (!(await decisions.capabilities).isSupported) {
-      throw GenkitException(
-        'The loaded encoder and runtime do not support decision heads.',
-        status: StatusCode.unimplemented,
-      );
-    }
-    context.cancel?.throwIfCancelled();
     final llama.DecisionResult result;
     try {
+      if (!(await decisions.capabilities).isSupported) {
+        throw GenkitException(
+          'The loaded encoder and runtime do not support decision heads.',
+          status: StatusCode.unimplemented,
+        );
+      }
+      context.cancel?.throwIfCancelled();
       result = await decisions.systemOne(state: state, questions: _questions);
     } on llama.LlamaException catch (error) {
       throw GenkitException(
-        'Decision inference failed. Check the ticket and loaded encoder/head.',
+        'Decision execution failed. Check the ticket and loaded encoder/head.',
         status: switch (error) {
           llama.LlamaDecisionException() ||
           llama.LlamaArgumentException() => StatusCode.invalidArgument,

@@ -11,6 +11,10 @@ three fixed questions about a support ticket and publishes their complete Laya
 JSON result as the flow output. The [flow definition](../example/decision/triage_flow.dart)
 includes input/output schemas and checks finite numbers and the response shape
 before returning it. Invalid results fail with a neutral `DATA_LOSS` error.
+Keep questions and their response schema in application code: their labels,
+score levels and permitted actions depend on your application. The existing
+Genkit flow API handles registration and tracing; a plugin wrapper would not
+remove these application-specific decisions.
 
 ```bash
 dart pub get
@@ -65,13 +69,13 @@ Every call checks the loaded engine's decision capabilities. Blank input,
 disposed engines, unsupported capabilities and unexpected result shapes fail
 explicitly. Genkit cancellation is checked before and after inference; the
 published decision API cannot interrupt an in-flight encoder pass. There are
-no partial answers or streamed chunks. Inference errors map to neutral Genkit
-diagnostics without retaining raw native errors or paths. The upstream model
-label is the safe constant `laya-rl-agent`. Applications exposing a flow over a
-network should provide authorization, input limits and telemetry policy: Genkit
-traces can record the ticket and decision result. Startup loading happens before
-Genkit is created and retains native CLI diagnostics; do not forward those
-diagnostics to remote users.
+no partial answers or streamed chunks. Inference and capability-probe errors map
+to neutral Genkit diagnostics without retaining raw native errors or paths. The
+upstream model label is the safe constant `laya-rl-agent`. Applications exposing
+a flow over a network should provide authorization, input limits and telemetry
+policy: Genkit traces can record the ticket and decision result. Startup loading
+happens before Genkit is created and retains native CLI diagnostics; do not
+forward those diagnostics to remote users.
 
 This recipe is qualified on macOS arm64 with native llama.cpp on CPU using the
 published `llamadart 0.11.1` API. Other native platforms and GPU execution are
@@ -98,7 +102,7 @@ dart test test/integration/genkit/decision/real_model_decision_test.dart -j 1
 The test executes the actual Genkit flow for all three tasks, checks complete
 probabilities and usage, and exercises blank/wrong-type input, upstream NUL
 validation, cancellation and use after disposal. A second real test verifies
-borrowed encoder ownership, malformed-head recovery, concurrent requests and
-rejection after encoder disposal. Both skip before file access or downloads
-when either path is absent. This is bounded routing and lifecycle
-qualification, not an accuracy benchmark. No model weights are shipped.
+borrowed encoder ownership, malformed and shape-mismatched head recovery,
+concurrent requests and rejection after encoder disposal. Both skip before file
+access or downloads when either path is absent. This is bounded routing and
+lifecycle qualification, not an accuracy benchmark. No model weights are shipped.

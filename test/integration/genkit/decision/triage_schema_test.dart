@@ -46,8 +46,112 @@ void main() {
       final ai = Genkit(isDevEnv: false);
       addTearDown(ai.shutdown);
       final result = _decisionResult();
-      final flow = defineDecisionTriageFlow(ai, _ScriptedDecisions(result));
+      final decisions = _ScriptedDecisions(result);
+      final flow = defineDecisionTriageFlow(ai, decisions);
       expect(await flow('ticket'), result.toJson());
+      expect(decisions.state, 'ticket');
+      expect(
+        decisions.questions!.map((id, question) => MapEntry(id, question.type)),
+        {
+          'department': llama.DecisionQuestionType.choice,
+          'urgency': llama.DecisionQuestionType.score,
+          'refund': llama.DecisionQuestionType.noul,
+        },
+      );
+    },
+  );
+
+  test('flow rechecks capability and never infers when unavailable', () async {
+    final ai = Genkit(isDevEnv: false);
+    addTearDown(ai.shutdown);
+    final decisions = _ScriptedDecisions(_decisionResult());
+    final flow = defineDecisionTriageFlow(ai, decisions);
+    await flow('first ticket');
+    decisions.supported = false;
+    await expectLater(
+      flow('second ticket'),
+      throwsA(_status(StatusCode.unimplemented)),
+    );
+    expect(decisions.calls, 1);
+    decisions.disposed = true;
+    await expectLater(
+      flow('third ticket'),
+      throwsA(_status(StatusCode.failedPrecondition)),
+    );
+    expect(decisions.calls, 1);
+  });
+
+  test('blank and cancelled inputs never reach inference', () async {
+    final ai = Genkit(isDevEnv: false);
+    addTearDown(ai.shutdown);
+    final decisions = _ScriptedDecisions(_decisionResult());
+    final flow = defineDecisionTriageFlow(ai, decisions);
+    await expectLater(flow('  '), throwsA(_status(StatusCode.invalidArgument)));
+    final cancellation = CancellationController()..cancel();
+    await expectLater(
+      flow('ticket', cancel: cancellation.token),
+      throwsA(isA<CancelledException>()),
+    );
+    expect(decisions.calls, 0);
+  });
+
+  test('cancellation after encoder execution discards the result', () async {
+    final ai = Genkit(isDevEnv: false);
+    addTearDown(ai.shutdown);
+    final cancellation = CancellationController();
+    final decisions = _ScriptedDecisions(_decisionResult())
+      ..onInference = cancellation.cancel;
+    final flow = defineDecisionTriageFlow(ai, decisions);
+    await expectLater(
+      flow('ticket', cancel: cancellation.token),
+      throwsA(isA<CancelledException>()),
+    );
+    expect(decisions.calls, 1);
+  });
+
+  test(
+    'probe and inference errors retain status without native diagnostics',
+    () async {
+      final ai = Genkit(isDevEnv: false);
+      addTearDown(ai.shutdown);
+      final decisions = _ScriptedDecisions(_decisionResult());
+      final flow = defineDecisionTriageFlow(ai, decisions);
+      const privateDiagnostic = '/private/models/head.safetensors?token=secret';
+      final failures = <llama.LlamaException, StatusCode>{
+        llama.LlamaDecisionException(privateDiagnostic):
+            StatusCode.invalidArgument,
+        llama.LlamaArgumentException(privateDiagnostic):
+            StatusCode.invalidArgument,
+        llama.LlamaUnsupportedException(privateDiagnostic):
+            StatusCode.unimplemented,
+        llama.LlamaStateException(privateDiagnostic):
+            StatusCode.failedPrecondition,
+        llama.LlamaInferenceException(privateDiagnostic): StatusCode.internal,
+      };
+      for (final MapEntry(key: error, value: status) in failures.entries) {
+        for (final probing in [true, false]) {
+          decisions.probeFailure = probing ? error : null;
+          decisions.inferenceFailure = probing ? null : error;
+          final calls = decisions.calls;
+          await expectLater(
+            flow('ticket'),
+            throwsA(
+              _status(status).having(
+                (error) => error.toString(),
+                'sanitized diagnostic',
+                isNot(
+                  anyOf(
+                    contains('/private/models'),
+                    contains('token='),
+                    contains('secret'),
+                  ),
+                ),
+              ),
+            ),
+          );
+          expect(decisions.calls, calls + (probing ? 0 : 1));
+        }
+      }
     },
   );
 
@@ -122,23 +226,43 @@ void main() {
   );
 }
 
+TypeMatcher<GenkitException> _status(StatusCode status) =>
+    isA<GenkitException>().having((error) => error.status, 'status', status);
+
 class _ScriptedDecisions implements llama.DecisionEngine {
   _ScriptedDecisions(this.result);
 
   final llama.DecisionResult result;
+  bool supported = true;
+  bool disposed = false;
+  llama.LlamaException? probeFailure;
+  llama.LlamaException? inferenceFailure;
+  void Function()? onInference;
+  int calls = 0;
+  Object? state;
+  Map<String, llama.DecisionQuestion>? questions;
 
   @override
-  bool get isDisposed => false;
+  bool get isDisposed => disposed;
 
   @override
-  Future<llama.DecisionCapabilities> get capabilities async =>
-      const llama.DecisionCapabilities(isSupported: true);
+  Future<llama.DecisionCapabilities> get capabilities async {
+    if (probeFailure case final error?) throw error;
+    return llama.DecisionCapabilities(isSupported: supported);
+  }
 
   @override
   Future<llama.DecisionResult> systemOne({
     required Object? state,
     required Map<String, llama.DecisionQuestion> questions,
-  }) async => result;
+  }) async {
+    calls++;
+    this.state = state;
+    this.questions = questions;
+    onInference?.call();
+    if (inferenceFailure case final error?) throw error;
+    return result;
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

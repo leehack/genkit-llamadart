@@ -2,7 +2,9 @@
 @TestOn('vm')
 library;
 
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:genkit/genkit.dart';
@@ -15,6 +17,32 @@ Future<String> _fixture(String variable, String hash) async {
   final path = Platform.environment[variable]!;
   expect((await sha256.bind(File(path).openRead()).first).toString(), hash);
   return path;
+}
+
+Future<File> _mismatchedHead(String path, Directory directory) async {
+  final target = File('${directory.path}/mismatched.safetensors');
+  await File(path).copy(target.path);
+  final file = await target.open(mode: FileMode.append);
+  try {
+    await file.setPosition(0);
+    final length = ByteData.sublistView(
+      await file.read(8),
+    ).getUint64(0, Endian.little);
+    final header =
+        jsonDecode(utf8.decode(await file.read(length)))
+            as Map<String, dynamic>;
+    header['head.layers.0.norm1.weight']['shape'] = [512, 2];
+    final json = utf8.encode(jsonEncode(header));
+    expect(json.length, lessThanOrEqualTo(length));
+    final bytes = Uint8List(length)
+      ..fillRange(0, length, 32)
+      ..setRange(0, json.length, json);
+    await file.setPosition(8);
+    await file.writeFrom(bytes);
+  } finally {
+    await file.close();
+  }
+  return target;
 }
 
 void main() {
@@ -176,6 +204,25 @@ void main() {
           head: llama.ModelSource.path(badHead.path),
         ),
         throwsA(isA<llama.LlamaException>()),
+      );
+      expect(encoder.isReady, isTrue);
+      final mismatched = await _mismatchedHead(headPath, malformed);
+      await expectLater(
+        llama.DecisionEngine.attach(
+          encoder,
+          head: llama.ModelSource.path(mismatched.path),
+        ),
+        throwsA(
+          isA<llama.LlamaModelException>().having(
+            (error) => error.message,
+            'encoder/head dimension validation',
+            allOf(
+              contains('head.layers.0.norm1.weight'),
+              contains('[512, 2]'),
+              contains('[1024]'),
+            ),
+          ),
+        ),
       );
       expect(encoder.isReady, isTrue);
       final decisions = await llama.DecisionEngine.attach(
