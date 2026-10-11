@@ -293,3 +293,9 @@ Weights are not shipped. Image tests require a consumer enabling
 Optional `GENKIT_TTS_WAV_OUTPUT`/`GENKIT_IMAGE_PNG_OUTPUT` save inspectable artifacts.
 Report model revision/checksum, published runtime, platform/backend and actual
 result; scripted engines do not qualify model families.
+
+Decision-flow qualification is also opt-in (`decision-model`) and verifies the
+Laya encoder and head checksums before running. See [decision flows](doc/decision-flows.md)
+for the exact fixtures and command. Ordinary CI skips it without explicit model
+paths; the fast schema tests validate complete output and reject malformed
+answer shapes without loading weights.

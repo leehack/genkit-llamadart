@@ -1,5 +1,6 @@
 ## Unreleased
 
+- Add an experimental Laya decision-flow recipe with complete choice, score and yes/no results, schemas and native CPU qualification.
 - Combine constrained JSON and tool calls on native llama.cpp, with complete-output validation before streaming or tool dispatch; preserve literal tool markup in final JSON.
 - Expose dedicated batch transcription, complete WAV synthesis and PNG generation as native Genkit models with explicit engine ownership and cancellation.
 
