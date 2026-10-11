@@ -29,9 +29,10 @@ description: >-
   `supportsConstrainedOutput: false` fails with `FAILED_PRECONDITION`.
   An enabled definition still needs verified structured-output and grammar
   capabilities; an unsupported runtime fails before decoding with `UNIMPLEMENTED`.
-- Constrained output cannot be combined with tools (`UNIMPLEMENTED`). Register
-  a JSON-only model with `supportsTools: false`, or run the tool turn first and
-  ask for JSON in a follow-up request without `tools:`.
+- Constrained output with tools requires native llama.cpp, one call per turn
+  and `enableThinking: false`. WebGPU and LiteRT-LM reject it. For unsupported
+  backends, run the tool turn first and ask for JSON separately on a
+  grammar-capable model without active tools.
 - Keep schemas simple: objects with typed properties, `required` and
   `additionalProperties: false`. Put field meanings in the prompt or in
   `description`s.
@@ -163,3 +164,8 @@ Future<Map<String, dynamic>?> streamJson(
 Thinking budgets are supported when the runtime reports them; omitted tags are
 resolved from the structured request's template. Speculative decoding is rejected
 with constrained JSON because core grammar sampling does not support it.
+
+Native combined tool requests use generic JSON envelopes internally. The adapter
+returns the schema-directed final JSON and Genkit tool requests. Content is
+buffered until complete validation; partial or malformed output is never emitted.
+See `doc/usage.md` for the local-pointer reference subset and required-tool final-turn policy.

@@ -8,7 +8,8 @@ Run local LLMs in [Genkit Dart](https://pub.dev/packages/genkit) applications.
 Use llama.cpp GGUF models or LiteRT-LM bundles through
 [`llamadart`](https://pub.dev/packages/llamadart) for offline, on-device AI in
 Dart and Flutter: chat, token streaming, tool calling, structured JSON output
-and text embeddings.
+and text embeddings. Native preview models also provide batch transcription,
+WAV synthesis and PNG image generation.
 
 The model runs in your application's process. Download it once or supply a
 local file, then run inference offline. Features depend on the loaded model
@@ -138,9 +139,10 @@ For request cancellation, pass a Genkit `CancellationController` token. See
 | --- | --- |
 | Offline chat and streaming | Instruct/chat model; [streaming example](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_example.dart) |
 | Tool calling and agent loops | Tool-capable model/runtime, supported object schemas; [tool calling](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#tool-calling) |
-| Structured JSON output | Grammar-capable backend; [JSON guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#structured-json-output) |
+| Structured JSON output | Grammar-capable backend; [JSON with active tools](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#constrained-json-with-tools) requires native llama.cpp; [JSON guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#structured-json-output) |
 | Text embeddings for search / RAG | Embedding model; [embedding guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#embeddings) |
 | Image and audio input | Compatible multimodal model and runtime, matching projector when required; explicit resolver for native HTTP(S) input; [media guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#image-and-audio-input) |
+| Batch transcription, speech synthesis and image generation | Loaded native typed engines; [speech/image guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/media-models.md) |
 | Token counts and loaded runtime diagnostics | Explicit inspection without inference; [inspection guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/model-inspection.md) |
 | Downloads, cache and progress UI | `ModelSource` and preparation tasks; [model preparation](https://github.com/leehack/genkit-llamadart/blob/main/doc/model-preparation.md) |
 | OpenTelemetry traces and metrics | Application-configured telemetry provider; [observability](https://github.com/leehack/genkit-llamadart/blob/main/doc/observability.md) |
@@ -150,9 +152,10 @@ flags permit features; they do not guarantee model support. Discovery stays
 lazy, so support booleans start at `false` until verified. Unsupported requests
 fail explicitly. See [feature permissions and discovery](https://github.com/leehack/genkit-llamadart/blob/main/doc/runtime-support.md).
 
-Strict JSON with active tools is currently unsupported. LiteRT-LM does not
-provide this adapter's grammar-constrained JSON or embeddings. Tool-call
-quality varies by model; runtime support alone does not prove reliability.
+Strict JSON with active tools requires native llama.cpp, one call per turn and
+thinking disabled. LiteRT-LM does not provide this adapter's grammar-constrained
+JSON or embeddings. Tool-call quality varies by model; runtime support alone
+does not prove reliability.
 This plugin embeds text for RAG; retrieval and Genkit document augmentation
 remain application responsibilities.
 
@@ -188,6 +191,7 @@ dart run -DLLAMADART_MODEL_SOURCE=hf://owner/repo/model.gguf \
 - [Generation settings (including thinking, presence penalties and speculative decoding), tools, JSON, embeddings and cancellation](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md)
 - [Model preparation, cache policy and loading UI](https://github.com/leehack/genkit-llamadart/blob/main/doc/model-preparation.md)
 - [Raw-text token counts, context capacity and backend inspection](https://github.com/leehack/genkit-llamadart/blob/main/doc/model-inspection.md)
+- [Batch transcription, WAV synthesis and PNG generation](https://github.com/leehack/genkit-llamadart/blob/main/doc/media-models.md)
 - [Runtime support, discovery and custom runtimes](https://github.com/leehack/genkit-llamadart/blob/main/doc/runtime-support.md)
 - [Telemetry and engine observers](https://github.com/leehack/genkit-llamadart/blob/main/doc/observability.md)
 - [Migration to 3.0 / Genkit 1.0](https://github.com/leehack/genkit-llamadart/blob/main/doc/migration.md)

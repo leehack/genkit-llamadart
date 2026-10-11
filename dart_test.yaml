@@ -2,3 +2,5 @@ tags:
   real-model:
   tool-model:
   inference-controls:
+  speech-model:
+  image-model:

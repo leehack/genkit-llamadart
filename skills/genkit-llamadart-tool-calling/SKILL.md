@@ -38,9 +38,11 @@ description: >-
   with `FAILED_PRECONDITION`. The loaded runtime must also confirm tool calling;
   unsupported runtimes fail before generation with `UNIMPLEMENTED`. The same
   checks apply to tool request/result history even without new tool definitions.
-- Constrained structured output (`outputConstrained: true`) cannot be combined
-  with tools; such requests fail with `UNIMPLEMENTED`. Run the tool turn first,
-  then ask for JSON in a separate request without tools.
+- Constrained JSON with active tools requires native llama.cpp, one call per
+  turn and `enableThinking: false`. Qwen3 1.7B is qualified. WebGPU and LiteRT-LM
+  reject it. `required` persists across Genkit turns; explicitly switch to
+  `none` or `auto` when the application allows a final answer. Constrained
+  content is published only after complete parsing/schema validation.
 - `LlamaDartGenerationConfig(parallelToolCalls: true)` lets the model emit
   several calls in one turn (default `false`). Keep `enableThinking: false`
   unless the model's template needs reasoning.

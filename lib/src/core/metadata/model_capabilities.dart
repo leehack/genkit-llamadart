@@ -21,7 +21,13 @@ Map<String, dynamic> supportMetadataFor(
         ready &&
         capabilities!.supportsStructuredOutput &&
         capabilities.supportsGrammar,
-    'constrainedWithTools': false,
+    'constrainedWithTools':
+        const bool.fromEnvironment('dart.library.io') &&
+        tools &&
+        definition.supportsConstrainedOutput &&
+        capabilities.runtime == llama.LlamaRuntime.llamaCpp &&
+        capabilities.supportsStructuredOutput &&
+        capabilities.supportsGrammar,
     'embeddings':
         definition.supportsEmbeddings &&
         ready &&
