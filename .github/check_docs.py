@@ -20,7 +20,7 @@ def anchors(markdown):
         count = counts.get(slug, 0)
         result.add(f"{slug}-{count}" if count else slug)
         counts[slug] = count + 1
-    result.update(re.findall(r'<a\s+(?:id|name)=[\"\']([^\"\']+)', markdown))
+    result.update(re.findall(r'<a\s+(?:id|name)=[\"\']([^\"\']+)', prose(markdown)))
     return result
 
 
@@ -28,7 +28,8 @@ def destinations(markdown):
     text = prose(markdown)
     inline = re.findall(r"\]\(\s*(<[^>]+>|[^\s)]+)(?:\s+[^)]*)?\)", text)
     references = re.findall(r"(?m)^\s*\[[^]]+\]:\s*(<[^>]+>|\S+)", text)
-    return [value.strip("<>") for value in inline + references]
+    canonical = re.findall(r"https://github\.com/leehack/genkit-llamadart/blob/main/[^\s<>)\]]+", text)
+    return list(dict.fromkeys(value.strip("<>").rstrip(".,;") for value in inline + references + canonical))
 
 
 def check_links(root, document):
