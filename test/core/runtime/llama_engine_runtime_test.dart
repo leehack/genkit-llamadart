@@ -6,6 +6,22 @@ import 'package:test/test.dart';
 const bool _isWeb = bool.fromEnvironment('dart.library.js_interop');
 
 void main() {
+  test('scoring delegates raw prompt and every option to the engine', () async {
+    final engine = _ScoringEngine();
+    final runtime = LlamaEngineRuntime(engine: engine);
+    addTearDown(runtime.dispose);
+    final result = await runtime.scoreNextToken(
+      'raw prompt',
+      candidates: [5, 2, 5],
+      topK: 3,
+      reusePromptPrefix: false,
+    );
+    expect(result, same(engine.scores));
+    expect(engine.request!.$1, 'raw prompt');
+    expect(engine.request!.$2, [5, 2, 5]);
+    expect(engine.request!.$3, 3);
+    expect(engine.request!.$4, false);
+  });
   test('inspection delegates actual context and tokenizer options', () async {
     final engine = _InspectionEngine();
     final runtime = LlamaEngineRuntime(engine: engine);
@@ -117,6 +133,25 @@ void main() {
       await run();
       expect(engine.kwargs, same(kwargs));
     });
+  }
+}
+
+class _ScoringEngine extends _RecordingEngine {
+  final scores = llama.LlamaNextTokenScores(
+    candidates: [],
+    top: [],
+    promptTokens: 1,
+  );
+  (String, List<int>, int, bool)? request;
+  @override
+  Future<llama.LlamaNextTokenScores> scoreNextToken(
+    String prompt, {
+    List<int> candidates = const [],
+    int topK = 0,
+    bool reusePromptPrefix = true,
+  }) async {
+    request = (prompt, candidates, topK, reusePromptPrefix);
+    return scores;
   }
 }
 

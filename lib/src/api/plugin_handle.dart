@@ -36,7 +36,7 @@ class LlamaDartPluginHandle {
 
   /// Registers local model files without loading their runtimes.
   ///
-  /// Each definition registers a Genkit model action, plus an embedder action
+  /// Each definition registers Genkit model and next-token scoring actions, plus an embedder action
   /// when `supportsEmbeddings` is enabled.
   /// [observers] observe every default engine in the caller's request zone.
   /// They may receive sensitive content; exporting it requires app opt-in.

@@ -40,6 +40,25 @@ abstract interface class LlamaRuntimeInspectionProvider {
   Future<List<int>> tokenize(String text, {bool addSpecial = false});
 }
 
+/// Optional next-token scoring implementation for a loaded custom runtime.
+///
+/// Implement [LlamaRuntimeCapabilityProvider] too, and report
+/// `supportsNextTokenScoring` only when the active model/backend can score.
+/// The plugin serializes scoring with other operations on this model.
+abstract interface class LlamaRuntimeScoringProvider {
+  /// Scores raw [prompt] using the backend's unmodified next-token logits.
+  ///
+  /// Preserve candidate order/duplicates and return [topK] entries in descending
+  /// probability order. Reject out-of-vocabulary IDs/counts before evaluating
+  /// the prompt. No chat template or generation sampling parameters apply.
+  Future<llama.LlamaNextTokenScores> scoreNextToken(
+    String prompt, {
+    List<int> candidates = const [],
+    int topK = 0,
+    bool reusePromptPrefix = true,
+  });
+}
+
 /// Runtime operations used by the Genkit adapter.
 ///
 /// Implement [LlamaRuntimeCapabilityProvider] to confirm advanced capabilities.

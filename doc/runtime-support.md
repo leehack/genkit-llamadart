@@ -87,6 +87,13 @@ runtime behavior to prevent unverified support claims.
 
 ## Inspection and raw-text tokens
 
+Each model also registers a custom [next-token scoring action](next-token-scoring.md)
+under `next-token-scorer`, separately from the model and embedder actions.
+`llamadartScoring` metadata records the last checked runtime capability (`state`
+and `supported`); registration does not load or verify a model. Scoring additionally
+requires the optional `LlamaRuntimeScoringProvider` implementation. Native llama.cpp
+decoder models and scoring-capable WebGPU bridges can serve it; LiteRT-LM cannot.
+
 Use [model inspection](model-inspection.md) for explicit loaded-runtime
 capabilities, context capacity and tokenizer access. Discovery does
 not load a model; inspection and raw token helpers do. Custom runtimes may opt

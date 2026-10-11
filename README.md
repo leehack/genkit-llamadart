@@ -141,6 +141,7 @@ For request cancellation, pass a Genkit `CancellationController` token. See
 | Tool calling and agent loops | Tool-capable model/runtime, supported object schemas; [tool calling](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#tool-calling) |
 | Structured JSON output | Grammar-capable backend; [JSON with active tools](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#constrained-json-with-tools) requires native llama.cpp; [JSON guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#structured-json-output) |
 | Text embeddings for search / RAG | Embedding model; [embedding guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#embeddings) |
+| Next-token probabilities | Capability-enabled decoder runtime; [typed scoring action](https://github.com/leehack/genkit-llamadart/blob/main/doc/next-token-scoring.md) |
 | Image and audio input | Compatible multimodal model and runtime, matching projector when required; explicit resolver for native HTTP(S) input; [media guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#image-and-audio-input) |
 | Batch transcription, speech synthesis and image generation | Loaded native typed engines; [speech/image guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/media-models.md) |
 | Token counts and loaded runtime diagnostics | Explicit inspection without inference; [inspection guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/model-inspection.md) |

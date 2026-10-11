@@ -7,6 +7,7 @@
 /// Genkit owns tool execution and request orchestration. This adapter supplies
 /// model calls through llamadart and checks the loaded runtime's capabilities.
 /// Configure requests with [LlamaDartGenerationConfig] or [LlamaDartEmbedConfig].
+/// Use [LlamaDartPlugin.scorer] for typed raw next-token probabilities.
 ///
 /// Models load lazily. Dispose [LlamaDartPlugin] or [LlamaPreparedModel] when
 /// finished, and shut down the caller-owned Genkit instance separately.
@@ -36,6 +37,8 @@ export 'package:llamadart/llamadart.dart'
         LlamaModelException,
         LlamaStateException,
         LlamaUnsupportedException,
+        LlamaNextTokenScores,
+        LlamaTokenLogprob,
         LiteRtLmActivationDataType,
         LoraAdapterConfig,
         ModelCacheEntry,
@@ -65,6 +68,8 @@ export 'src/api/model_preparation.dart'
 export 'src/api/media_resolver.dart'
     show LlamaDartMediaResolver, HttpLlamaDartMediaResolver;
 export 'src/api/model_inspection.dart' show LlamaModelInspection;
+export 'src/api/scoring.dart'
+    show LlamaDartScoringRequest, LlamaDartTokenScores;
 export 'src/api/model_definition.dart' show LlamaModelDefinition;
 export 'src/api/plugin_handle.dart' show LlamaDartPluginHandle, llamaDart;
 export 'src/api/prepared_model.dart' show LlamaPreparedModel;
@@ -73,7 +78,8 @@ export 'src/core/runtime/llama_runtime.dart'
         LlamaDartRuntime,
         LlamaDartRuntimeFactory,
         LlamaRuntimeCapabilityProvider,
-        LlamaRuntimeInspectionProvider;
+        LlamaRuntimeInspectionProvider,
+        LlamaRuntimeScoringProvider;
 export 'src/integration/genkit/plugin.dart' show LlamaDartPlugin;
 
 export 'src/api/media_model.dart'

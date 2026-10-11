@@ -4,15 +4,17 @@ import 'package:llamadart/llamadart.dart' as llama;
 import '../../api/model_definition.dart';
 import '../../api/media_resolver.dart';
 import '../../api/model_inspection.dart';
+import '../../api/scoring.dart';
 import '../../core/runtime/engine_registry.dart';
 import '../../core/runtime/llama_runtime.dart';
 import 'action_support.dart';
 import 'actions/embedder_action.dart';
 import 'actions/model_action.dart';
+import 'actions/scoring_action.dart';
 
 /// `GenkitPlugin` implementation backed by local `llamadart` runtimes.
 class LlamaDartPlugin extends GenkitPlugin {
-  /// Registers a model action and, when enabled, an embedder per definition.
+  /// Registers model/scoring actions and, when enabled, an embedder per definition.
   ///
   /// [observers] are copied and attached to default engines. Callbacks inherit
   /// the request zone and observer errors do not fail inference. When supplying
@@ -56,6 +58,43 @@ class LlamaDartPlugin extends GenkitPlugin {
   final EngineRegistry _registry;
   List<Action>? _actions;
   List<ActionMetadata>? _listedActions;
+  final _scorers =
+      <
+        String,
+        Action<LlamaDartScoringRequest, LlamaDartTokenScores, void, void>
+      >{};
+
+  /// Custom Genkit action type used by [scorer], separate from model generation.
+  static const ActionType scoringActionType = nextTokenScoringActionType;
+
+  /// Returns this model's typed, registered next-token scoring action.
+  ///
+  /// Registration is lazy and does not confirm scoring support. Calls share the
+  /// generation/embedding queue, probe live capabilities and fail with a Genkit
+  /// `unimplemented` or `failedPrecondition` error when support is absent or
+  /// unverified. Invalid requests/vocabulary IDs produce `invalidArgument`;
+  /// malformed runtime results produce `dataLoss`. Models load on first use.
+  ///
+  /// Input is a raw prompt: chat templates are caller-supplied. Results are raw
+  /// next-token log probabilities, independent of generation settings. Genkit
+  /// instruments the custom action; ordinary model token/TTFT metrics do not
+  /// apply. Application telemetry settings control content capture.
+  ///
+  /// Cancellation prevents queued work; once backend scoring starts it drains
+  /// before cancellation is reported. It cannot interrupt native evaluation.
+  /// Disposal drains accepted calls and prevents further runtime operations.
+  /// Throws [StateError] for an unknown model name or calls after disposal.
+  Action<LlamaDartScoringRequest, LlamaDartTokenScores, void, void> scorer(
+    String modelName,
+  ) => _scorers.putIfAbsent(modelName, () {
+    final definition = _models
+        .where((model) => model.name == modelName)
+        .firstOrNull;
+    if (definition == null) {
+      throw StateError('Unknown llamadart model: $modelName');
+    }
+    return buildScoringAction(definition: definition, registry: _registry);
+  });
 
   /// Plugin name used when registering actions in Genkit.
   @override
@@ -170,6 +209,7 @@ class LlamaDartPlugin extends GenkitPlugin {
             ),
             if (definition.supportsEmbeddings)
               buildEmbedderAction(definition: definition, registry: _registry),
+            scorer(definition.name),
           ];
         })
         .toList(growable: false);
@@ -212,6 +252,7 @@ class LlamaDartPlugin extends GenkitPlugin {
                 actionType: ActionType.embedder,
                 metadata: metadataFor(generation: false),
               ),
+            scorer(definition.name),
           ];
         })
         .toList(growable: false);

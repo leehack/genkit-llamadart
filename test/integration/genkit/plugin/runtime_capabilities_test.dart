@@ -124,7 +124,9 @@ void main() {
       for (final metadata in [
         model.metadata,
         embedder.metadata,
-        ...listed.map((a) => a.metadata),
+        ...listed
+            .where((a) => a.actionType != LlamaDartPlugin.scoringActionType)
+            .map((a) => a.metadata),
       ]) {
         expect(_state(metadata), {
           'state': 'unloaded',
@@ -220,7 +222,9 @@ void main() {
         for (final metadata in [
           model.metadata,
           embedder.metadata,
-          ...(await plugin.list()).map((a) => a.metadata),
+          ...(await plugin.list())
+              .where((a) => a.actionType != LlamaDartPlugin.scoringActionType)
+              .map((a) => a.metadata),
         ]) {
           expect(_state(metadata)['state'], 'verified');
           expect(_state(metadata)['ready'], true);

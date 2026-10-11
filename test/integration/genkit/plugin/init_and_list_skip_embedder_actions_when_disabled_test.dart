@@ -19,12 +19,16 @@ void main() {
     final actions = await plugin.init();
     final metadata = await plugin.list();
 
-    expect(actions, hasLength(1));
-    expect(actions.single.actionType, ActionType.model);
-    expect(metadata, hasLength(1));
-    expect(metadata.single.actionType, ActionType.model);
+    expect(actions.map((a) => a.actionType), [
+      ActionType.model,
+      LlamaDartPlugin.scoringActionType,
+    ]);
+    expect(metadata.map((a) => a.actionType), [
+      ActionType.model,
+      LlamaDartPlugin.scoringActionType,
+    ]);
 
-    final model = metadata.single.metadata['model']! as Map<String, dynamic>;
+    final model = metadata.first.metadata['model']! as Map<String, dynamic>;
     final supports = model['supports']! as Map<String, dynamic>;
     expect(supports['tools'], isFalse);
     expect(supports['toolChoice'], isFalse);
