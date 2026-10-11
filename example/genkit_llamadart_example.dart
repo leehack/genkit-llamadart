@@ -1,63 +1,43 @@
-import 'dart:io';
-
 import 'package:genkit/genkit.dart';
 import 'package:genkit_llamadart/genkit_llamadart.dart';
 
-Future<void> main() async {
-  final modelPath = Platform.environment['LLAMADART_MODEL_PATH'];
-  final mmprojPath = Platform.environment['LLAMADART_MMPROJ_PATH'];
-  final prompt =
-      Platform.environment['LLAMADART_PROMPT'] ??
-      'Say hello in one short sentence.';
-
-  if (modelPath == null || modelPath.isEmpty) {
-    stderr.writeln('Set LLAMADART_MODEL_PATH to a local model path.');
-    exitCode = 64;
-    return;
-  }
-
-  final plugin = llamaDart(
-    models: <LlamaModelDefinition>[
-      LlamaModelDefinition(
-        name: 'local-chat',
-        modelPath: modelPath,
-        mmprojPath: mmprojPath,
-        supportsEmbeddings: false,
-      ),
-    ],
+Future<void> main(List<String> args) async {
+  final prepared = await llamaDart.prepareModel(
+    name: 'local-chat',
+    source: ModelSource.parse(
+      args.isEmpty
+          ? 'hf://unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf?revision=6ab461498e2023f6e3c1baea90a8f0fe38ab64d0'
+          : args.single,
+    ),
+    modelParams: const ModelParams(
+      contextSize: 4096,
+      device: ComputeDevice.cpu,
+    ),
   );
-
-  final ai = Genkit(plugins: <LlamaDartPlugin>[plugin]);
-
-  stdout.writeln('Prompt: $prompt');
-  stdout.write('Response: ');
-
+  final ai = prepared.createGenkit();
+  const config = LlamaDartGenerationConfig(
+    temperature: 1.0,
+    topP: 1.0,
+    topK: 20,
+    penalty: 1.0,
+    presencePenalty: 2.0,
+    maxTokens: 128,
+  );
   try {
-    final stream = ai.generateStream<Object?, LlamaDartGenerationConfig>(
-      model: llamaDart.model('local-chat'),
-      prompt: prompt,
-      config: const LlamaDartGenerationConfig(
-        temperature: 0.2,
-        maxTokens: 96,
-        enableThinking: false,
-      ),
+    final response = await ai.generate(
+      prompt: 'Say hello in one sentence.',
+      config: config,
     );
-
-    await for (final chunk in stream) {
-      if (chunk.text.isNotEmpty) {
-        stdout.write(chunk.text);
-      }
+    if (response.finishReason == FinishReason.failed ||
+        response.finishReason == FinishReason.aborted) {
+      throw response.cause ?? StateError('Generation did not complete.');
     }
-
-    final response = await stream.onResult;
-
-    if (response.text.isEmpty) {
-      stdout.writeln('<empty>');
-    } else {
-      stdout.writeln();
-    }
+    print(response.text);
   } finally {
-    await plugin.dispose();
-    await ai.shutdown();
+    try {
+      await prepared.dispose();
+    } finally {
+      await ai.shutdown();
+    }
   }
 }

@@ -1,377 +1,94 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:genkit/genkit.dart';
 import 'package:genkit_llamadart/genkit_llamadart.dart';
 import 'package:schemantic/schemantic.dart';
 
-const String _modelPathEnv = 'LLAMADART_MODEL_PATH';
-const String _mmprojPathEnv = 'LLAMADART_MMPROJ_PATH';
-const String _promptEnv = 'LLAMADART_PROMPT';
-
-const String _agentSystemPrompt =
-    'You are a command-line agent. Answer directly when tools are not relevant. '
-    'Use tools whenever they are relevant before answering. '
-    'These tools do not require arguments, so call them with an empty object. '
-    'Call each relevant tool at most once per user request. '
-    'After a tool returns, incorporate the result into a concise final answer instead of calling it again.';
-
-final SchemanticType<Map<String, dynamic>> _jsonMapSchema = SchemanticType.map(
-  SchemanticType.string(),
-  SchemanticType.dynamicSchema(),
-);
-
-final SchemanticType<Map<String, dynamic>> _emptyToolInputSchema =
-    SchemanticType.from<Map<String, dynamic>>(
-      jsonSchema: const <String, Object?>{
-        'type': 'object',
-        'description':
-            'This tool uses the latest user request from app context.',
-        'properties': <String, Object?>{},
-        'required': <String>[],
-      },
-      parse: (json) {
-        if (json is Map<String, dynamic>) return json;
-        if (json is Map) return json.cast<String, dynamic>();
-        throw const FormatException('Expected an object for tool input.');
-      },
-    );
-
-const Map<String, Map<String, dynamic>> _weatherByLocation =
-    <String, Map<String, dynamic>>{
-      'seoul': <String, dynamic>{
-        'location': 'Seoul',
-        'condition': 'clear',
-        'temperatureC': 19,
-        'temperatureF': 66,
-      },
-      'tokyo': <String, dynamic>{
-        'location': 'Tokyo',
-        'condition': 'cloudy',
-        'temperatureC': 22,
-        'temperatureF': 72,
-      },
-      'san francisco': <String, dynamic>{
-        'location': 'San Francisco',
-        'condition': 'foggy',
-        'temperatureC': 14,
-        'temperatureF': 57,
-      },
-    };
-
-const Map<String, Map<String, dynamic>> _timeByCity =
-    <String, Map<String, dynamic>>{
-      'seoul': <String, dynamic>{
-        'city': 'Seoul',
-        'localTime': '2026-03-13 21:15',
-        'timezone': 'Asia/Seoul',
-      },
-      'tokyo': <String, dynamic>{
-        'city': 'Tokyo',
-        'localTime': '2026-03-13 21:15',
-        'timezone': 'Asia/Tokyo',
-      },
-      'san francisco': <String, dynamic>{
-        'city': 'San Francisco',
-        'localTime': '2026-03-13 05:15',
-        'timezone': 'America/Los_Angeles',
-      },
-    };
-
-const Map<String, Map<String, dynamic>>
-_factsByTopic = <String, Map<String, dynamic>>{
-  'genkit': <String, dynamic>{
-    'topic': 'genkit',
-    'fact':
-        'Genkit can automatically execute tool loops when a model returns tool requests.',
-  },
-  'llamadart': <String, dynamic>{
-    'topic': 'llamadart',
-    'fact':
-        'llamadart runs local GGUF and LiteRT-LM models from Dart and Flutter applications.',
-  },
-};
+import 'support/chat_model.dart';
 
 Future<void> main() async {
-  final modelPath = Platform.environment[_modelPathEnv];
-  final mmprojPath = Platform.environment[_mmprojPathEnv];
-  final initialPrompt = Platform.environment[_promptEnv];
-
-  if (modelPath == null || modelPath.isEmpty) {
-    stderr.writeln('Set $_modelPathEnv to a local model path.');
-    exitCode = 64;
-    return;
-  }
-
-  final plugin = llamaDart(
-    models: <LlamaModelDefinition>[
-      LlamaModelDefinition(
-        name: 'local-agent',
-        modelPath: modelPath,
-        mmprojPath: mmprojPath,
-        modelParams: const ModelParams(contextSize: 8192),
-        supportsEmbeddings: false,
+  final prepared = await prepareExampleChat('agent');
+  final ai = prepared.createGenkit();
+  final temperature = ai.defineTool<Map<String, dynamic>, String>(
+    name: 'lookup_demo_temperature',
+    description:
+        'Look up a city temperature from demo fixtures, not live weather.',
+    inputSchema: SchemanticType.from(
+      jsonSchema: {
+        'type': 'object',
+        'properties': {
+          'city': {
+            'type': 'string',
+            'enum': ['Seoul', 'Tokyo', 'San Francisco'],
+          },
+        },
+        'required': ['city'],
+      },
+      parse: (json) => (json as Map).cast<String, dynamic>(),
+    ),
+    outputSchema: SchemanticType.string(),
+    fn: (input, _) async {
+      print('Tool: lookup_demo_temperature(${input['city']})');
+      const values = {'Seoul': 19, 'Tokyo': 22, 'San Francisco': 14};
+      return ToolResult.response(
+        '${input['city']}: ${values[input['city']]} °C (demo data)',
+      );
+    },
+  );
+  final system = Message(
+    role: Role.system,
+    content: [
+      TextPart(
+        text:
+            'Use the lookup tool for demo temperatures. Call it once per city. '
+            'After the result, answer briefly and identify it as demo data.',
       ),
     ],
   );
-
-  final ai = Genkit(plugins: <LlamaDartPlugin>[plugin]);
-  final requestContext = _AgentRequestContext();
-  final tools = <Tool<dynamic, dynamic>>[
-    _defineWeatherTool(ai, requestContext),
-    _defineLocalTimeTool(ai, requestContext),
-    _defineKnowledgeTool(ai, requestContext),
-  ];
-
-  var history = <Message>[
-    Message(
-      role: Role.system,
-      content: <Part>[TextPart(text: _agentSystemPrompt)],
-    ),
-  ];
-
+  var history = <Message>[system];
+  final oneShot = Platform.environment['LLAMADART_PROMPT'];
   try {
-    if (initialPrompt != null && initialPrompt.trim().isNotEmpty) {
-      await _runTurn(ai, history, tools, requestContext, initialPrompt.trim());
-      return;
+    if (oneShot == null) {
+      print('Ask for a demo temperature in Seoul, Tokyo or San Francisco.');
+      print('Type clear to reset history or quit to exit.');
     }
-
-    stdout.writeln('Interactive llamadart agent');
-    stdout.writeln('Type `quit` to exit or `clear` to reset history.');
-    stdout.writeln(
-      'Try: What is the weather in Seoul, and what time is it there?',
-    );
-
     while (true) {
-      stdout.write('\nuser> ');
-      final input = stdin.readLineSync();
-      if (input == null) {
-        stdout.writeln();
-        break;
-      }
-
-      final trimmed = input.trim();
-      if (trimmed.isEmpty) {
+      if (oneShot == null) stdout.write('user> ');
+      final prompt = oneShot ?? stdin.readLineSync();
+      if (prompt == null || prompt == 'quit') break;
+      if (prompt == 'clear') {
+        history = [system];
+        if (oneShot != null) break;
         continue;
       }
-      if (trimmed == 'quit' || trimmed == 'exit') {
-        break;
-      }
-      if (trimmed == 'clear') {
-        history = history.take(1).toList(growable: false);
-        stdout.writeln('History cleared.');
+      if (prompt.trim().isEmpty) {
+        if (oneShot != null) break;
         continue;
       }
-
-      history = await _runTurn(ai, history, tools, requestContext, trimmed);
+      final response = await ai.generate(
+        messages: history,
+        prompt: prompt,
+        tools: [temperature],
+        maxTurns: 4,
+        config: const LlamaDartGenerationConfig(
+          temperature: 0,
+          seed: 42,
+          maxTokens: 256,
+        ),
+      );
+      if (response.finishReason == FinishReason.failed ||
+          response.finishReason == FinishReason.aborted) {
+        throw response.cause ?? StateError('Agent did not complete.');
+      }
+      print(response.text);
+      history = response.messages;
+      if (oneShot != null) break;
     }
   } finally {
-    await plugin.dispose();
-    await ai.shutdown();
-  }
-}
-
-Future<List<Message>> _runTurn(
-  Genkit ai,
-  List<Message> history,
-  List<Tool<dynamic, dynamic>> tools,
-  _AgentRequestContext requestContext,
-  String input,
-) async {
-  requestContext.latestUserInput = input;
-  final requestMessages = <Message>[
-    ...history,
-    Message(
-      role: Role.user,
-      content: <Part>[TextPart(text: input)],
-    ),
-  ];
-
-  stdout.write('assistant> ');
-  var streamedText = false;
-  final stream = ai.generateStream<Object?, LlamaDartGenerationConfig>(
-    model: llamaDart.model('local-agent'),
-    messages: requestMessages,
-    tools: tools,
-    maxTurns: 8,
-    context: <String, dynamic>{'latestUserInput': input},
-    config: const LlamaDartGenerationConfig(
-      temperature: 0.2,
-      maxTokens: 4096,
-      enableThinking: false,
-      parallelToolCalls: true,
-    ),
-  );
-
-  try {
-    await for (final chunk in stream) {
-      if (chunk.text.isNotEmpty) {
-        streamedText = true;
-        stdout.write(chunk.text);
-      }
+    try {
+      await prepared.dispose();
+    } finally {
+      await ai.shutdown();
     }
-
-    final response = await stream.onResult;
-
-    if (!streamedText && response.text.isEmpty) {
-      stdout.writeln('<empty>');
-    } else {
-      stdout.writeln();
-    }
-    return response.messages;
-  } on GenkitException catch (error) {
-    if (streamedText) {
-      stdout.writeln();
-    }
-    stderr.writeln(
-      'Generation stopped before a final answer: ${error.message}',
-    );
-    stderr.writeln(
-      'Try a stronger tool-capable model, a simpler prompt, or a higher maxTurns value.',
-    );
-    return requestMessages;
   }
-}
-
-Tool<Map<String, dynamic>, Map<String, dynamic>> _defineWeatherTool(
-  Genkit ai,
-  _AgentRequestContext requestContext,
-) {
-  return ai.defineTool<Map<String, dynamic>, Map<String, dynamic>>(
-    name: 'get_weather',
-    description:
-        'Get current weather for the location mentioned in the latest user request. No arguments are required.',
-    inputSchema: _emptyToolInputSchema,
-    outputSchema: _jsonMapSchema,
-    fn: (input, context) async {
-      final latestUserInput =
-          _latestUserInput(context.context) ?? requestContext.latestUserInput;
-      final location = _extractLocation(latestUserInput) ?? 'unknown';
-      final unit = _extractUnit(latestUserInput) ?? 'celsius';
-      final weather =
-          _weatherByLocation[location.toLowerCase()] ??
-          <String, dynamic>{
-            'location': location,
-            'condition': 'unknown',
-            'temperatureC': 20,
-            'temperatureF': 68,
-          };
-
-      final output = <String, dynamic>{
-        ...weather,
-        'unit': unit,
-        'reportedTemperature': unit == 'fahrenheit'
-            ? weather['temperatureF']
-            : weather['temperatureC'],
-      };
-      _logTool('get_weather', input, output);
-      return ToolResult.response(output);
-    },
-  );
-}
-
-Tool<Map<String, dynamic>, Map<String, dynamic>> _defineLocalTimeTool(
-  Genkit ai,
-  _AgentRequestContext requestContext,
-) {
-  return ai.defineTool<Map<String, dynamic>, Map<String, dynamic>>(
-    name: 'get_local_time',
-    description:
-        'Get the local time for the city mentioned in the latest user request. No arguments are required.',
-    inputSchema: _emptyToolInputSchema,
-    outputSchema: _jsonMapSchema,
-    fn: (input, context) async {
-      final latestUserInput =
-          _latestUserInput(context.context) ?? requestContext.latestUserInput;
-      final city = _extractLocation(latestUserInput) ?? 'unknown';
-      final output =
-          _timeByCity[city.toLowerCase()] ??
-          <String, dynamic>{
-            'city': city,
-            'localTime': '2026-03-13 12:00',
-            'timezone': 'UTC',
-          };
-      _logTool('get_local_time', input, output);
-      return ToolResult.response(output);
-    },
-  );
-}
-
-Tool<Map<String, dynamic>, Map<String, dynamic>> _defineKnowledgeTool(
-  Genkit ai,
-  _AgentRequestContext requestContext,
-) {
-  return ai.defineTool<Map<String, dynamic>, Map<String, dynamic>>(
-    name: 'lookup_fact',
-    description:
-        'Look up a short stored fact for the topic mentioned in the latest user request. No arguments are required.',
-    inputSchema: _emptyToolInputSchema,
-    outputSchema: _jsonMapSchema,
-    fn: (input, context) async {
-      final latestUserInput =
-          _latestUserInput(context.context) ?? requestContext.latestUserInput;
-      final topic = _extractTopic(latestUserInput) ?? latestUserInput;
-      final output =
-          _factsByTopic[topic.toLowerCase()] ??
-          <String, dynamic>{'topic': topic, 'fact': 'No stored fact found.'};
-      _logTool('lookup_fact', input, output);
-      return ToolResult.response(output);
-    },
-  );
-}
-
-String? _latestUserInput(Map<String, dynamic>? context) {
-  final query = context?['latestUserInput'];
-  if (query is String && query.trim().isNotEmpty) {
-    return query.trim();
-  }
-  return null;
-}
-
-String? _extractLocation(String text) {
-  final normalized = text.toLowerCase();
-  if (normalized.contains('san francisco')) {
-    return 'San Francisco';
-  }
-  if (normalized.contains('seoul')) {
-    return 'Seoul';
-  }
-  if (normalized.contains('tokyo')) {
-    return 'Tokyo';
-  }
-  return null;
-}
-
-String? _extractUnit(String text) {
-  final normalized = text.toLowerCase();
-  if (normalized.contains('fahrenheit')) {
-    return 'fahrenheit';
-  }
-  if (normalized.contains('celsius')) {
-    return 'celsius';
-  }
-  return null;
-}
-
-String? _extractTopic(String text) {
-  final normalized = text.toLowerCase();
-  if (normalized.contains('genkit')) {
-    return 'genkit';
-  }
-  if (normalized.contains('llamadart')) {
-    return 'llamadart';
-  }
-  return null;
-}
-
-void _logTool(String name, Map<String, dynamic> input, Object output) {
-  stderr.writeln(
-    '[tool:$name] input=${jsonEncode(input)} output=${jsonEncode(output)}',
-  );
-}
-
-final class _AgentRequestContext {
-  // Streaming context forwarding varies across supported Genkit versions, so
-  // keep the current turn available as a fallback for these no-argument tools.
-  String latestUserInput = 'unknown';
 }

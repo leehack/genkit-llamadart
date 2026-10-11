@@ -6,6 +6,7 @@ from urllib.parse import unquote, urlsplit
 
 
 ROOT_DOCUMENTS = ("README.md", "CHANGELOG.md", "ARCHITECTURE.md", "CONTRIBUTING.md")
+PUB_DOCUMENTS = ("README.md", "CHANGELOG.md", "example/README.md", "example/example.md")
 REPOSITORY_PATH = "/leehack/genkit-llamadart/blob/main/"
 
 
@@ -50,9 +51,20 @@ def check_links(root, document):
     return errors
 
 
+def check_pub_links(root, document):
+    errors = []
+    for destination in destinations(document.read_text()):
+        if destination.startswith("#"):
+            continue
+        url = urlsplit(destination)
+        if url.scheme != "https" or not url.netloc:
+            errors.append(f"{document.relative_to(root)}: pub.dev requires an absolute HTTPS link: {destination}")
+    return errors
+
+
 def documents(root):
     return [root / name for name in ROOT_DOCUMENTS] + sorted([
-        *root.glob("doc/**/*.md"), *root.glob("skills/**/*.md"),
+        *root.glob("doc/**/*.md"), *root.glob("skills/**/*.md"), *root.glob("example/**/*.md"),
     ])
 
 
@@ -60,6 +72,10 @@ if __name__ == "__main__":
     root = Path(__file__).resolve().parent.parent
     files = documents(root)
     errors = [error for document in files for error in check_links(root, document)]
+    errors.extend(
+        error for name in PUB_DOCUMENTS if (root / name).is_file()
+        for error in check_pub_links(root, root / name)
+    )
     if errors:
         raise SystemExit("\n".join(errors))
-    print(f"Documentation links and anchors pass in {len(files)} files; external URLs are not fetched.")
+    print(f"Documentation links, anchors and pub.dev URLs pass in {len(files)} files; external URLs are not fetched.")

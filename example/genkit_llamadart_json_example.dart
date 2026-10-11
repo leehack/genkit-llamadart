@@ -5,6 +5,8 @@ import 'package:genkit/genkit.dart';
 import 'package:genkit_llamadart/genkit_llamadart.dart';
 import 'package:schemantic/schemantic.dart';
 
+import 'support/chat_model.dart';
+
 final SchemanticType<Map<String, dynamic>> _reviewSchema =
     SchemanticType.from<Map<String, dynamic>>(
       jsonSchema: <String, Object?>{
@@ -16,49 +18,20 @@ final SchemanticType<Map<String, dynamic>> _reviewSchema =
         'required': <String>['summary', 'sentiment'],
         'additionalProperties': false,
       },
-      parse: (json) {
-        if (json is Map<String, dynamic>) {
-          return json;
-        }
-        if (json is Map) {
-          return json.cast<String, dynamic>();
-        }
-        throw FormatException('Expected a JSON object.');
-      },
+      parse: (json) => (json as Map).cast<String, dynamic>(),
     );
 
 Future<void> main() async {
-  final modelPath = Platform.environment['LLAMADART_MODEL_PATH'];
   final prompt =
       Platform.environment['LLAMADART_PROMPT'] ??
       'Summarize this review as JSON: The battery lasts all day, but the speakers are weak.';
-
-  if (modelPath == null || modelPath.isEmpty) {
-    stderr.writeln(
-      'Set LLAMADART_MODEL_PATH to a local grammar-capable model path.',
-    );
-    exitCode = 64;
-    return;
-  }
-
-  final plugin = llamaDart(
-    models: <LlamaModelDefinition>[
-      LlamaModelDefinition(
-        name: 'local-json',
-        modelPath: modelPath,
-        supportsEmbeddings: false,
-        supportsTools: false,
-      ),
-    ],
-  );
-
-  final ai = Genkit(plugins: <LlamaDartPlugin>[plugin]);
+  final prepared = await prepareExampleChat('local-json');
+  final ai = prepared.createGenkit();
 
   try {
     stdout.write('JSON stream: ');
     final stream = ai
         .generateStream<Map<String, dynamic>, LlamaDartGenerationConfig>(
-          model: llamaDart.model('local-json'),
           prompt: prompt,
           outputSchema: _reviewSchema,
           outputFormat: 'json',
@@ -79,9 +52,16 @@ Future<void> main() async {
     stdout.writeln();
     final response = await stream.onResult;
 
+    if (response.finishReason == FinishReason.failed ||
+        response.finishReason == FinishReason.aborted) {
+      throw response.cause ?? StateError('Generation did not complete.');
+    }
     stdout.writeln('Parsed output: ${jsonEncode(response.output)}');
   } finally {
-    await plugin.dispose();
-    await ai.shutdown();
+    try {
+      await prepared.dispose();
+    } finally {
+      await ai.shutdown();
+    }
   }
 }

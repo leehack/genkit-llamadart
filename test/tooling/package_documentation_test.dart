@@ -145,6 +145,9 @@ Map<String, String> _documents(Map<String, String> skills, Directory guides) =>
         'CHANGELOG.md',
       ])
         name: File(name).readAsStringSync(),
-      for (final file in guides.listSync(recursive: true).whereType<File>())
+      for (final file in [
+        ...guides.listSync(recursive: true).whereType<File>(),
+        ...Directory('example').listSync(recursive: true).whereType<File>(),
+      ])
         if (file.path.endsWith('.md')) file.path: file.readAsStringSync(),
     };

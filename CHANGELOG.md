@@ -1,5 +1,7 @@
 ## Unreleased
 
+- Refresh the pub.dev quickstart and runnable feature examples, including local retrieval with bounded passages and source IDs.
+
 - Keep decision-flow capability failures free of raw native diagnostics and model paths.
 
 - Apply, rescale, remove and clear live LoRA adapters on dedicated native owners without reloading the base model.
