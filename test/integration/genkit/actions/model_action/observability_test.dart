@@ -72,7 +72,10 @@ void main() {
       expect(zero.usage!.cachedContentTokens, 0);
       runtime.createChunks = [textChunk('next'), stopChunk()];
       final next = await testModelAction(runtime: runtime)(request());
-      expect(next.usage, isNull);
+      expect(next.usage!.inputTokens, isNull);
+      expect(next.usage!.outputTokens, isNull);
+      expect(next.usage!.inputCharacters, 2);
+      expect(next.usage!.outputCharacters, 4);
       expect(next.raw!.containsKey('usage'), isFalse);
     },
   );
@@ -83,6 +86,8 @@ void main() {
     );
     expect(response.text, '{"answer":1}');
     expect(response.usage!.inputTokens, 12);
+    expect(response.usage!.inputCharacters, 2);
+    expect(response.usage!.outputCharacters, 12);
     expect(response.raw!['usage']['duration_ms'], 9);
   });
 

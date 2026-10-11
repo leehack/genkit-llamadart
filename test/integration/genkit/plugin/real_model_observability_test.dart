@@ -58,6 +58,8 @@ void main() {
           expect(response.text.trim(), isNotEmpty);
           expect(response.usage!.inputTokens, greaterThan(0));
           expect(response.usage!.outputTokens, greaterThan(0));
+          expect(response.usage!.inputCharacters, 'Say hello.'.length);
+          expect(response.usage!.outputCharacters, response.text.length);
           expect(
             response.raw!['usage']['duration_ms'],
             greaterThanOrEqualTo(0),

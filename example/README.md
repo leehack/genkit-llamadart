@@ -19,7 +19,7 @@ sampling settings. It downloads about 533 MB. To use an existing model instead:
 dart run example/genkit_llamadart_example.dart /models/chat.gguf
 ```
 
-The streaming, agent, JSON, retrieval and inspection examples use that same
+The streaming, agent, JSON, retrieval, resource and inspection examples use that same
 Qwen3.5 default. Set `LLAMADART_MODEL_PATH` to reuse a local instruct GGUF.
 Model quality and supported options can differ with that override.
 
@@ -29,6 +29,7 @@ Model quality and supported options can differ with that override.
 | [Agent](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_agent_example.dart) | `genkit_llamadart_agent_example.dart` | Typed city arguments, deterministic sampling, a Genkit tool loop and multi-turn history; fixtures are **demo data**, not live weather |
 | [Structured JSON](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_json_example.dart) | `genkit_llamadart_json_example.dart` | Grammar-constrained streaming and parsed output; native grammar support required |
 | [Local retrieval](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_retrieval_example.dart) | `genkit_llamadart_retrieval_example.dart` | Search three local text files, bound context and return an answer with source IDs |
+| [Resource/data input](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_resources_example.dart) | `genkit_llamadart_resources_example.dart` | Explicitly resolve an approved resource and render bounded JSON data before generation |
 | [Inspection and scoring](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_inspection_example.dart) | `genkit_llamadart_inspection_example.dart` | Loaded backend/context, raw token counts and next-token probabilities; native decoder required |
 | [Embeddings](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_embedding_example.dart) | `genkit_llamadart_embedding_example.dart` | Normalized text vectors; downloads a pinned Jina embedding GGUF, about 20 MB |
 | [Download/cache](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_source_prepare_example.dart) | `genkit_llamadart_source_prepare_example.dart` | Source preparation and cache reuse; pinned SmolLM2, about 88 MB |

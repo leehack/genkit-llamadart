@@ -13,6 +13,12 @@ import 'actions/model_action.dart';
 import 'actions/scoring_action.dart';
 
 /// `GenkitPlugin` implementation backed by local `llamadart` runtimes.
+///
+/// Reasoning is emitted separately in streamed/final responses and retained by
+/// Genkit history. Incoming reasoning parts are omitted from model prompts;
+/// replay is model/template-specific and is not advertised by this adapter.
+/// Direct embedder actions observe Genkit cancellation: queued calls skip work,
+/// while active embedding drains before cancellation is reported.
 class LlamaDartPlugin extends GenkitPlugin {
   /// Registers model/scoring actions and, when enabled, an embedder per definition.
   ///

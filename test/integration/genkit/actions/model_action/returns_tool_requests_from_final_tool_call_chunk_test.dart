@@ -47,6 +47,7 @@ void main() {
         'city': 'Seoul',
       });
       expect(response.raw, isNot(contains('path')));
+      expect(response.usage!.outputCharacters, '{"city":"Seoul"}'.length);
     },
   );
 }

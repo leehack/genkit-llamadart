@@ -12,6 +12,7 @@ import '../../../core/runtime/llama_runtime.dart';
 import '../../../core/runtime/operation_usage.dart';
 import '../../../core/streaming/completion_accumulator.dart';
 import '../action_support.dart';
+import '../content_usage.dart';
 import '../converters/genkit_to_llama.dart';
 import '../converters/constrained_tools.dart';
 import '../converters/llama_to_genkit.dart';
@@ -81,6 +82,18 @@ genkit.Model<LlamaDartGenerationConfig> buildModelAction({
         if (capture.finishReason != null) {
           response.finishReason = mapFinishReason(capture.finishReason);
         }
+        final inputParts = messages.expand((message) => message.parts);
+        recordContentUsage(
+          response,
+          inputCharacters: messages.fold(
+            0,
+            (sum, message) => sum + message.content.length,
+          ),
+          inputImages: inputParts.whereType<llama.LlamaImageContent>().length,
+          inputAudioFiles: inputParts
+              .whereType<llama.LlamaAudioContent>()
+              .length,
+        );
         response.raw = {
           ...?response.raw,
           'queueMs': capture.queueMs,

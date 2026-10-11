@@ -20,7 +20,8 @@ genkit.Embedder<LlamaDartEmbedConfig> buildEmbedderAction({
       modelInfo: modelInfoFor(definition, generation: false),
       generation: false,
     ),
-    fn: (request, _) async {
+    fn: (request, context) async {
+      context.cancel?.throwIfCancelled();
       if (!definition.supportsEmbeddings) {
         throw genkit.GenkitException(
           'Embeddings are disabled for `${definition.name}`.',
@@ -33,7 +34,10 @@ genkit.Embedder<LlamaDartEmbedConfig> buildEmbedderAction({
           .map(documentToPlainText)
           .toList(growable: false);
 
-      final embeddings = await registry.withRuntime(definition.name, (runtime) {
+      final embeddings = await registry.withRuntime(definition.name, (
+        runtime,
+      ) async {
+        context.cancel?.throwIfCancelled();
         final capabilities = registry.capabilitiesFor(definition.name);
         checkRuntimeReady(definition, capabilities);
         requireRuntimeCapability(
@@ -41,11 +45,16 @@ genkit.Embedder<LlamaDartEmbedConfig> buildEmbedderAction({
           supported: capabilities?.supportsEmbeddings,
           feature: 'embeddings',
         );
-        return runtime.embedBatch(
-          texts,
-          normalize: config.normalize ?? LlamaDartEmbedConfig.defaultNormalize,
-        );
-      });
+        try {
+          return await runtime.embedBatch(
+            texts,
+            normalize:
+                config.normalize ?? LlamaDartEmbedConfig.defaultNormalize,
+          );
+        } finally {
+          context.cancel?.throwIfCancelled();
+        }
+      }, beforeInitialize: context.cancel?.throwIfCancelled);
 
       return genkit.EmbedResponse(
         embeddings: embeddings
