@@ -3,9 +3,9 @@ import 'dart:io';
 
 import 'package:genkit/genkit.dart';
 import 'package:genkit_llamadart/genkit_llamadart.dart';
+import 'package:schemantic/schemantic.dart';
 
 import 'support/chat_model.dart';
-import 'package:schemantic/schemantic.dart';
 
 final SchemanticType<Map<String, dynamic>> _reviewSchema =
     SchemanticType.from<Map<String, dynamic>>(
