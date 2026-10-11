@@ -9,7 +9,8 @@ provider, so this is an application recipe using `defineFlow`, not an
 The [runnable example](../example/genkit_llamadart_decision_example.dart) asks
 three fixed questions about a support ticket and publishes their complete Laya
 JSON result as the flow output. The [flow definition](../example/decision/triage_flow.dart)
-includes input/output schemas and validates the result before returning it.
+includes input/output schemas and checks finite numbers and the response shape
+before returning it. Invalid results fail with a neutral `DATA_LOSS` error.
 
 ```bash
 dart pub get

@@ -118,7 +118,8 @@ Flow<String, Map<String, dynamic>, void, void> defineDecisionTriageFlow(
     }
     context.cancel?.throwIfCancelled();
     final output = result.toJson();
-    if ((await triageOutputSchema.validate(output)).isNotEmpty) {
+    if (!_finiteNumbers(output) ||
+        (await triageOutputSchema.validate(output)).isNotEmpty) {
       throw GenkitException(
         'Unexpected decision response shape.',
         status: StatusCode.dataLoss,
@@ -127,6 +128,13 @@ Flow<String, Map<String, dynamic>, void, void> defineDecisionTriageFlow(
     return output;
   },
 );
+
+bool _finiteNumbers(Object? value) => switch (value) {
+  num() => value.isFinite,
+  Map() => value.values.every(_finiteNumbers),
+  Iterable() => value.every(_finiteNumbers),
+  _ => true,
+};
 
 const Map<String, Object?> _probability = {
   'type': 'number',
