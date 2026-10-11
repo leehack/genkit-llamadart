@@ -144,6 +144,7 @@ For request cancellation, pass a Genkit `CancellationController` token. See
 | Next-token probabilities | Capability-enabled decoder runtime; [typed scoring action](https://github.com/leehack/genkit-llamadart/blob/main/doc/next-token-scoring.md) |
 | Image and audio input | Compatible multimodal model and runtime, matching projector when required; explicit resolver for native HTTP(S) input; [media guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#image-and-audio-input) |
 | Batch transcription, speech synthesis and image generation | Loaded native typed engines; [speech/image guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/media-models.md) |
+| Choice, score and yes/no decisions | Experimental Laya encoder/head; native CPU [Genkit flow recipe](https://github.com/leehack/genkit-llamadart/blob/main/doc/decision-flows.md) |
 | Token counts and loaded runtime diagnostics | Explicit inspection without inference; [inspection guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/model-inspection.md) |
 | Downloads, cache and progress UI | `ModelSource` and preparation tasks; [model preparation](https://github.com/leehack/genkit-llamadart/blob/main/doc/model-preparation.md) |
 | OpenTelemetry traces and metrics | Application-configured telemetry provider; [observability](https://github.com/leehack/genkit-llamadart/blob/main/doc/observability.md) |

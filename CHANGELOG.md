@@ -4,6 +4,7 @@
 
 - Combine constrained JSON and tool calls on native llama.cpp, with complete-output validation before streaming or tool dispatch; preserve literal tool markup in final JSON.
 - Expose dedicated batch transcription, complete WAV synthesis and PNG generation as native Genkit models with explicit engine ownership and cancellation.
+- Add an experimental Laya decision-flow recipe with complete choice, score and yes/no results, schemas and native CPU qualification.
 
 - Support text-only multipart tool results while retaining structured output in Genkit history.
 - Resolve native HTTP(S) image and audio input with an explicit, bounded application-owned resolver.
