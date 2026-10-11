@@ -1,4 +1,4 @@
-## Unreleased
+## 3.2.1 - 2026-10-11
 
 - Honor cancelled embedding actions without evaluating queued work or interrupting other requests.
 - Complete character and image/audio usage counts while preserving unknown token measurements.
