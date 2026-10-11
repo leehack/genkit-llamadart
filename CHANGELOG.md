@@ -1,23 +1,16 @@
-## Unreleased
+## 3.2.0 - 2026-10-11
 
 - Refresh the pub.dev quickstart and runnable feature examples, including local retrieval with bounded passages and source IDs.
-
 - Keep decision-flow capability failures free of raw native diagnostics and model paths.
-
 - Apply, rescale, remove and clear live LoRA adapters on dedicated native owners without reloading the base model.
-
 - Add bounded application-owned native raw-prompt runtimes with isolated queues, cancellation and cleanup.
-
 - Expose typed Genkit actions for raw next-token probabilities with live capability checks and the shared model queue.
-
 - Combine constrained JSON and tool calls on native llama.cpp, with complete-output validation before streaming or tool dispatch; preserve literal tool markup in final JSON.
 - Expose dedicated batch transcription, complete WAV synthesis and PNG generation as native Genkit models with explicit engine ownership and cancellation.
 - Add an experimental Laya decision-flow recipe with complete choice, score and yes/no results, schemas and native CPU qualification.
-
 - Support text-only multipart tool results while retaining structured output in Genkit history.
 - Resolve native HTTP(S) image and audio input with an explicit, bounded application-owned resolver.
 - Inspect loaded model capabilities and context capacity, and count or tokenize raw text without inference.
-
 - Keep media validation errors free of signed URLs, credentials and source paths.
 - Preserve null tool parameters and reject schema constraints that the runtime cannot retain.
 - Stop optional real-model tests before downloads or inference when their fixture is not enabled.
