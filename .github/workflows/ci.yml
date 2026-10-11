@@ -65,6 +65,13 @@ jobs:
       - name: Verify pana score
         run: flutter pub global run pana . --exit-code-threshold 0
 
+      - name: Verify documentation links
+        run: python3 .github/check_docs.py
+
+      - name: Verify documentation snippets
+        if: steps.changes.outputs.runtime != 'true'
+        run: dart test test/tooling/package_documentation_test.dart
+
       - name: Run tests
         if: steps.changes.outputs.runtime == 'true'
         run: dart test -x real-model
