@@ -174,6 +174,10 @@ are enabled. It is discoverable through the `tool-model` tag.
 
 ## Before Opening A PR
 
+For the opt-in native isolation/checkpoint qualification, see the
+[bounded proof and known default-batch limitation](doc/runtime-isolation-design.md#bounded-native-checkpoint-proof).
+It uses the checksum-pinned tiny chat fixture and adds no session or live-LoRA API.
+
 Run:
 
 ```bash
