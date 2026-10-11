@@ -3,9 +3,10 @@
 This contract guides [#36](https://github.com/leehack/genkit-llamadart/issues/36)
 and [#46](https://github.com/leehack/genkit-llamadart/issues/46).
 [Dedicated native owners](runtime-owners.md) now provide bounded raw generation,
-scoring, cancellation and cleanup. KV checkpoints and live LoRA remain deferred.
-Both issues remain open until their remaining qualification passes. Applications can already configure load-time adapters through
-`ModelParams.loras`; changing an adapter on a loaded plugin runtime is not exposed.
+scoring, cancellation and cleanup. Live ordinary LoRA updates also use these owners, with
+[a pinned native pair qualification](live-lora-qualification.md). KV checkpoints
+remain deferred; #36 stays open for identity/storage/restore qualification. Applications can already configure load-time adapters through
+`ModelParams.loras`; shared plugin runtimes expose no live adapter mutation.
 
 ## Why a separate owner is required
 
@@ -202,8 +203,9 @@ Broader chat checkpoints, sampler/RNG continuation, message-history recovery,
 model/build/adapter identity enforcement and transactional checkpoint storage
 remain unimplemented. Bounded native owners are available separately; they expose
 no state files or chat recovery. GPU, Web, other native
-platforms and model families are unqualified. No live-LoRA base/adapter proof has
-been run. Issues #36/#46 remain open; this supplies a bounded prerequisite only.
+platforms and model families are unqualified. Live-LoRA qualification is recorded separately in
+[the native pair guide](live-lora-qualification.md); it makes no checkpoint
+continuation claim. Issue #36 remains open for persistence.
 
 ## Source evidence
 

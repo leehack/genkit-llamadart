@@ -14,6 +14,7 @@ Public package surface and stable user-facing types.
 - `embed_config.dart`: request-time embed options
 - `model_preparation.dart`: observable source preparation state and tasks
 - `prepared_model.dart`: prepared model ownership and lifecycle helpers
+- `runtime_owner.dart`: bounded dedicated native contexts and live LoRA controls
 
 Rules:
 
@@ -68,13 +69,15 @@ More concretely:
 `lib/genkit_llamadart.dart` re-exports the supported public API without exposing
 the internal layout to package consumers.
 
-## Planned Session Ownership
+## Dedicated Runtime Ownership
 
-The current runtime registry owns one queued runtime per model name, not per
-Genkit session. KV-state persistence and live LoRA updates require a separate
-owner; see the [isolation implementation contract](doc/runtime-isolation-design.md)
-for boundaries, source evidence and qualification required before adding APIs.
-This design does not change runtime behavior.
+The runtime registry owns one queued runtime per model name, not per Genkit
+session. The [dedicated native owner API](doc/runtime-owners.md) instead allocates
+a fresh context outside that registry, with bounded admission and one queue for
+generation, scoring and live LoRA changes. Genkit flows may use owner handles
+inside trusted application code; session lookup and authorization remain
+application-owned. KV checkpoints remain deferred under the
+[isolation implementation contract](doc/runtime-isolation-design.md).
 
 ## Test Layout
 

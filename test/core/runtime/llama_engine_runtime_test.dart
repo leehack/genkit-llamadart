@@ -6,6 +6,41 @@ import 'package:test/test.dart';
 const bool _isWeb = bool.fromEnvironment('dart.library.js_interop');
 
 void main() {
+  test(
+    'live LoRA probes loaded native runtime and delegates source controls',
+    () async {
+      final engine = _LoraEngine();
+      final runtime = LlamaEngineRuntime(engine: engine);
+      addTearDown(runtime.dispose);
+      expect(await runtime.supportsLiveLora, !_isWeb);
+      engine.ready = false;
+      expect(await runtime.supportsLiveLora, isFalse);
+      engine.ready = true;
+      engine.runtimeKind = llama.LlamaRuntime.liteRtLm;
+      expect(await runtime.supportsLiveLora, isFalse);
+      engine.runtimeKind = llama.LlamaRuntime.llamaCpp;
+      final source = ModelSource.path('/adapter.gguf');
+      final download = ModelLoadOptions(
+        headers: {'Authorization': 'adapter-only'},
+      );
+      void progress(llama.ModelDownloadProgress _) {}
+      await runtime.setLoraSource(
+        source,
+        scale: 0.5,
+        download: download,
+        onProgress: progress,
+      );
+      expect(engine.source, same(source));
+      expect(engine.scale, 0.5);
+      expect(engine.download, same(download));
+      expect(engine.progress, same(progress));
+      await runtime.removeLoraSource(source);
+      expect(engine.removed, same(source));
+      await runtime.clearLoras();
+      expect(engine.cleared, isTrue);
+    },
+  );
+
   test('scoring delegates raw prompt and every option to the engine', () async {
     final engine = _ScoringEngine();
     final runtime = LlamaEngineRuntime(engine: engine);
@@ -223,5 +258,39 @@ class _InspectionEngine extends _RecordingEngine {
     lastText = text;
     lastAddSpecial = addSpecial;
     return [3, 4];
+  }
+}
+
+class _LoraEngine extends _InspectionEngine {
+  bool ready = true;
+  @override
+  bool get isReady => ready;
+  ModelSource? source;
+  double? scale;
+  ModelLoadOptions? download;
+  llama.ModelDownloadProgressCallback? progress;
+  ModelSource? removed;
+  bool cleared = false;
+  @override
+  Future<void> setLoraSource(
+    ModelSource source, {
+    double scale = 1,
+    ModelLoadOptions download = ModelLoadOptions.defaults,
+    llama.ModelDownloadProgressCallback? onProgress,
+  }) async {
+    this.source = source;
+    this.scale = scale;
+    this.download = download;
+    progress = onProgress;
+  }
+
+  @override
+  Future<void> removeLoraSource(ModelSource source) async {
+    removed = source;
+  }
+
+  @override
+  Future<void> clearLoras() async {
+    cleared = true;
   }
 }

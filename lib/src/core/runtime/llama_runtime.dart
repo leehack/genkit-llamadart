@@ -59,6 +59,31 @@ abstract interface class LlamaRuntimeScoringProvider {
   });
 }
 
+/// Optional live-adapter controls for independently owned native contexts.
+///
+/// The owner checks [supportsLiveLora] inside its operation queue before adapter
+/// resolution or download. Custom implementations must probe actual support;
+/// method presence alone is insufficient. Mutations must invalidate prompt/KV
+/// reuse, and failures may leave the context uncertain, requiring disposal.
+abstract interface class LlamaRuntimeLoraProvider {
+  /// Whether the loaded context can apply, rescale, remove and clear adapters.
+  Future<bool> get supportsLiveLora;
+
+  /// Applies or rescales [source], preserving its own download options/progress.
+  Future<void> setLoraSource(
+    llama.ModelSource source, {
+    double scale = 1,
+    llama.ModelLoadOptions download = llama.ModelLoadOptions.defaults,
+    llama.ModelDownloadProgressCallback? onProgress,
+  });
+
+  /// Removes the adapter loaded from the same source identity.
+  Future<void> removeLoraSource(llama.ModelSource source);
+
+  /// Removes every active adapter and invalidates cached prompt state.
+  Future<void> clearLoras();
+}
+
 /// Runtime operations used by the Genkit adapter.
 ///
 /// Implement [LlamaRuntimeCapabilityProvider] to confirm advanced capabilities.

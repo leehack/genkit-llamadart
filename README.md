@@ -217,5 +217,5 @@ Report bugs or request features in the
 [CONTRIBUTING.md](https://github.com/leehack/genkit-llamadart/blob/main/CONTRIBUTING.md) covers local checks, meaningful regression
 tests and releases; [ARCHITECTURE.md](https://github.com/leehack/genkit-llamadart/blob/main/ARCHITECTURE.md) describes package layering.
 
-For application-owned native raw-prompt contexts, see
+For application-owned native raw-prompt contexts and live LoRA updates, see
 [dedicated runtime owners](doc/runtime-owners.md).

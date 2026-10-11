@@ -9,7 +9,8 @@ class LlamaEngineRuntime
         LlamaRuntime,
         LlamaRuntimeCapabilityProvider,
         LlamaRuntimeInspectionProvider,
-        LlamaRuntimeScoringProvider {
+        LlamaRuntimeScoringProvider,
+        LlamaRuntimeLoraProvider {
   LlamaEngineRuntime({
     llama.LlamaEngine? engine,
     Iterable<llama.LlamaEngineObserver> observers = const [],
@@ -51,6 +52,32 @@ class LlamaEngineRuntime
     topK: topK,
     reusePromptPrefix: reusePromptPrefix,
   );
+
+  @override
+  Future<bool> get supportsLiveLora async =>
+      !const bool.fromEnvironment('dart.library.js_interop') &&
+      _engine.isReady &&
+      _engine.runtime == llama.LlamaRuntime.llamaCpp;
+
+  @override
+  Future<void> setLoraSource(
+    llama.ModelSource source, {
+    double scale = 1,
+    llama.ModelLoadOptions download = llama.ModelLoadOptions.defaults,
+    llama.ModelDownloadProgressCallback? onProgress,
+  }) => _engine.setLoraSource(
+    source,
+    scale: scale,
+    download: download,
+    onProgress: onProgress,
+  );
+
+  @override
+  Future<void> removeLoraSource(llama.ModelSource source) =>
+      _engine.removeLoraSource(source);
+
+  @override
+  Future<void> clearLoras() => _engine.clearLoras();
 
   @override
   Future<void> initialize(LlamaModelDefinition definition) async {

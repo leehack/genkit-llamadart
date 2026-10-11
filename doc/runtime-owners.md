@@ -34,8 +34,8 @@ Future<void> main() async {
 
 Opening and closing owners count toward `maxOwners`; a full pool fails rather
 than evicting somebody else's state or waiting indefinitely. Each owner has a
-bounded queue for buffered raw generation and next-token scoring. Excess queued
-work fails before native work. Accepted operations drain on explicit close;
+bounded queue for buffered raw generation, next-token scoring and live LoRA.
+Excess queued work fails before native work. Accepted operations drain on explicit close;
 new work is rejected immediately. Repeated close calls return the same future.
 A failed native cleanup retains admission and remains observable on pool close.
 Idle expiry closes only owners with no active or queued work. Choose limits for
@@ -70,10 +70,59 @@ Native observers may receive prompts/results; Genkit flows may trace their
 inputs and outputs. Never expose source paths or mutable owner handles as remote
 flow inputs. A handle itself is not authorization.
 
-General checkpoint persistence and live adapter mutation are separate work.
+General checkpoint persistence remains separate work.
 See [the checkpoint/LoRA contract](runtime-isolation-design.md), including the
 known default-batch restore fidelity limit. This helper promises no KV files,
 chat-history recovery or exact sampler continuation.
+
+## Live LoRA
+
+Load-time adapters still use `ModelParams.loras`. To change a compatible adapter
+without reloading the base, use an application-owned handle:
+
+```dart
+import 'package:genkit_llamadart/genkit_llamadart.dart';
+
+Future<void> updateAdapter(LlamaDartRuntimeOwner owner) async {
+  final adapter = ModelSource.path('/models/adapter.gguf');
+  await owner.setLoraSource(adapter, scale: 0.5);
+  await owner.removeLoraSource(adapter);
+  await owner.clearLoras();
+}
+```
+
+`clearLoras()` clears all adapters, including any load-time configuration.
+These operations share the inference queue; they cannot change adapters during
+an active generation. Finite scales include zero. A successful mutation clears
+native prompt-prefix reuse, so replay committed application history under the
+new adapter configuration. The caller selects a compatible ordinary LoRA and
+can pin remote bytes with adapter-specific `ModelLoadOptions`; base-model
+credentials and checksums are never inherited. Remove using the same source
+identity that was applied. Removing an absent adapter follows llamadart's no-op
+behavior.
+
+A live support probe runs before source resolution or download. The built-in
+runtime requires a loaded native llama.cpp engine; published llamadart 0.11.1
+provides these source APIs. Qualification covers native `v0.5.0-2`; arbitrary
+native overrides and other devices are unqualified. Custom factories must
+implement `LlamaRuntimeLoraProvider` and explicitly probe actual availability.
+Web and LiteRT-LM owners reject before allocation; unsupported custom runtimes
+reject before adapter loading. Native compatibility/ABI failures also surface as
+errors. There is no shared-plugin live mutation or automatic session lookup.
+
+A source, probe or mutation failure closes the uncertain owner before reuse;
+its previous adapter configuration is not restored in place. Open a replacement
+and replay trusted history/configuration. Other owners keep their own state.
+Queued Genkit cancellation skips the mutation. Active cancellation waits for the
+operation to settle, then disposes the owner; it cannot interrupt synchronous
+native mutation. For prompt download cancellation use the adapter's
+`ModelLoadOptions.cancelToken`. Progress callbacks are application-owned and may
+contain source details; keep them out of telemetry unless explicitly permitted.
+
+The [live LoRA qualification guide](live-lora-qualification.md) records the
+pinned real pair, conversion recipe and opt-in test. Default CI checks routing,
+queue ordering, failure/unsupported paths and cancellation without downloading
+these weights.
 
 ## Real-model qualification
 
