@@ -39,6 +39,10 @@ Future<void> main() async {
         name: 'local',
         modelPath: modelPath,
         supportsEmbeddings: false,
+        modelParams: const ModelParams(
+          contextSize: 4096,
+          device: ComputeDevice.cpu,
+        ),
       ),
     ],
     observers: [OtelEngineObserver()],
@@ -50,6 +54,10 @@ Future<void> main() async {
       prompt: 'Say hello briefly.',
       config: const LlamaDartGenerationConfig(maxTokens: 32),
     );
+    if (response.finishReason == FinishReason.failed ||
+        response.finishReason == FinishReason.aborted) {
+      throw response.cause ?? StateError('Generation did not complete.');
+    }
     // Print measurements only: no prompts, generated text, paths or tool data.
     stdout.writeln(
       jsonEncode({
@@ -75,8 +83,7 @@ Future<void> main() async {
   }
 }
 
-// Engine spans provide runtime diagnostics. GenAiInstrumentation alone records
-// model token metrics, so observing the engine does not count tokens twice.
+/// Records engine spans without duplicating Genkit model token metrics.
 final class OtelEngineObserver extends LlamaEngineObserver {
   @override
   LlamaOperationObserver onStart(LlamaOperation operation) {

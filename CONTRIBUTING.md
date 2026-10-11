@@ -54,7 +54,7 @@ test layout. End-user guides live under `doc/`; README is the pub.dev entrypoint
 `skills/` is published to consumers' coding agents. A public API or behavior
 change updates the affected `SKILL.md` in the same PR;
 `test/tooling/package_documentation_test.dart` validates skill metadata and analyzes Dart
-examples from README, guides and skills in one analyzer run.
+examples from README, guides, example READMEs and skills in one analyzer run.
 
 ## Test Commands
 
@@ -320,3 +320,20 @@ For public runtime-owner qualification, see
 Live source-based LoRA routing has fast owner/runtime tests. Its opt-in real
 base/adapter pair proof and conversion provenance are in
 [the live LoRA qualification guide](doc/live-lora-qualification.md).
+
+### Runnable example qualification
+
+The [example index](example/README.md) documents native CLI setup. Fast retrieval
+tests verify ranking, context limits, metadata exclusion, unsupported input,
+Genkit routing, abstention and citation rejection. The optional example proof
+executes the actual chat, stream, agent, JSON and retrieval entry points with the
+checksum-pinned Qwen3.5 fixture:
+
+```bash
+LLAMADART_RUN_EXAMPLE_PROOF=1 LLAMADART_AUTO_DOWNLOAD_QWEN35_MODEL=1 \
+  dart test test/integration/genkit/examples/real_model_examples_test.dart -j 1
+```
+
+Or supply `LLAMADART_INTEGRATION_QWEN35_MODEL_PATH` instead of opting into a
+download. This proof is skipped before cache access unless explicitly enabled;
+default CI downloads no additional weights for these examples.

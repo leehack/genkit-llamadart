@@ -5,7 +5,7 @@ Future<void> main() async {
   final source = const String.fromEnvironment(
     'LLAMADART_MODEL_SOURCE',
     defaultValue:
-        'hf://unsloth/SmolLM2-135M-Instruct-GGUF/SmolLM2-135M-Instruct-Q2_K.gguf',
+        'hf://unsloth/SmolLM2-135M-Instruct-GGUF/SmolLM2-135M-Instruct-Q2_K.gguf?revision=9e6855bc4be717fca1ef21360a1db4b29d5c559a',
   );
   final cacheDirectory = const String.fromEnvironment(
     'LLAMADART_MODEL_CACHE',
@@ -16,7 +16,10 @@ Future<void> main() async {
   final task = llamaDart.prepareModelTask(
     name: 'observable-chat',
     source: modelSource,
-    modelParams: const ModelParams(contextSize: 4096),
+    modelParams: const ModelParams(
+      contextSize: 4096,
+      device: ComputeDevice.cpu,
+    ),
     options: ModelLoadOptions(
       cachePolicy: ModelCachePolicy.preferCached,
       cacheDirectory: cacheDirectory.isEmpty ? null : cacheDirectory,
@@ -56,15 +59,24 @@ Future<void> main() async {
         enableThinking: false,
       ),
     );
+    if (response.finishReason == FinishReason.failed ||
+        response.finishReason == FinishReason.aborted) {
+      throw response.cause ?? StateError('Generation did not complete.');
+    }
     print(response.text);
   } finally {
-    await subscription.cancel();
-    await task.dispose();
-    if (prepared != null) {
-      await prepared.dispose();
-    }
-    if (ai != null) {
-      await ai.shutdown();
+    try {
+      await subscription.cancel();
+    } finally {
+      try {
+        await task.dispose();
+      } finally {
+        try {
+          await prepared?.dispose();
+        } finally {
+          await ai?.shutdown();
+        }
+      }
     }
   }
 }

@@ -6,6 +6,7 @@ import subprocess
 
 PROSE = {
     "README.md", "CHANGELOG.md", "ARCHITECTURE.md", "CONTRIBUTING.md", "LICENSE",
+    "example/README.md", "doc/local-retrieval.md",
     "doc/decision-flows.md", "doc/media-models.md", "doc/migration.md",
     "doc/model-inspection.md", "doc/model-preparation.md",
     "doc/next-token-scoring.md", "doc/live-lora-qualification.md", "doc/observability.md",

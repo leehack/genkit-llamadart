@@ -52,11 +52,13 @@ This native Dart example downloads [Qwen3.5-0.8B Q4_K_M](https://huggingface.co/
 import 'package:genkit/genkit.dart';
 import 'package:genkit_llamadart/genkit_llamadart.dart';
 
-Future<void> main() async {
+Future<void> main(List<String> args) async {
   final prepared = await llamaDart.prepareModel(
     name: 'local-chat',
     source: ModelSource.parse(
-      'hf://unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf',
+      args.isEmpty
+          ? 'hf://unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_K_M.gguf?revision=6ab461498e2023f6e3c1baea90a8f0fe38ab64d0'
+          : args.single,
     ),
     modelParams: const ModelParams(
       contextSize: 4096,
@@ -72,7 +74,6 @@ Future<void> main() async {
     presencePenalty: 2.0,
     maxTokens: 128,
   );
-
   try {
     final response = await ai.generate(
       prompt: 'Say hello in one sentence.',
@@ -84,8 +85,11 @@ Future<void> main() async {
     }
     print(response.text);
   } finally {
-    await prepared.dispose();
-    await ai.shutdown();
+    try {
+      await prepared.dispose();
+    } finally {
+      await ai.shutdown();
+    }
   }
 }
 ```
@@ -137,7 +141,7 @@ For request cancellation, pass a Genkit `CancellationController` token. See
 
 | Feature | Requirements / guide |
 | --- | --- |
-| Offline chat and streaming | Instruct/chat model; [streaming example](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_example.dart) |
+| Offline chat and streaming | Instruct/chat model; [streaming example](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_streaming_example.dart) |
 | Tool calling and agent loops | Tool-capable model/runtime, supported object schemas; [tool calling](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#tool-calling) |
 | Structured JSON output | Grammar-capable backend; [JSON with active tools](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#constrained-json-with-tools) requires native llama.cpp; [JSON guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#structured-json-output) |
 | Text embeddings for search / RAG | Embedding model; [embedding guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#embeddings) |
@@ -145,6 +149,7 @@ For request cancellation, pass a Genkit `CancellationController` token. See
 | Image and audio input | Compatible multimodal model and runtime, matching projector when required; explicit resolver for native HTTP(S) input; [media guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#image-and-audio-input) |
 | Batch transcription, speech synthesis and image generation | Loaded native typed engines; [speech/image guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/media-models.md) |
 | Choice, score and yes/no decisions | Experimental Laya encoder/head; native CPU [Genkit flow recipe](https://github.com/leehack/genkit-llamadart/blob/main/doc/decision-flows.md) |
+| Dedicated raw-prompt contexts and live LoRA | Application-owned native runtimes; [owner guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/runtime-owners.md) |
 | Token counts and loaded runtime diagnostics | Explicit inspection without inference; [inspection guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/model-inspection.md) |
 | Downloads, cache and progress UI | `ModelSource` and preparation tasks; [model preparation](https://github.com/leehack/genkit-llamadart/blob/main/doc/model-preparation.md) |
 | OpenTelemetry traces and metrics | Application-configured telemetry provider; [observability](https://github.com/leehack/genkit-llamadart/blob/main/doc/observability.md) |
@@ -163,30 +168,24 @@ remain application responsibilities.
 
 ## Runnable examples
 
-Run from a checkout of this repository:
+Run the standalone [pub.dev quickstart](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_example.dart)
+from a checkout; its default downloads the pinned Qwen3.5 model:
 
 ```bash
-LLAMADART_MODEL_PATH=/models/chat.gguf \
 dart run example/genkit_llamadart_example.dart
 ```
 
-| Example | Shows |
-| --- | --- |
-| [Streaming chat](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_example.dart) | Incremental text and the final response |
-| [Download and cache](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_source_prepare_example.dart) | `ModelSource` preparation; defaults to a tiny SmolLM2 GGUF |
-| [Preparation UI](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_preparation_task_example.dart) | Progress snapshots, cancellation and warm-up |
-| [Agent loop](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_agent_example.dart) | Genkit tools; interactive when `LLAMADART_PROMPT` is unset |
-| [Structured JSON](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_json_example.dart) | Typed output and grammar-constrained streaming |
-| [Embeddings](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_embedding_example.dart) | Vector dimensions and sample values; use an embedding model |
-| [Observability](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_observability_example.dart) | Correlated spans and token metrics; needs an OTLP collector |
+The [example index](https://github.com/leehack/genkit-llamadart/blob/main/example/README.md)
+provides commands, model sizes and setup for streaming, typed tool loops,
+structured JSON, embeddings, local retrieval, inspection/scoring, download UI,
+Laya decisions, dedicated owners, live LoRA, image input, transcription, WAV
+synthesis, PNG generation and telemetry. Most chat examples can reuse a local
+model through `LLAMADART_MODEL_PATH`.
 
-The chat and agent examples accept `LLAMADART_MMPROJ_PATH` for a matching
-projector. Preparation examples accept a source instead of a local path:
-
-```bash
-dart run -DLLAMADART_MODEL_SOURCE=hf://owner/repo/model.gguf \
-  example/genkit_llamadart_source_prepare_example.dart
-```
+For a small retrieval application, try the
+[local-text question-answering recipe](https://github.com/leehack/genkit-llamadart/blob/main/doc/local-retrieval.md).
+It explicitly inserts bounded passages in messages; Genkit's standard `docs`
+forwarding remains unsupported.
 
 ## Guides and API reference
 
@@ -216,6 +215,3 @@ Report bugs or request features in the
 [issue tracker](https://github.com/leehack/genkit-llamadart/issues).
 [CONTRIBUTING.md](https://github.com/leehack/genkit-llamadart/blob/main/CONTRIBUTING.md) covers local checks, meaningful regression
 tests and releases; [ARCHITECTURE.md](https://github.com/leehack/genkit-llamadart/blob/main/ARCHITECTURE.md) describes package layering.
-
-For application-owned native raw-prompt contexts and live LoRA updates, see
-[dedicated runtime owners](doc/runtime-owners.md).

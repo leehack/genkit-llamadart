@@ -9,26 +9,17 @@ Future<void> main() async {
       Platform.environment['LLAMADART_EMBED_TEXT'] ??
       'hello world from genkit_llamadart';
 
-  if (modelPath == null || modelPath.isEmpty) {
-    stderr.writeln(
-      'Set LLAMADART_MODEL_PATH to a local embedding GGUF model path.',
-    );
-    exitCode = 64;
-    return;
-  }
-
-  final plugin = llamaDart(
-    models: <LlamaModelDefinition>[
-      LlamaModelDefinition(
-        name: 'local-embed',
-        modelPath: modelPath,
-        supportsTools: false,
-        supportsConstrainedOutput: false,
-      ),
-    ],
+  final prepared = await llamaDart.prepareModel(
+    name: 'local-embed',
+    source: ModelSource.parse(
+      modelPath ??
+          'hf://second-state/jina-embeddings-v2-small-en-GGUF/jina-embeddings-v2-small-en-Q2_K.gguf?revision=ce1d7885a6c52267f47f4793bc312ae5f71e8aca',
+    ),
+    modelParams: const ModelParams(contextSize: 512, device: ComputeDevice.cpu),
+    supportsTools: false,
+    supportsConstrainedOutput: false,
   );
-
-  final ai = Genkit(plugins: <LlamaDartPlugin>[plugin]);
+  final ai = prepared.createGenkit();
 
   try {
     final embeddings = await ai.embed(
@@ -47,7 +38,10 @@ Future<void> main() async {
       'First values: ${vector.take(8).map((v) => v.toStringAsFixed(4)).join(', ')}',
     );
   } finally {
-    await plugin.dispose();
-    await ai.shutdown();
+    try {
+      await prepared.dispose();
+    } finally {
+      await ai.shutdown();
+    }
   }
 }

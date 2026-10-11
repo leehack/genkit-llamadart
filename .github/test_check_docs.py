@@ -2,10 +2,19 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from check_docs import anchors, check_links, destinations
+from check_docs import anchors, check_links, destinations, documents
 
 
 class DocumentationTest(unittest.TestCase):
+    def test_example_guides_are_checked(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "example/retrieval").mkdir(parents=True)
+            guide = root / "example/retrieval/README.md"
+            guide.write_text("[broken](missing.dart)\n")
+            self.assertIn(guide, documents(root))
+            self.assertEqual(len(check_links(root, guide)), 1)
+
     def test_links_resolve_relative_canonical_and_encoded_targets(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

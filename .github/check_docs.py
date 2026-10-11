@@ -52,7 +52,7 @@ def check_links(root, document):
 
 def documents(root):
     return [root / name for name in ROOT_DOCUMENTS] + sorted([
-        *root.glob("doc/**/*.md"), *root.glob("skills/**/*.md"),
+        *root.glob("doc/**/*.md"), *root.glob("skills/**/*.md"), *root.glob("example/**/*.md"),
     ])
 
 
