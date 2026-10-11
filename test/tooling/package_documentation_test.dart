@@ -62,6 +62,23 @@ void main() {
     });
   });
 
+  test('nested guides with matching basenames keep both snippets', () async {
+    final directory = await Directory.systemTemp.createTemp('guide-discovery-');
+    addTearDown(() => directory.delete(recursive: true));
+    final first = File(p.join(directory.path, 'first', 'usage.md'));
+    final second = File(p.join(directory.path, 'second', 'usage.md'));
+    await first.parent.create(recursive: true);
+    await second.parent.create(recursive: true);
+    const invalid = '```dart\nunknownApi();\n```';
+    const valid = '```dart\nprint("example");\n```';
+    await first.writeAsString(invalid);
+    await second.writeAsString(valid);
+
+    final documents = _documents({}, directory);
+    expect(documents[first.path], invalid);
+    expect(documents[second.path], valid);
+  });
+
   test(
     'README, guides and skill examples analyze against the public API',
     () async {
@@ -75,24 +92,13 @@ void main() {
       addTearDown(() => snippets.deleteSync(recursive: true));
 
       int count = 0;
-      final documents = {
-        ...skills,
-        'readme': File('README.md').readAsStringSync(),
-        'architecture': File('ARCHITECTURE.md').readAsStringSync(),
-        'contributing': File('CONTRIBUTING.md').readAsStringSync(),
-        'changelog': File('CHANGELOG.md').readAsStringSync(),
-        for (final file in Directory(
-          'doc',
-        ).listSync(recursive: true).whereType<File>())
-          if (file.path.endsWith('.md'))
-            p.basenameWithoutExtension(file.path): file.readAsStringSync(),
-      };
+      final documents = _documents(skills, Directory('doc'));
       documents.forEach((String name, String markdown) {
-        final String prefix = name.replaceAll('-', '_');
+        final String prefix = name.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
         for (final RegExpMatch block in _dartBlock.allMatches(markdown)) {
           var code = block.group(1)!;
           if (!RegExp(r'^import ', multiLine: true).hasMatch(code) &&
-              name == 'readme') {
+              name == 'README.md') {
             final quickstart = _dartBlock.firstMatch(markdown)!.group(1)!;
             const tryStart = '  try {\n';
             const finallyStart = '  } finally {\n';
@@ -128,3 +134,17 @@ $code
     timeout: const Timeout(Duration(minutes: 3)),
   );
 }
+
+Map<String, String> _documents(Map<String, String> skills, Directory guides) =>
+    {
+      ...skills,
+      for (final name in [
+        'README.md',
+        'ARCHITECTURE.md',
+        'CONTRIBUTING.md',
+        'CHANGELOG.md',
+      ])
+        name: File(name).readAsStringSync(),
+      for (final file in guides.listSync(recursive: true).whereType<File>())
+        if (file.path.endsWith('.md')) file.path: file.readAsStringSync(),
+    };
