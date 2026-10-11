@@ -34,8 +34,8 @@ Future<void> main() async {
 
 Opening and closing owners count toward `maxOwners`; a full pool fails rather
 than evicting somebody else's state or waiting indefinitely. Each owner has a
-bounded queue for buffered raw generation, next-token scoring and live LoRA. Excess queued
-work fails before native work. Accepted operations drain on explicit close;
+bounded queue for buffered raw generation, next-token scoring and live LoRA.
+Excess queued work fails before native work. Accepted operations drain on explicit close;
 new work is rejected immediately. Repeated close calls return the same future.
 A failed native cleanup retains admission and remains observable on pool close.
 Idle expiry closes only owners with no active or queued work. Choose limits for
@@ -91,6 +91,7 @@ Future<void> updateAdapter(LlamaDartRuntimeOwner owner) async {
 }
 ```
 
+`clearLoras()` clears all adapters, including any load-time configuration.
 These operations share the inference queue; they cannot change adapters during
 an active generation. Finite scales include zero. A successful mutation clears
 native prompt-prefix reuse, so replay committed application history under the

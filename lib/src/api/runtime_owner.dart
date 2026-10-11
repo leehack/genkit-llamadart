@@ -11,9 +11,9 @@ import 'model_definition.dart';
 ///
 /// Each [open] creates a fresh runtime outside the plugin's shared model registry.
 /// Use handles in application-authorized Genkit flows. The application owns
-/// authorization and message history; this pool has no session IDs, checkpoint
-/// storage. Live-adapter mutations stay within their owner. Each owner loads its own context and model;
-/// shared weight files do not imply shared allocations or cheap sessions.
+/// authorization and message history. The pool has no session IDs or checkpoint
+/// storage. Live-adapter mutations stay within their owner. Each owner loads its
+/// own context and model; shared files do not guarantee shared allocations.
 final class LlamaDartRuntimePool {
   /// Creates a native-only pool without loading the model.
   ///
@@ -227,7 +227,7 @@ final class LlamaDartRuntimeOwner {
   /// invalidates native prompt-prefix reuse; replay committed history with the
   /// new configuration. A source/native failure faults and closes this owner;
   /// other owners keep their adapters and context. Genkit cancellation waits for
-  /// native work to settle; use [download]'s token for prompt download cancellation.
+  /// native work to settle; use [download]'s token to interrupt a download.
   Future<void> setLoraSource(
     llama.ModelSource source, {
     double scale = 1,
@@ -259,7 +259,9 @@ final class LlamaDartRuntimeOwner {
     cancellation: cancellation,
   );
 
-  /// Clears this owner's active adapters and invalidates cached prefix reuse.
+  /// Clears all adapters, including load-time adapters, from this owner.
+  ///
+  /// Invalidates cached prompt-prefix reuse on success.
   ///
   /// Serialized with inference; failure closes this owner before reuse.
   Future<void> clearLoras({genkit.CancellationToken? cancellation}) =>
