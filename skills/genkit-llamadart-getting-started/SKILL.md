@@ -81,6 +81,17 @@ description: >-
 - Embeddings use `llamaDart.embedder(name)` with `ai.embed(...)`, need an
   embedding model with `supportsEmbeddings: true`,
   and accept text-only documents.
+- Direct embedder actions accept Genkit cancellation tokens; queued calls skip
+  work and active embedding drains before cancellation is reported. Genkit 1.0
+  `ai.embed()` has no cancellation argument.
+- Final `usage` can include character/image/audio counts even when token counts
+  are unavailable. Read individual token fields rather than treating a nonnull
+  usage object as proof of token measurements. See [observability](../../doc/observability.md).
+- Genkit retains output reasoning in history, but the adapter omits incoming
+  reasoning from model prompts. Reasoning replay is not qualified.
+- Normalize approved resource/data input explicitly using the
+  [application recipe](../../doc/resource-input.md); direct generic parts remain
+  unsupported. The recipe belongs in user input, not system instructions.
 
 ## Examples
 

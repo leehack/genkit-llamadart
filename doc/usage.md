@@ -443,6 +443,10 @@ are not exposed in request config.
 - Genkit `ai.generate()` can return `finishReason: failed` or `aborted`;
   inspect the outcome and `error`/`cause` before using the result
 - `LlamaPreparedModel.warmUp()` still throws on failure or cancellation
+- Genkit's callable embedder action also accepts a cancellation token: cancelled
+  queued calls skip initialization/evaluation without stopping another request.
+  Active embedding cannot be interrupted through this adapter; it drains before
+  reporting cancellation. Genkit 1.0's `ai.embed()` has no cancel parameter.
 - call `await plugin.dispose()` before process shutdown to release native state
 - plugin disposal is terminal; create a new plugin or prepared-model handle instead of reusing it
 - if multiple runtimes fail during disposal, the returned `ParallelWaitError`

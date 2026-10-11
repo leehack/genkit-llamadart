@@ -70,6 +70,16 @@ runtime behavior to prevent unverified support claims.
 
 ## Limitations
 
+- Genkit history retains streamed/final reasoning, but incoming `ReasoningPart`
+  values are omitted from the next model prompt. Text and tool calls/results
+  remain. This is an explicit adapter policy, not a universal model requirement:
+  [Qwen3.5's template](https://huggingface.co/Qwen/Qwen3.5-0.8B/blob/2fc06364715b967f1860aea9cf38778875588b17/chat_template.jinja)
+  treats reasoning differently before and after the latest user query. Reasoning
+  replay during a tool continuation is not qualified here; use the documented
+  nonthinking tool flow when that distinction matters.
+- Resource/data parts need explicit [application normalization](resource-input.md).
+  Arbitrary custom parts, PDFs, video and multimodal embeddings are not accepted
+  simply because Genkit's generic schema can represent them.
 - Genkit sessions do not own the plugin's model runtime. Load-time LoRA through
   `ModelParams.loras` is available; live source-based changes use
   [dedicated native owners](runtime-owners.md#live-lora), outside the shared

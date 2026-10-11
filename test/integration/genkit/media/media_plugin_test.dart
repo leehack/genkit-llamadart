@@ -44,6 +44,12 @@ void main() {
         config: {'contextPrompt': 'Genkit', 'maxOutputTokens': 64},
       );
       expect(response.text, 'Hello from Genkit.');
+      expect(response.usage!.inputCharacters, 0);
+      expect(response.usage!.inputAudioFiles, 1);
+      expect(response.usage!.outputCharacters, 'Hello from Genkit.'.length);
+      expect(response.usage!.outputAudioFiles, 0);
+      expect(response.usage!.inputTokens, isNull);
+      expect(response.usage!.thoughtsTokens, isNull);
       expect((engine.request!.audio as llama.SpeechAudioBytesInput).bytes, [
         1,
         2,
@@ -85,6 +91,11 @@ void main() {
       expect(bytes.length, 48);
       expect(chunks.first.custom!['llamadartProgress']['phase'], 'generating');
       expect(chunks.last.content.single.mediaPart!.media.url, part.media.url);
+      expect(response.usage!.inputCharacters, engine.request!.text.length);
+      expect(response.usage!.inputAudioFiles, 1);
+      expect(response.usage!.outputAudioFiles, 1);
+      expect(response.usage!.outputCharacters, 0);
+      expect(response.usage!.outputTokens, isNull);
     },
   );
 
@@ -120,6 +131,11 @@ void main() {
       expect(engine.request!.scheduler, llama.ImageGenerationScheduler.karras);
       final part = response.message!.content.single.mediaPart!;
       expect(part.media.contentType, 'image/png');
+      expect(response.usage!.inputCharacters, 'A red dot'.length);
+      expect(response.usage!.inputImages, 0);
+      expect(response.usage!.outputImages, 1);
+      expect(response.usage!.outputCharacters, 0);
+      expect(response.usage!.outputTokens, isNull);
       expect(UriData.parse(part.media.url).contentAsBytes().take(8), [
         137,
         80,

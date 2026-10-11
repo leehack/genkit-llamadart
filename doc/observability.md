@@ -10,6 +10,26 @@ The model response supplies backend-reported `usage.inputTokens`, `outputTokens`
 zero counts remain zero. Native llama.cpp and capable WebGPU bridges report
 usage; do not assume every backend provides it.
 
+Successful chat and batch media responses also supply `inputCharacters`,
+`outputCharacters`, `inputImages`, `outputImages`, `inputAudioFiles` and
+`outputAudioFiles`. Known empty counts are zero. A response can therefore have
+`usage` while its token fields remain null.
+
+Character counts use Dart `String.length` (UTF-16 code units). Chat input counts
+delivered message text across the whole history, compact JSON tool arguments
+and rendered tool results, including text-part joining. Omitted input reasoning
+is excluded. Output counts final text, reasoning and compact JSON tool arguments
+once, after streaming. These counts exclude templates, tool names/schemas,
+configuration, metadata, media URLs/encoded bytes and hidden runtime work.
+
+For batch synthesis/image prompts, input text includes the newlines joining
+text parts. Media counts count parts/files, not frames, patches, samples or
+bytes. A reference audio file counts as input; each returned WAV/PNG counts as
+one output. Progress events do not count as output. Video and separate reasoning
+token measurements remain absent. Failed/cancelled operations do not fabricate
+completed-output counts. Character/media counts are available in responses;
+`genkit_otel` 0.2.0's standard token metrics still use only reported token fields.
+
 `response.raw` additionally includes:
 
 - `usage`: llamadart's usage map, with `time_to_first_token_ms` and `duration_ms`

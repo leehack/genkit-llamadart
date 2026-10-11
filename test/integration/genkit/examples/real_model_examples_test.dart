@@ -48,6 +48,9 @@ void main() {
       expect(chat.exitCode, 0, reason: '${chat.stdout}\n${chat.stderr}');
       expect(chat.stdout.toString().trim(), isNotEmpty);
       expect(await run('streaming'), isNotEmpty);
+      final resources = await run('resources');
+      expect(resources, contains('30'));
+      expect(resources.toLowerCase(), contains('days'));
       final agent = await run('agent');
       expect(agent, contains('Tool: lookup_demo_temperature(Seoul)'));
       expect(agent, contains('19'));

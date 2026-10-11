@@ -14,6 +14,7 @@ void main() {
         final runtime = FakeRuntime()
           ..createScripts.addAll([
             [
+              thinkingChunk('prior reasoning'),
               toolCallChunk(
                 id: 'first',
                 name: 'lookup',
@@ -110,6 +111,16 @@ void main() {
           reason: '${result.error}',
         );
         expect(result.text, 'done');
+        final historyReasoning = result.messages
+            .expand((message) => message.content)
+            .where((part) => part.isReasoning);
+        expect(historyReasoning.single.reasoning, 'prior reasoning');
+        expect(
+          runtime.recordedMessages[1].any(
+            (message) => message.reasoning != null,
+          ),
+          isFalse,
+        );
         expect(calls, ['one', 'two']);
         final forwarded = runtime.recordedMessages[1]
             .expand((m) => m.parts)

@@ -8,6 +8,7 @@ import 'package:llamadart/llamadart.dart' as llama;
 import '../../api/media_model.dart';
 import '../../api/media_resolver.dart';
 import '../../core/runtime/media_queue.dart';
+import 'content_usage.dart';
 import 'converters/remote_media.dart';
 import 'media/audio_file_stub.dart'
     if (dart.library.io) 'media/audio_file_io.dart';
@@ -112,11 +113,20 @@ class LlamaDartMediaPlugin extends genkit.GenkitPlugin {
                 ),
               );
             }
-            return genkit.ModelResponse(
+            final response = genkit.ModelResponse(
               message: genkit.Message(role: genkit.Role.model, content: parts),
               finishReason: genkit.FinishReason.stop,
               latencyMs: elapsed.elapsedMicroseconds / 1000,
             );
+            final input = request.messages.single.content;
+            recordContentUsage(
+              response,
+              inputCharacters: definition is LlamaDartSpeechToTextModel
+                  ? 0
+                  : _text(input).length,
+              inputAudioFiles: input.where((part) => part.isMedia).length,
+            );
+            return response;
           } catch (error) {
             context.cancel?.throwIfCancelled();
             if (error is genkit.GenkitException) rethrow;

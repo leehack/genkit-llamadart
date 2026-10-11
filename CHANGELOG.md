@@ -1,3 +1,9 @@
+## Unreleased
+
+- Honor cancelled embedding actions without evaluating queued work or interrupting other requests.
+- Complete character and image/audio usage counts while preserving unknown token measurements.
+- Add an explicit resource/data normalization example and document reasoning-history policy.
+
 ## 3.2.0 - 2026-10-11
 
 - Refresh the pub.dev quickstart and runnable feature examples, including local retrieval with bounded passages and source IDs.
