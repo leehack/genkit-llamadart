@@ -86,7 +86,7 @@ void main() {
       expect(supports()['constrained'], true);
       expect(supports()['media'], false);
       expect(
-        (listed.single.metadata['llamadartCapabilities'] as Map)['state'],
+        (listed.first.metadata['llamadartCapabilities'] as Map)['state'],
         'verified',
       );
       for (final contentType in ['image/png', 'audio/wav']) {

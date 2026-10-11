@@ -29,7 +29,7 @@ class LlamaPreparedModel {
   /// Local-path model definition that was registered on [plugin].
   final LlamaModelDefinition definition;
 
-  /// Genkit plugin exposing [definition] as a model action and, when enabled,
+  /// Genkit plugin exposing [definition] as model/scoring actions and, when enabled,
   /// an embedder action.
   final LlamaDartPlugin plugin;
 

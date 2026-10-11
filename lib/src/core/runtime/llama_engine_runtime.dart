@@ -8,7 +8,8 @@ class LlamaEngineRuntime
     implements
         LlamaRuntime,
         LlamaRuntimeCapabilityProvider,
-        LlamaRuntimeInspectionProvider {
+        LlamaRuntimeInspectionProvider,
+        LlamaRuntimeScoringProvider {
   LlamaEngineRuntime({
     llama.LlamaEngine? engine,
     Iterable<llama.LlamaEngineObserver> observers = const [],
@@ -37,6 +38,19 @@ class LlamaEngineRuntime
   @override
   Future<List<int>> tokenize(String text, {bool addSpecial = false}) =>
       _engine.tokenize(text, addSpecial: addSpecial);
+
+  @override
+  Future<llama.LlamaNextTokenScores> scoreNextToken(
+    String prompt, {
+    List<int> candidates = const [],
+    int topK = 0,
+    bool reusePromptPrefix = true,
+  }) => _engine.scoreNextToken(
+    prompt,
+    candidates: candidates,
+    topK: topK,
+    reusePromptPrefix: reusePromptPrefix,
+  );
 
   @override
   Future<void> initialize(LlamaModelDefinition definition) async {

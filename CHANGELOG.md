@@ -1,5 +1,7 @@
 ## Unreleased
 
+- Expose typed Genkit actions for raw next-token probabilities with live capability checks and the shared model queue.
+
 - Combine constrained JSON and tool calls on native llama.cpp, with complete-output validation before streaming or tool dispatch; preserve literal tool markup in final JSON.
 - Expose dedicated batch transcription, complete WAV synthesis and PNG generation as native Genkit models with explicit engine ownership and cancellation.
 
