@@ -28,9 +28,12 @@ description: >-
 - Use single primitive types (including `null`), string enums, nested objects,
   `required` and typed array `items`. Nullable unions, bounds, patterns, formats,
   composition and `additionalProperties: false`/schema are rejected before
-  loading; the runtime cannot retain them. Do not remove a safety constraint
-  and assume it is still enforced. Use an explicit application validation
-  boundary when richer constraints are required.
+  loading by this adapter's `ToolParam` mapping. It does not yet consume
+  llamadart 0.13's `ToolDefinition.fromJsonSchema`; follow-up
+  [#74](https://github.com/leehack/genkit-llamadart/issues/74) must qualify its
+  supported subset. Numeric bounds and patterns remain unsupported upstream.
+  Do not remove a safety constraint and assume it is still enforced. Use an
+  explicit application validation boundary when richer constraints are required.
 - Named Schemantic object schemas work; local `$ref`/`$defs` wrappers are
   resolved before parameters are mapped.
 - The model definition must keep `supportsTools: true` (the default).

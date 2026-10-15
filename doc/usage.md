@@ -259,7 +259,11 @@ Resolver failures have sanitized messages and no original exception cause.
   existing tools using them now need a supported schema or an application-owned
   validation boundary. Do not assume the original constraints were enforced.
   Explicit `additionalProperties: true` is equivalent to the default open
-  object policy. Full rich-schema support needs a richer llamadart tool API.
+  object policy. The adapter still maps schemas through `ToolParam`; it does
+  not yet consume llamadart 0.13's `ToolDefinition.fromJsonSchema`. The supported
+  subset of that API needs adapter and runtime qualification in
+  [#74](https://github.com/leehack/genkit-llamadart/issues/74). Numeric bounds
+  and patterns remain unsupported by that upstream API.
 - Local named references must be acyclic and resolve in the exact root
   `$defs` or `definitions` block named by the reference. Put constraints in the
   referenced definition; semantic siblings beside `$ref` are rejected because merging
