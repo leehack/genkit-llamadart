@@ -163,6 +163,18 @@ follow the application's [telemetry policy](observability.md).
    positive/negative isolation tests and model evidence. Update public Dartdoc,
    support docs and changelog only for behavior actually delivered.
 
+## Current upstream restore contract
+
+[llamadart #1003](https://github.com/leehack/llamadart/issues/1003) is closed with
+an explicit numerical-tolerance contract, reflected in the published
+[llamadart 0.13 state API](https://github.com/leehack/llamadart/blob/v0.13.0/lib/src/core/engine/engine.dart).
+Restore is KV-only; logits are recovered by re-evaluating the final token, and
+automatic batching can change greedy continuation. This allows a scoped
+raw-prompt cache design for #36 to proceed with that limitation. It does not
+supply the evaluated-token/history ledger required for general chat checkpoints,
+or preserve sampler/RNG state. The fixed-batch proof below remains a historical
+qualification control, not a reason to change default batching.
+
 ## Bounded native checkpoint proof
 
 The opt-in [native proof](../test/integration/genkit/runtime/real_model_isolation_test.dart)

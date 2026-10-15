@@ -79,6 +79,10 @@ LlamaToolDefinitions toLlamaTools(List<genkit.ToolDefinition>? tools) {
         status: genkit.StatusCode.invalidArgument,
       );
     }
+    final input = tool.inputSchema;
+    final schema = input == null
+        ? const <String, dynamic>{'type': 'object'}
+        : normalizeToolInputSchema(input);
     // Keep established simple tools usable on best-effort runtimes. Richer
     // contracts opt into the owning runtime's schema and grammar validation.
     try {
@@ -86,11 +90,10 @@ LlamaToolDefinitions toLlamaTools(List<genkit.ToolDefinition>? tools) {
         llama.ToolDefinition(
           name: tool.name,
           description: tool.description,
-          parameters: schemaToToolParams(tool.inputSchema),
+          parameters: schemaToToolParams(schema),
         ),
       );
     } on genkit.GenkitException {
-      final schema = normalizeToolInputSchema(tool.inputSchema!);
       final llama.ToolDefinition definition;
       try {
         definition = llama.ToolDefinition.fromJsonSchema(

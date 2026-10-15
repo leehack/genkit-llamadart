@@ -72,7 +72,9 @@ flow inputs. A handle itself is not authorization.
 
 General checkpoint persistence remains separate work.
 See [the checkpoint/LoRA contract](runtime-isolation-design.md), including the
-known default-batch restore fidelity limit. This helper promises no KV files,
+numerical-tolerance restore contract in llamadart 0.13. A scoped raw-prompt
+cache design is now addressable; general chat checkpoints still require an
+evaluated-token/history contract. This helper promises no KV files,
 chat-history recovery or exact sampler continuation.
 
 ## Live LoRA

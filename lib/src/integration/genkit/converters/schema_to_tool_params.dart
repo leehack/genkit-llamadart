@@ -1,15 +1,13 @@
 import 'package:genkit/plugin.dart' as genkit;
 import 'package:llamadart/llamadart.dart' as llama;
 
-List<llama.ToolParam> schemaToToolParams(Map<String, dynamic>? schema) {
-  if (schema == null) return const <llama.ToolParam>[];
-
-  final normalized = normalizeToolInputSchema(schema);
-  _validateSchema(normalized);
-  if (_schemaType(normalized) != 'object') {
+/// Maps an already owned, reference-resolved schema to legacy parameters.
+List<llama.ToolParam> schemaToToolParams(Map<String, dynamic> schema) {
+  _validateSchema(schema);
+  if (_schemaType(schema) != 'object') {
     throw _schemaError('Tool input schemas must be object-shaped.');
   }
-  return _mapObjectProperties(normalized);
+  return _mapObjectProperties(schema);
 }
 
 Map<String, dynamic> normalizeToolInputSchema(Map<String, dynamic> schema) {

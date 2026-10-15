@@ -3,39 +3,43 @@ import 'package:test/test.dart';
 
 void main() {
   test('legacy references resolve within their declared definition block', () {
-    final params = schemaToToolParams({
-      r'$ref': '#/definitions/Input',
-      'definitions': {
-        'Input': {
-          'type': 'object',
-          'properties': {
-            'value': {r'$ref': '#/definitions/Value'},
+    final params = schemaToToolParams(
+      normalizeToolInputSchema({
+        r'$ref': '#/definitions/Input',
+        'definitions': {
+          'Input': {
+            'type': 'object',
+            'properties': {
+              'value': {r'$ref': '#/definitions/Value'},
+            },
+            'required': ['value'],
           },
-          'required': ['value'],
+          'Value': {'type': 'null'},
         },
-        'Value': {'type': 'null'},
-      },
-    });
+      }),
+    );
     expect(params.single.toJsonSchema(), {'type': 'null'});
     expect(params.single.required, isTrue);
   });
 
   test('schemaToToolParams resolves ref-wrapped object schemas', () {
-    final params = schemaToToolParams(<String, dynamic>{
-      r'$ref': r'#/$defs/LookupInput',
-      r'$defs': <String, dynamic>{
-        'LookupInput': <String, dynamic>{
-          'type': 'object',
-          'properties': <String, dynamic>{
-            'city': <String, dynamic>{
-              'type': 'string',
-              'description': 'City to look up.',
+    final params = schemaToToolParams(
+      normalizeToolInputSchema(<String, dynamic>{
+        r'$ref': r'#/$defs/LookupInput',
+        r'$defs': <String, dynamic>{
+          'LookupInput': <String, dynamic>{
+            'type': 'object',
+            'properties': <String, dynamic>{
+              'city': <String, dynamic>{
+                'type': 'string',
+                'description': 'City to look up.',
+              },
             },
+            'required': <String>['city'],
           },
-          'required': <String>['city'],
         },
-      },
-    });
+      }),
+    );
 
     expect(params, hasLength(1));
     expect(params.single.name, 'city');
@@ -43,15 +47,17 @@ void main() {
   });
 
   test('schemaToToolParams accepts ref-wrapped empty objects', () {
-    final params = schemaToToolParams(<String, dynamic>{
-      r'$ref': r'#/$defs/EmptyInput',
-      r'$defs': <String, dynamic>{
-        'EmptyInput': <String, dynamic>{
-          'type': 'object',
-          'properties': <String, dynamic>{},
+    final params = schemaToToolParams(
+      normalizeToolInputSchema(<String, dynamic>{
+        r'$ref': r'#/$defs/EmptyInput',
+        r'$defs': <String, dynamic>{
+          'EmptyInput': <String, dynamic>{
+            'type': 'object',
+            'properties': <String, dynamic>{},
+          },
         },
-      },
-    });
+      }),
+    );
 
     expect(params, isEmpty);
   });
