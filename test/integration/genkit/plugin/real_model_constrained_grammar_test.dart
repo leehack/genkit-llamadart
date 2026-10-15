@@ -32,7 +32,7 @@ void main() {
             'required': ['value'],
           },
         ),
-      ]);
+      ]).tools;
       final engine = await llama.LlamaEngine.load(
         llama.LlamaModel(llama.ModelSource.path(path)),
         params: const llama.ModelParams(

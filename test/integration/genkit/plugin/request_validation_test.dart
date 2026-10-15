@@ -65,7 +65,7 @@ void main() {
   );
 
   test(
-    'lossy tool schemas cannot initialize a runtime or dispatch a handler',
+    'unsupported tool schemas cannot initialize a runtime or dispatch a handler',
     () async {
       var factories = 0;
       var calls = 0;
@@ -86,11 +86,9 @@ void main() {
       });
       for (final inputSchema in <Map<String, dynamic>>[
         for (final property in <Map<String, dynamic>>[
-          {
-            'type': ['string', 'null'],
-          },
+          {'type': 'string', 'pattern': '^a'},
           {'type': 'integer', 'minimum': 1},
-          {'type': 'object', 'additionalProperties': false},
+          {'type': 'array'},
         ])
           {
             'type': 'object',

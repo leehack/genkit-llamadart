@@ -78,7 +78,7 @@ jobs:
 
       - name: Verify browser capability guards
         if: steps.changes.outputs.runtime == 'true'
-        run: dart test -p chrome test/api/runtime_owner/browser_guard_test.dart test/integration/genkit/media/browser_guards_test.dart test/integration/genkit/plugin/runtime_capabilities_test.dart test/integration/genkit/actions/model_action/inference_controls_test.dart test/api/generation_config/inference_controls_codec_test.dart test/integration/genkit/actions/scoring_action_test.dart test/core/runtime/llama_engine_runtime_test.dart
+        run: dart test -p chrome test/api/runtime_owner/browser_guard_test.dart test/integration/genkit/media/browser_guards_test.dart test/integration/genkit/plugin/runtime_capabilities_test.dart test/integration/genkit/actions/model_action/inference_controls_test.dart test/api/generation_config/inference_controls_codec_test.dart test/integration/genkit/actions/scoring_action_test.dart test/core/runtime/llama_engine_runtime_test.dart test/integration/genkit/converters/genkit_to_llama/rich_tool_schemas_test.dart test/integration/genkit/actions/model_action/rich_tool_schemas_test.dart test/integration/genkit/plugin/rich_tool_schema_loop_test.dart
 
       - name: Run real-model tests
         if: steps.changes.outputs.runtime == 'true'

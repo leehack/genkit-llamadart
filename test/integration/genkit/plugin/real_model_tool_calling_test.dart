@@ -136,7 +136,7 @@ void main() {
         description: tool.description!,
         inputSchema: tool.inputSchema?.jsonSchema(),
       ),
-    ]).single;
+    ]).tools.single;
     validateCompiledToolSchema(path, schemaTool);
     calls = 0;
     final none = await ai.generate(

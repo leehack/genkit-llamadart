@@ -63,23 +63,54 @@ List<llama.LlamaChatMessage> toLlamaMessages(
   return converted;
 }
 
-List<llama.ToolDefinition> toLlamaTools(List<genkit.ToolDefinition>? tools) {
-  if (tools == null || tools.isEmpty) {
-    return const <llama.ToolDefinition>[];
-  }
+typedef LlamaToolDefinitions = ({
+  List<llama.ToolDefinition> tools,
+  Map<String, Map<String, dynamic>> inputSchemas,
+});
 
-  return tools
-      .map<llama.ToolDefinition>((genkit.ToolDefinition tool) {
-        return llama.ToolDefinition(
+LlamaToolDefinitions toLlamaTools(List<genkit.ToolDefinition>? tools) {
+  final converted = <llama.ToolDefinition>[];
+  final schemas = <String, Map<String, dynamic>>{};
+  final names = <String>{};
+  for (final tool in tools ?? const <genkit.ToolDefinition>[]) {
+    if (!names.add(tool.name)) {
+      throw genkit.GenkitException(
+        'Tool names must be unique within a model request.',
+        status: genkit.StatusCode.invalidArgument,
+      );
+    }
+    // Keep established simple tools usable on best-effort runtimes. Richer
+    // contracts opt into the owning runtime's schema and grammar validation.
+    try {
+      converted.add(
+        llama.ToolDefinition(
           name: tool.name,
           description: tool.description,
           parameters: schemaToToolParams(tool.inputSchema),
-          handler: (_) async {
-            throw UnsupportedError('Tool execution is handled by Genkit.');
-          },
+        ),
+      );
+    } on genkit.GenkitException {
+      final schema = normalizeToolInputSchema(tool.inputSchema!);
+      final llama.ToolDefinition definition;
+      try {
+        definition = llama.ToolDefinition.fromJsonSchema(
+          name: tool.name,
+          description: tool.description,
+          schema: schema,
         );
-      })
-      .toList(growable: false);
+      } on llama.LlamaException {
+        throw genkit.GenkitException(
+          "The tool input schema is invalid or outside llamadart 0.13's "
+          'supported object-schema subset. Numeric bounds, patterns, formats, '
+          'oneOf/allOf and non-object roots remain unsupported.',
+          status: genkit.StatusCode.invalidArgument,
+        );
+      }
+      converted.add(definition);
+      schemas[tool.name] = definition.toJsonSchema();
+    }
+  }
+  return (tools: converted, inputSchemas: schemas);
 }
 
 llama.GenerationParams toGenerationParams(LlamaDartGenerationConfig config) {

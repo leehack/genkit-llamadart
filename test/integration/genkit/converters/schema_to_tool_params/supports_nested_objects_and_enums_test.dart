@@ -43,7 +43,7 @@ void main() {
           description: 'Lookup',
           inputSchema: schema,
         ),
-      ]).single;
+      ]).tools.single;
       expect(tool.toJsonSchema(), schema);
       expect((tool.toJson()['function'] as Map)['parameters'], schema);
     },

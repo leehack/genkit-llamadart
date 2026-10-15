@@ -58,12 +58,14 @@ class LlamaModelDefinition {
   /// Enabled tools must use object-shaped input schemas and arguments because
   /// `llamadart` represents tool arguments as `Map<String, dynamic>`. Local
   /// `$ref` wrappers emitted for named Schemantic object schemas are resolved
-  /// before their parameters are mapped. Single primitive types (including
-  /// `null`), string enums, nested objects, required fields and typed arrays
-  /// are supported. Nullable unions, bounds, composition and restrictive
-  /// `additionalProperties` policies fail with `INVALID_ARGUMENT` before
-  /// initialization instead of being silently discarded. See the tool guide
-  /// for the supported schema subset.
+  /// before conversion. Simple primitive types, string enums, nested objects,
+  /// required fields and typed arrays retain their existing runtime support.
+  /// Nullable/type alternatives, scalar enums/const, `anyOf`, length bounds
+  /// and restrictive `additionalProperties` policies use owned JSON Schemas
+  /// and require grammar support plus a supported template. These responses
+  /// are buffered until final argument validation. Numeric bounds, patterns,
+  /// formats, `oneOf`/`allOf` and non-object roots fail with `INVALID_ARGUMENT`.
+  /// See the tool input schema guide for backend restrictions and size limits.
   ///
   /// Tool results may contain text parts, joined with newlines for the model;
   /// structured output remains in Genkit history. Missing or empty parts use

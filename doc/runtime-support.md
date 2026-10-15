@@ -92,6 +92,8 @@ runtime behavior to prevent unverified support claims.
   set `supportsConstrainedOutput: false` for `.litertlm` model definitions.
 - constrained output with active tools requires native llama.cpp, one call per
   turn and `enableThinking: false`; WebGPU and LiteRT-LM reject this combination
+- [Rich tool input schemas](tool-input-schemas.md) require grammar support and
+  a supported template; simple schemas retain best-effort tool calling.
 - some models may need prompt tuning for reliable tool arguments
 - multimodal requests require a compatible model and runtime; llama.cpp also
   requires a compatible projector, while native LiteRT-LM can use built-in encoders

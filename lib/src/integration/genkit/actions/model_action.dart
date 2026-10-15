@@ -45,7 +45,7 @@ genkit.Model<LlamaDartGenerationConfig> buildModelAction({
           status: genkit.StatusCode.invalidArgument,
         );
       }
-      final tools = toLlamaTools(request.tools);
+      final convertedTools = toLlamaTools(request.tools);
       final resolution = resolveLlamaMessages(
         request.messages,
         resolver: mediaResolver,
@@ -68,7 +68,8 @@ genkit.Model<LlamaDartGenerationConfig> buildModelAction({
               capabilities: registry.capabilitiesFor(definition.name),
               request: request,
               messages: messages,
-              tools: tools,
+              tools: convertedTools.tools,
+              inputSchemas: convertedTools.inputSchemas,
               config: config,
               context: context,
             );
@@ -116,6 +117,7 @@ Future<genkit.ModelResponse> _runModel({
   required genkit.ModelRequest request,
   required List<llama.LlamaChatMessage> messages,
   required List<llama.ToolDefinition> tools,
+  required Map<String, Map<String, dynamic>> inputSchemas,
   required LlamaDartGenerationConfig config,
   required _ModelActionContext context,
 }) async {
@@ -132,6 +134,15 @@ Future<genkit.ModelResponse> _runModel({
     request.toolChoice,
     hasTools: tools.isNotEmpty,
   );
+  final activeSchemaTools =
+      inputSchemas.isNotEmpty && toolChoice != llama.ToolChoice.none;
+  if (activeSchemaTools) {
+    requireRuntimeCapability(
+      definition,
+      supported: capabilities?.supportsGrammar,
+      feature: 'grammar-enforced JSON Schema tools (llamadart 0.13+)',
+    );
+  }
   final started = Stopwatch()..start();
 
   if (shouldUseStructuredGeneration(request.output)) {
@@ -179,6 +190,7 @@ Future<genkit.ModelResponse> _runModel({
     messages: messages,
     tools: tools,
     toolChoice: toolChoice,
+    inputSchemas: activeSchemaTools ? inputSchemas : const {},
     config: config,
     params: params,
     context: context,
@@ -191,6 +203,7 @@ Future<genkit.ModelResponse> _runStreamingModel({
   required LlamaRuntime runtime,
   required List<llama.LlamaChatMessage> messages,
   required List<llama.ToolDefinition> tools,
+  required Map<String, Map<String, dynamic>> inputSchemas,
   required llama.ToolChoice? toolChoice,
   required LlamaDartGenerationConfig config,
   required llama.GenerationParams params,
@@ -215,7 +228,7 @@ Future<genkit.ModelResponse> _runStreamingModel({
     chatTemplateKwargs: config.chatTemplateKwargs,
   )) {
     accumulator.addChunk(chunk);
-    if (context.streamingRequested) {
+    if (context.streamingRequested && inputSchemas.isEmpty) {
       final responseChunk = toGenkitChunk(chunk);
       if (responseChunk != null) {
         context.sendChunk(responseChunk);
@@ -223,12 +236,33 @@ Future<genkit.ModelResponse> _runStreamingModel({
     }
   }
 
-  return toGenkitModelResponse(
+  final response = toGenkitModelResponse(
     accumulator.toResult(),
     latencyMs: started.elapsedMilliseconds.toDouble(),
     raw: rawResponseMetadata(definition),
     allowToolCalls: tools.isNotEmpty && toolChoice != llama.ToolChoice.none,
   );
+  for (final part in response.message!.content) {
+    final call = part.toolRequest;
+    if (call == null) continue;
+    if (inputSchemas.isNotEmpty &&
+        !tools.any((tool) => tool.name == call.name)) {
+      throw invalidConstrainedOutput();
+    }
+    final schema = inputSchemas[call.name];
+    if (schema != null) await validateConstrainedValue(call.input, schema);
+  }
+  context.cancel?.throwIfCancelled();
+  if (context.streamingRequested && inputSchemas.isNotEmpty) {
+    context.sendChunk(
+      genkit.ModelResponseChunk(
+        role: genkit.Role.model,
+        content: response.message!.content,
+        aggregated: false,
+      ),
+    );
+  }
+  return response;
 }
 
 Future<genkit.ModelResponse> _runStructuredModel({

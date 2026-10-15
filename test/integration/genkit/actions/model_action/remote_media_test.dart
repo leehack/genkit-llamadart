@@ -170,7 +170,7 @@ void main() {
           genkit.ToolDefinition(
             name: 'invalid',
             description: 'Invalid schema',
-            inputSchema: {'type': 'object', 'additionalProperties': false},
+            inputSchema: {'type': 'object', 'properties': []},
           ),
         ];
       await expectLater(model(request), throwsA(isA<genkit.GenkitException>()));

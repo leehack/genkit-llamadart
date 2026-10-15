@@ -142,7 +142,7 @@ For request cancellation, pass a Genkit `CancellationController` token. See
 | Feature | Requirements / guide |
 | --- | --- |
 | Offline chat and streaming | Instruct/chat model; [streaming example](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_streaming_example.dart) |
-| Tool calling and agent loops | Tool-capable model/runtime, supported object schemas; [tool calling](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#tool-calling) |
+| Tool calling and agent loops | Tool-capable model/runtime; richer [input schemas](https://github.com/leehack/genkit-llamadart/blob/main/doc/tool-input-schemas.md) require grammar support; [tool calling](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#tool-calling) |
 | Structured JSON output | Grammar-capable backend; [JSON with active tools](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#constrained-json-with-tools) requires native llama.cpp; [JSON guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#structured-json-output) |
 | Text embeddings for search / RAG | Embedding model; [embedding guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#embeddings) |
 | Application resource/data input | Explicit allowlisted normalization before generation; [resource recipe](https://github.com/leehack/genkit-llamadart/blob/main/doc/resource-input.md) |
