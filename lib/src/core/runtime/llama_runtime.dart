@@ -100,6 +100,10 @@ abstract class LlamaDartRuntime {
   Future<void> initialize(LlamaModelDefinition definition);
 
   /// Generates chat completions from the supplied conversation.
+  ///
+  /// Preserve [tools] via `ToolDefinition.toJsonSchema()`: owned rich schemas
+  /// have an empty `parameters` list. Report grammar support only when these
+  /// constraints can be enforced; reject unsupported templates or tool choices.
   Stream<llama.LlamaCompletionChunk> create(
     List<llama.LlamaChatMessage> messages, {
     llama.GenerationParams? params,
@@ -116,7 +120,8 @@ abstract class LlamaDartRuntime {
   ///
   /// When [responseFormat] requests JSON, return the grammar, triggers, stops
   /// and preserved tokens required to enforce it. Reject unsupported constraints
-  /// instead of returning a best-effort unconstrained prompt.
+  /// instead of returning a best-effort unconstrained prompt. Preserve tool
+  /// inputs through `ToolDefinition.toJsonSchema()`, including owned schemas.
   Future<llama.LlamaChatTemplateResult> chatTemplate(
     List<llama.LlamaChatMessage> messages, {
     bool addAssistant = true,

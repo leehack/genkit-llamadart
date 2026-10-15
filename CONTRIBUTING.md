@@ -120,7 +120,7 @@ verify the downloaded bytes reach native chat input. The HTTP fixture server
 and caller-owned client are closed in teardown. Native
 runtime setup follows llamadart's platform instructions. For a standalone Dart
 validation override, point `LLAMADART_LITERT_LM_LIB_DIR` to the verified pinned
-runtime bundle; llamadart 0.11.1 uses `litert-lm-native` v0.17.0-8.
+runtime bundle; llamadart 0.13.0 uses `litert-lm-native` v0.18.0-1.
 Without these three fixture paths this targeted test is explicitly skipped.
 Browser tests of the adapter guards use deterministic runtimes and can run with
 `dart test -p chrome test/integration/genkit/plugin/runtime_capabilities_test.dart`;
@@ -339,3 +339,22 @@ LLAMADART_RUN_EXAMPLE_PROOF=1 LLAMADART_AUTO_DOWNLOAD_QWEN35_MODEL=1 \
 Or supply `LLAMADART_INTEGRATION_QWEN35_MODEL_PATH` instead of opting into a
 download. This proof is skipped before cache access unless explicitly enabled;
 default CI downloads no additional weights for these examples.
+
+## Rich tool schema qualification
+
+```bash
+LLAMADART_AUTO_DOWNLOAD_TOOL_MODEL=1 \
+  dart test test/integration/genkit/plugin/real_model_rich_tool_schemas_test.dart -j 1
+```
+
+This reuses the Qwen3 revision/checksum described above. It qualifies native
+llama.cpp CPU on macOS arm64 against published llamadart 0.13.0 / native
+v0.6.0-3. Positive and negative compiled grammar candidates check null/type
+alternatives, numeric enums, const, anyOf, length/item bounds and closed
+objects through the serialized tool schema and actual model chat template.
+Real Genkit handlers must run and supply the final answer in auto/required
+loops. The same test executes the rich-schema CLI example. Fast tests cover
+interrupt/resume, final validation/stream suppression and unsupported runtime
+capabilities. See [the schema matrix](doc/tool-input-schemas.md) for unqualified
+families and backend restrictions. Default CI skips this 1.1 GB fixture unless
+explicitly enabled; a skip is not model qualification.

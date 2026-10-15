@@ -1,3 +1,9 @@
+## Unreleased
+
+- Preserve richer tool input schemas, including nullable values, enums, composition and length limits, on grammar-capable runtimes.
+
+- Upgrade to llamadart 0.13.0; Flutter Apple apps must use matching 0.13.x runtime companions.
+
 ## 3.2.1 - 2026-10-11
 
 - Honor cancelled embedding actions without evaluating queued work or interrupting other requests.

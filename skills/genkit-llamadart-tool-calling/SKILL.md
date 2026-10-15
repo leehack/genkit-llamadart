@@ -25,12 +25,16 @@ description: >-
   llamadart passes arguments as `Map<String, dynamic>`. Primitive or list root
   inputs fail with `INVALID_ARGUMENT`. For a no-argument tool, use an object
   schema with no properties.
-- Use single primitive types (including `null`), string enums, nested objects,
-  `required` and typed array `items`. Nullable unions, bounds, patterns, formats,
-  composition and `additionalProperties: false`/schema are rejected before
-  loading; the runtime cannot retain them. Do not remove a safety constraint
-  and assume it is still enforced. Use an explicit application validation
-  boundary when richer constraints are required.
+- Simple schemas keep their existing runtime compatibility. Nullable/type
+  alternatives, scalar enums/const, `anyOf`, string/array length bounds and
+  restrictive `additionalProperties` policies use llamadart 0.13's owned schema
+  API. They require grammar support and a supported template. Use explicit
+  closed objects for fixed argument names. Rich-schema responses are buffered
+  until final argument validation; invalid output publishes no partial result.
+  Numeric bounds, patterns, formats and `oneOf`/`allOf` remain rejected. Do not
+  remove a safety constraint and assume it is enforced. See the
+  [schema guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/tool-input-schemas.md)
+  and [runnable example](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_tool_schema_example.dart).
 - Named Schemantic object schemas work; local `$ref`/`$defs` wrappers are
   resolved before parameters are mapped.
 - The model definition must keep `supportsTools: true` (the default).

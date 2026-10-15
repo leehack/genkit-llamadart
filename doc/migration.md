@@ -1,5 +1,17 @@
 # Migration guide
 
+## Upgrading to llamadart 0.13
+
+The current plugin requires llamadart `^0.13.0`. Genkit 1.0, Schemantic 1.0
+and the Dart 3.12 minimum are unchanged.
+
+Flutter iOS and macOS apps must use matching `^0.13.0` runtime companions:
+`llamadart_llama_cpp_flutter`, `llamadart_litert_lm_flutter`, and, for image
+generation, `llamadart_stable_diffusion_flutter`. Core and companions now share
+the same minor version; pub rejects mismatched minors. See the
+[llamadart 0.13.0 release notes](https://pub.dev/packages/llamadart/versions/0.13.0/changelog)
+for runtime changes, including LiteRT-LM's default 1 GiB GPU program-cache limit.
+
 ## Upgrading to 3.0 (Genkit 1.0)
 
 Version 3.0.0 requires Dart 3.12, Genkit 1.0, llamadart 0.11.1, and

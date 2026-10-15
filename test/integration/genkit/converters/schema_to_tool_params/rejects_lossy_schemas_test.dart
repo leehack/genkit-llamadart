@@ -52,10 +52,12 @@ void main() {
   for (final entry in propertyCases.entries) {
     test('rejects ${entry.key} instead of dropping its contract', () {
       expect(
-        () => schemaToToolParams({
-          'type': 'object',
-          'properties': {'value': entry.value},
-        }),
+        () => schemaToToolParams(
+          normalizeToolInputSchema({
+            'type': 'object',
+            'properties': {'value': entry.value},
+          }),
+        ),
         throwsA(
           isA<genkit.GenkitException>().having(
             (e) => e.status,
@@ -145,7 +147,7 @@ void main() {
   for (final entry in rootCases.entries) {
     test('rejects ${entry.key}', () {
       expect(
-        () => schemaToToolParams(entry.value),
+        () => schemaToToolParams(normalizeToolInputSchema(entry.value)),
         throwsA(
           isA<genkit.GenkitException>().having(
             (e) => e.status,
@@ -158,7 +160,12 @@ void main() {
   }
   test('explicit unrestricted properties retain the default open contract', () {
     expect(
-      schemaToToolParams({'type': 'object', 'additionalProperties': true}),
+      schemaToToolParams(
+        normalizeToolInputSchema({
+          'type': 'object',
+          'additionalProperties': true,
+        }),
+      ),
       isEmpty,
     );
   });

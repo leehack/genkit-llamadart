@@ -253,13 +253,14 @@ Resolver failures have sanitized messages and no original exception cause.
   `required` and a single typed array `items` schema are retained, including
   required null values. A missing type is inferred only from object properties
   or a nonempty string enum.
-- Nullable unions, numeric/string/array bounds, patterns, formats, composition
-  and `additionalProperties: false` or a schema are rejected with
-  `INVALID_ARGUMENT` before the runtime loads. They were previously discarded;
-  existing tools using them now need a supported schema or an application-owned
-  validation boundary. Do not assume the original constraints were enforced.
-  Explicit `additionalProperties: true` is equivalent to the default open
-  object policy. Full rich-schema support needs a richer llamadart tool API.
+- Nullable/type alternatives, scalar enums/const, `anyOf`, string/array length
+  limits and restrictive `additionalProperties` policies use llamadart 0.13's
+  owned JSON Schema API. They require grammar support and a qualified template;
+  final responses are buffered until argument validation. Existing simple
+  tools retain their best-effort runtime path. Numeric bounds, patterns,
+  formats and `oneOf`/`allOf` remain rejected with `INVALID_ARGUMENT`.
+  See [tool input schemas](tool-input-schemas.md) for exact limits, backend
+  restrictions, streaming behavior and a runnable example.
 - Local named references must be acyclic and resolve in the exact root
   `$defs` or `definitions` block named by the reference. Put constraints in the
   referenced definition; semantic siblings beside `$ref` are rejected because merging
