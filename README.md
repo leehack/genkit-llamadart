@@ -30,8 +30,8 @@ platform setup. Apple apps using Swift Package Manager need the runtime
 companion matching their model family:
 
 ```bash
-flutter pub add llamadart_llama_cpp_flutter
-flutter pub add llamadart_litert_lm_flutter
+flutter pub add 'llamadart_llama_cpp_flutter:^0.13.0'
+flutter pub add 'llamadart_litert_lm_flutter:^0.13.0'
 ```
 
 Choose the GGUF companion, the LiteRT-LM companion, or both if your app uses
