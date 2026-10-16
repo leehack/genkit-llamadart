@@ -79,6 +79,34 @@ class LlamaEngineRuntime
   @override
   Future<void> clearLoras() => _engine.clearLoras();
 
+  bool get supportsPromptCache =>
+      _engine.supportsStatePersistence && _engine.supportsNextTokenScoring;
+
+  Future<List<int>> savePromptCache(String prompt, String path) async {
+    final tokens = await _engine.tokenize(prompt, addSpecial: true);
+    final capacity = await _engine.getContextSize();
+    if (tokens.isEmpty || tokens.length >= capacity) {
+      throw llama.LlamaStateException(
+        'The prompt exceeds the cache context budget.',
+      );
+    }
+    final scores = await _engine.scoreNextToken(
+      prompt,
+      topK: 1,
+      reusePromptPrefix: false,
+    );
+    if (scores.promptTokens != tokens.length ||
+        !await _engine.stateSaveFile(path, tokens: tokens)) {
+      throw llama.LlamaStateException(
+        'Unable to save the evaluated raw prompt.',
+      );
+    }
+    return tokens;
+  }
+
+  Future<List<int>> loadPromptCache(String path, int tokenCapacity) async =>
+      (await _engine.stateLoadFile(path, tokenCapacity: tokenCapacity)).tokens;
+
   @override
   Future<void> initialize(LlamaModelDefinition definition) async {
     if (_initialized) {

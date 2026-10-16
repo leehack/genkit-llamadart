@@ -6,6 +6,11 @@ import 'package:llamadart/llamadart.dart' as llama;
 import '../../../api/generation_config.dart';
 import 'schema_to_tool_params.dart';
 
+/// Preserves visible conversation content while omitting reasoning in all roles.
+///
+/// Genkit owns the original history; conversion must not edit those messages.
+/// Reasoning replay needs a model/template-specific contract and is intentionally
+/// unavailable even when a runtime can generate or represent thinking content.
 List<llama.LlamaChatMessage> toLlamaMessages(
   List<genkit.Message> messages, {
   Map<(String, String?), llama.LlamaContentPart> mediaOverrides = const {},

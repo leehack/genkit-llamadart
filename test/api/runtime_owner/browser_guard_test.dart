@@ -18,6 +18,7 @@ void main() {
           allocations++;
           throw StateError('must not allocate');
         },
+        enablePromptCache: true,
       );
       await expectLater(pool.open(), throwsA(isA<LlamaUnsupportedException>()));
       expect(allocations, 0);

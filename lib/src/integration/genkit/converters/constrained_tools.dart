@@ -51,7 +51,14 @@ Future<void> validateConstrainedValue(
   Object? value,
   Map<String, dynamic> schema,
 ) async {
-  final type = SchemanticType.from(jsonSchema: schema, parse: (value) => value);
+  // Genkit injects this dialect annotation. Draft-07 declares no vocabulary
+  // override, so the validator's default vocabulary is identical without the
+  // remote meta-schema lookup. Preserve other dialects and property names.
+  final localSchema = _withoutGenkitDialect(schema);
+  final type = SchemanticType.from(
+    jsonSchema: localSchema,
+    parse: (value) => value,
+  );
   if ((await type.validate(value)).isNotEmpty) throw invalidConstrainedOutput();
 }
 
@@ -104,7 +111,7 @@ Map<String, dynamic> _nestReferences(Map<String, dynamic> schema) {
       status: genkit.StatusCode.invalidArgument,
     );
   }
-  final result = Map<String, dynamic>.from(schema);
+  final result = _withoutGenkitDialect(schema);
   final reference = schema[r'$ref'];
   if (reference != null) {
     if (reference is! String ||
@@ -134,6 +141,14 @@ Map<String, dynamic> _nestReferences(Map<String, dynamic> schema) {
     } else if (children.contains(entry.key) && value is Map) {
       result[entry.key] = _nestReferences(value.cast<String, dynamic>());
     }
+  }
+  return result;
+}
+
+Map<String, dynamic> _withoutGenkitDialect(Map<String, dynamic> schema) {
+  final result = Map<String, dynamic>.from(schema);
+  if (result[r'$schema'] == 'http://json-schema.org/draft-07/schema#') {
+    result.remove(r'$schema');
   }
   return result;
 }

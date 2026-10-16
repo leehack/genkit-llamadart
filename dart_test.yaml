@@ -6,5 +6,7 @@ tags:
   image-model:
   decision-model:
   isolation-model:
+  prompt-cache-model:
+  bidi-model:
   lora-model:
   example-model:

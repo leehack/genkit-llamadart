@@ -89,6 +89,15 @@ description: >-
   usage object as proof of token measurements. See [observability](../../doc/observability.md).
 - Genkit retains output reasoning in history, but the adapter omits incoming
   reasoning from model prompts. Reasoning replay is not qualified.
+- Opt-in same-process raw-prompt caches use `LlamaDartRuntimePool(enablePromptCache: true)`,
+  `owner.cachePrompt` and `owner.generateFromCache`. Handles stay in one pool/process;
+  only default native GGUF owners without projectors/LoRA are supported. No chat,
+  RNG or cross-process checkpoint is implied. See `doc/prompt-caches.md`.
+- Experimental `generateBidi` text sessions require the separate
+  `package:genkit_llamadart/experimental.dart` import and `LlamaDartBidiPlugin`.
+  Use `llamadart-bidi/<name>`, await one complete response before the next send,
+  close/cancel sessions explicitly and dispose the plugin. Tools/media/history
+  injection and Web/LiteRT are unsupported. See `doc/bidi-sessions.md`.
 - Normalize approved resource/data input explicitly using the
   [application recipe](../../doc/resource-input.md); direct generic parts remain
   unsupported. The recipe belongs in user input, not system instructions.
