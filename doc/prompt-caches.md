@@ -67,8 +67,9 @@ bounds retained native state blobs across the pool. It excludes native context
 allocations, temporary files and references held by an active operation after a
 handle is disposed. The state-file size is checked before reading it into memory;
 the pool quota is checked again immediately before publishing a handle. Dispose
-unused handles; pool close disposes all of them after owner cleanup. Disposing a
-handle does not cancel a restore already in progress.
+unused handles; pool close disposes all of them after owner cleanup settles,
+even if cleanup reports a failure. Disposing a handle does not cancel a restore
+already in progress.
 
 Queued cancellation skips work. Active cancellation waits for evaluation/file
 cleanup to settle, publishes no new handle and closes the uncertain owner.

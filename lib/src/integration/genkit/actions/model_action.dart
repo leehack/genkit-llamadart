@@ -26,6 +26,7 @@ genkit.Model<LlamaDartGenerationConfig> buildModelAction({
   required LlamaModelDefinition definition,
   required EngineRegistry registry,
   LlamaDartMediaResolver? mediaResolver,
+  void Function(llama.LlamaEngineCapabilities?)? checkCapabilities,
 }) {
   final modelInfo = modelInfoFor(definition);
   final actionName = actionNameFor(definition.name);
@@ -60,6 +61,8 @@ genkit.Model<LlamaDartGenerationConfig> buildModelAction({
           runtime,
         ) async {
           context.cancel?.throwIfCancelled();
+          // Apply entry-point requirements to the same fresh probe used below.
+          checkCapabilities?.call(registry.capabilitiesFor(definition.name));
           final unregister = context.cancel?.onCancel(runtime.cancelGeneration);
           try {
             final response = await _runModel(

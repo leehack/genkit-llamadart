@@ -244,7 +244,20 @@ final class _TextSession {
         );
       }
       config = {...parsed.toJson(), 'maxTokens': tokens};
-      model = buildModelAction(definition: definition, registry: registry);
+      model = buildModelAction(
+        definition: definition,
+        registry: registry,
+        checkCapabilities: (capabilities) {
+          if (capabilities?.isSupported != true ||
+              capabilities?.runtime != llama.LlamaRuntime.llamaCpp ||
+              capabilities?.supportsMultiTurnChat != true) {
+            throw _sessionError(
+              'Text sessions require confirmed native llama.cpp multi-turn support.',
+              StatusCode.unimplemented,
+            );
+          }
+        },
+      );
       unregister = ctx.cancel?.onCancel(() => _fail(CancelledException()));
       lifetime = Timer(
         plugin.maxSessionDuration,
@@ -340,17 +353,6 @@ final class _TextSession {
             content: [TextPart(text: pending.removeFirst())],
           ),
         );
-        await registry.withRuntime(definition.name, (_) async {
-          final capabilities = registry.capabilitiesFor(definition.name);
-          if (capabilities?.isSupported != true ||
-              capabilities?.runtime != llama.LlamaRuntime.llamaCpp ||
-              capabilities?.supportsMultiTurnChat != true) {
-            throw _sessionError(
-              'Text sessions require confirmed native llama.cpp multi-turn support.',
-              StatusCode.unimplemented,
-            );
-          }
-        }, beforeInitialize: cancellation.token.throwIfCancelled);
         final response = (await model.run(
           ModelRequest(messages: history, config: config),
           cancel: cancellation.token,

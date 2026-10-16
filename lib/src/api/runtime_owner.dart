@@ -180,10 +180,14 @@ final class LlamaDartRuntimePool {
   /// Terminal and idempotent. Cancel active inference separately when needed.
   /// Cleanup failures remain observable on this future, including owners whose
   /// earlier automatic cleanup failed. Independent contexts close concurrently.
+  /// Retained prompt caches are disposed after all owners settle, even on failure.
   Future<void> close() => _closing ??= () async {
-    await _owners.toList().map((owner) => owner.close()).wait;
-    for (final cache in _promptCaches.toList()) {
-      cache.dispose();
+    try {
+      await _owners.toList().map((owner) => owner.close()).wait;
+    } finally {
+      for (final cache in _promptCaches.toList()) {
+        cache.dispose();
+      }
     }
   }();
 

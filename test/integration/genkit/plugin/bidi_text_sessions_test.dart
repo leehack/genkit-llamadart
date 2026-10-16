@@ -328,6 +328,46 @@ void main() {
     }
   });
 
+  test('one fresh session capability probe guards each generation', () async {
+    final runtime = _ChangingRuntime()
+      ..createChunks = [textChunk('native'), stopChunk()];
+    final plugin = LlamaDartBidiPlugin(
+      models: const [_model],
+      maxTurns: 2,
+      runtimeFactory: () => runtime,
+    );
+    final ai = Genkit(plugins: [plugin], isDevEnv: false);
+    addTearDown(() async {
+      await plugin.dispose();
+      await ai.shutdown();
+    });
+    final session = await ai.generateBidi(model: 'llamadart-bidi/local');
+    final chunks = StreamIterator(session.stream);
+    try {
+      session.send('first');
+      expect(await chunks.moveNext(), isTrue);
+      expect(chunks.current.text, 'native');
+      expect(runtime.capabilityReadCount, 1);
+      session.send('runtime changed');
+      await expectLater(
+        chunks.moveNext(),
+        throwsA(
+          isA<GenkitException>().having(
+            (e) => e.status,
+            'status',
+            StatusCode.unimplemented,
+          ),
+        ),
+      );
+      expect(runtime.capabilityReadCount, 2);
+      expect(runtime.createCallCount, 1);
+      expect(runtime.disposeCount, 1);
+    } finally {
+      await session.close();
+      await chunks.cancel();
+    }
+  });
+
   test('reused runtime rejection cannot dispose another session', () async {
     final runtime = FakeRuntime()
       ..capabilitySnapshot = _native
@@ -569,5 +609,19 @@ class _BlockedRuntime extends FakeRuntime {
   void cancelGeneration() {
     super.cancelGeneration();
     if (!blocked.isCompleted) blocked.complete();
+  }
+}
+
+class _ChangingRuntime extends FakeRuntime {
+  @override
+  Future<llama.LlamaEngineCapabilities> get capabilities async {
+    capabilityReadCount++;
+    return capabilityReadCount == 1
+        ? _native
+        : const llama.LlamaEngineCapabilities(
+            isSupported: true,
+            runtime: llama.LlamaRuntime.liteRtLm,
+            supportsMultiTurnChat: true,
+          );
   }
 }
