@@ -1,11 +1,15 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:genkit/genkit.dart' as genkit;
 import 'package:llamadart/llamadart.dart' as llama;
 
 import '../core/runtime/llama_engine_runtime.dart';
 import '../core/runtime/llama_runtime.dart';
+import '../core/runtime/prompt_cache_files.dart';
 import 'model_definition.dart';
+
+part 'runtime_prompt_cache.dart';
 
 /// Bounds independently owned native llama.cpp contexts for one local GGUF.
 ///
@@ -32,13 +36,32 @@ final class LlamaDartRuntimePool {
     this.maxOwners = 2,
     this.maxQueuedOperations = 8,
     this.idleTimeout = const Duration(minutes: 5),
+    this.enablePromptCache = false,
+    this.maxPromptCaches = 2,
+    this.maxPromptCacheBytes = 64 * 1024 * 1024,
     LlamaDartRuntimeFactory? runtimeFactory,
     Iterable<llama.LlamaEngineObserver> observers = const [],
   }) {
-    _model = model;
+    _model = enablePromptCache
+        ? LlamaModelDefinition(
+            name: model.name,
+            modelPath: model.modelPath,
+            modelParams: model.modelParams.copyWith(
+              loras: List.unmodifiable(model.modelParams.loras),
+            ),
+            mmprojPath: model.mmprojPath,
+            supportsEmbeddings: model.supportsEmbeddings,
+            supportsTools: model.supportsTools,
+            supportsConstrainedOutput: model.supportsConstrainedOutput,
+            modelInfo: model.modelInfo,
+          )
+        : model;
+    _usesDefaultRuntime = runtimeFactory == null;
     if (maxOwners < 1 ||
         maxQueuedOperations < 1 ||
-        idleTimeout <= Duration.zero) {
+        idleTimeout <= Duration.zero ||
+        maxPromptCaches < 1 ||
+        maxPromptCacheBytes < 1) {
       throw ArgumentError('Runtime pool limits must be positive.');
     }
     final snapshot = List<llama.LlamaEngineObserver>.unmodifiable(observers);
@@ -47,6 +70,10 @@ final class LlamaDartRuntimePool {
 
   late final LlamaModelDefinition _model;
   late final LlamaDartRuntimeFactory _factory;
+  late final bool _usesDefaultRuntime;
+  final Set<LlamaDartPromptCache> _promptCaches = {};
+  int _pendingPromptCaches = 0;
+  int _promptCacheBytes = 0;
   final Set<LlamaDartRuntimeOwner> _owners = {};
   final Expando<bool> _seenRuntimes = Expando<bool>();
   Future<void>? _closing;
@@ -59,6 +86,22 @@ final class LlamaDartRuntimePool {
 
   /// Idle duration before an otherwise unused owner closes itself.
   final Duration idleTimeout;
+
+  /// Enables same-process raw-prompt caches on default native runtimes only.
+  ///
+  /// Opt-in because opening an owner verifies the immutable GGUF's SHA-256.
+  /// Caches cannot cross pools, processes, builds, adapters or model identities.
+  /// Projectors, load-time/live LoRA and custom runtimes are unsupported.
+  final bool enablePromptCache;
+
+  /// Maximum retained/in-progress prompt cache handles in this pool.
+  final int maxPromptCaches;
+
+  /// Maximum retained opaque native state bytes across prompt cache handles.
+  ///
+  /// Does not include native allocations or temporary save/load files. Dispose
+  /// unused handles; an in-flight restore retains its bytes until it settles.
+  final int maxPromptCacheBytes;
 
   /// Allocates and loads one independently owned native context.
   ///
@@ -106,7 +149,20 @@ final class LlamaDartRuntimePool {
       owner._allocated = runtime;
       if (owner._closed || _closing != null) throw _unavailable();
       await owner._run(
-        (_) => runtime.initialize(_model),
+        (_) async {
+          if (enablePromptCache) {
+            _checkPromptCacheConfiguration();
+            owner._modelIdentity = await promptModelIdentity(_model.modelPath);
+          }
+          await runtime.initialize(_model);
+          if (enablePromptCache &&
+              owner._modelIdentity !=
+                  await promptModelIdentity(_model.modelPath)) {
+            throw llama.LlamaStateException(
+              'The cache model changed during loading.',
+            );
+          }
+        },
         cancellation: cancellation,
         probe: false,
       );
@@ -126,7 +182,21 @@ final class LlamaDartRuntimePool {
   /// earlier automatic cleanup failed. Independent contexts close concurrently.
   Future<void> close() => _closing ??= () async {
     await _owners.toList().map((owner) => owner.close()).wait;
+    for (final cache in _promptCaches.toList()) {
+      cache.dispose();
+    }
   }();
+
+  void _checkPromptCacheConfiguration() {
+    if (!enablePromptCache ||
+        !_usesDefaultRuntime ||
+        _model.mmprojPath != null ||
+        _model.modelParams.loras.isNotEmpty) {
+      throw llama.LlamaUnsupportedException(
+        'Raw prompt caches require an opted-in default native runtime without projectors or LoRA.',
+      );
+    }
+  }
 }
 
 /// An application-owned, serialized native raw-prompt context.
@@ -149,6 +219,8 @@ final class LlamaDartRuntimeOwner {
   bool _faulted = false;
   bool _generating = false;
   bool _activeCancelled = false;
+  String? _modelIdentity;
+  bool _adaptersChanged = false;
 
   /// Whether this owner has begun closing or faulted and rejects new requests.
   bool get isClosed => _closed || _faulted;
@@ -281,6 +353,7 @@ final class LlamaDartRuntimeOwner {
       );
     }
     _checkCancellation(cancellation);
+    _adaptersChanged = true;
     await operation(_runtime as LlamaRuntimeLoraProvider);
   }, cancellation: cancellation);
 

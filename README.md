@@ -151,6 +151,8 @@ For request cancellation, pass a Genkit `CancellationController` token. See
 | Batch transcription, speech synthesis and image generation | Loaded native typed engines; [speech/image guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/media-models.md) |
 | Choice, score and yes/no decisions | Experimental Laya encoder/head; native CPU [Genkit flow recipe](https://github.com/leehack/genkit-llamadart/blob/main/doc/decision-flows.md) |
 | Dedicated raw-prompt contexts and live LoRA | Application-owned native runtimes; [owner guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/runtime-owners.md) |
+| Same-process raw-prompt caches | Opt-in default native owners; [cache limits](https://github.com/leehack/genkit-llamadart/blob/main/doc/prompt-caches.md); no general chat checkpoints |
+| Experimental text sessions | Separate `experimental.dart` entry point; bounded native [Genkit bidi sessions](https://github.com/leehack/genkit-llamadart/blob/main/doc/bidi-sessions.md) |
 | Token counts and loaded runtime diagnostics | Explicit inspection without inference; [inspection guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/model-inspection.md) |
 | Downloads, cache and progress UI | `ModelSource` and preparation tasks; [model preparation](https://github.com/leehack/genkit-llamadart/blob/main/doc/model-preparation.md) |
 | OpenTelemetry traces and metrics | Application-configured telemetry provider; [observability](https://github.com/leehack/genkit-llamadart/blob/main/doc/observability.md) |

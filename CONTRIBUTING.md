@@ -186,6 +186,22 @@ are enabled. It is discoverable through the `tool-model` tag.
 
 ## Before Opening A PR
 
+The bounded raw-prompt cache and experimental text-session proofs are native
+opt-ins. Both use the checksum-pinned tiny chat fixture; default CI skips them
+before file/model access. Run these when changing their contracts:
+
+```bash
+LLAMADART_RUN_PROMPT_CACHE_PROOF=1 LLAMADART_RUN_BIDI_PROOF=1 \
+LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 \
+dart test test/integration/genkit/runtime/real_model_prompt_cache_test.dart \
+  test/integration/genkit/runtime/real_model_bidi_test.dart -j 1
+```
+
+Record SDK, model checksum, native build, device/backend, cached-token evidence
+and unsupported combinations. See [cache qualification](doc/prompt-caches.md)
+and [experimental transport limits](doc/bidi-sessions.md). Native state reuse
+does not prove exact sampler continuation; transport chunks do not prove live audio.
+
 For the opt-in native isolation/checkpoint qualification, see the
 [bounded proof and known default-batch limitation](doc/runtime-isolation-design.md#bounded-native-checkpoint-proof).
 It uses the checksum-pinned tiny chat fixture and adds no session or live-LoRA API.

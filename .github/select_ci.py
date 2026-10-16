@@ -8,7 +8,7 @@ PROSE = {
     "README.md", "CHANGELOG.md", "ARCHITECTURE.md", "CONTRIBUTING.md", "LICENSE",
     "example/README.md", "doc/local-retrieval.md", "doc/resource-input.md",
     "doc/decision-flows.md", "doc/media-models.md", "doc/migration.md",
-    "doc/tool-input-schemas.md", "doc/model-inspection.md", "doc/model-preparation.md",
+    "doc/tool-input-schemas.md", "doc/reasoning-history.md", "doc/prompt-caches.md", "doc/bidi-sessions.md", "doc/model-inspection.md", "doc/model-preparation.md",
     "doc/next-token-scoring.md", "doc/live-lora-qualification.md", "doc/observability.md",
     "doc/runtime-isolation-design.md", "doc/runtime-owners.md", "doc/runtime-support.md", "doc/usage.md",
 }

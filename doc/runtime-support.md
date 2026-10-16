@@ -125,3 +125,9 @@ readiness is checked from the engine before each operation. This preview is nati
 Dedicated native raw-prompt contexts are available through the opt-in
 [application-owned runtime pool](runtime-owners.md). Web and LiteRT-LM are
 unsupported for this helper; the ordinary plugin support above is unchanged.
+
+The pool's opt-in [raw-prompt caches](prompt-caches.md) require default native
+state/scoring support and exclude projectors, LoRA and custom factories.
+[Experimental text sessions](bidi-sessions.md) use a separate `bidiModel`
+registration and native context per session. Neither feature adds shared-plugin
+state mutation, chat checkpoint persistence or real-time audio support.

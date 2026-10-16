@@ -70,12 +70,12 @@ Native observers may receive prompts/results; Genkit flows may trace their
 inputs and outputs. Never expose source paths or mutable owner handles as remote
 flow inputs. A handle itself is not authorization.
 
-General checkpoint persistence remains separate work.
-See [the checkpoint/LoRA contract](runtime-isolation-design.md), including the
-numerical-tolerance restore contract in llamadart 0.13. A scoped raw-prompt
-cache design is now addressable; general chat checkpoints still require an
-evaluated-token/history contract. This helper promises no KV files,
-chat-history recovery or exact sampler continuation.
+Opt-in [same-process raw-prompt caches](prompt-caches.md) can reuse evaluated KV
+after an owner is replaced within the same pool. General checkpoint persistence
+remains separate work: see [the checkpoint/LoRA contract](runtime-isolation-design.md).
+General chat recovery still requires an evaluated-token/history contract; raw
+prompt caches provide no exported KV files, message restoration or exact sampler
+continuation.
 
 ## Live LoRA
 

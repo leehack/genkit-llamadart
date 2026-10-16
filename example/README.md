@@ -37,6 +37,8 @@ Model quality and supported options can differ with that override.
 | [Preparation UI](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_preparation_task_example.dart) | `genkit_llamadart_preparation_task_example.dart` | Download/load snapshots and warm-up; pinned SmolLM2, about 88 MB |
 | [Decisions](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_decision_example.dart) | `genkit_llamadart_decision_example.dart` | Non-generative Laya choice, score and yes/no in a typed flow; downloads encoder/head, about 380 MB |
 | [Dedicated owner](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_owner_example.dart) | `genkit_llamadart_owner_example.dart /models/base.gguf` | Application-owned raw completion and cancellation in a Genkit flow |
+| [Raw-prompt cache](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_prompt_cache_example.dart) | `genkit_llamadart_prompt_cache_example.dart /models/chat.gguf` | Same-pool native KV reuse after owner replacement; no chat/RNG resume |
+| [Experimental bidi](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_bidi_example.dart) | `genkit_llamadart_bidi_example.dart /models/chat.gguf` | Two bounded native text turns through real Genkit `generateBidi` |
 | [Live LoRA](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_lora_example.dart) | `genkit_llamadart_lora_example.dart /models/base.gguf /models/adapter.gguf` | Apply and clear a compatible ordinary LoRA on one native owner, without reloading weights |
 
 For a one-shot agent request instead of the interactive prompt:

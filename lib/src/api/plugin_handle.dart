@@ -46,6 +46,8 @@ class LlamaDartPluginHandle {
   ///
   /// Throws [ArgumentError] if model names are duplicated. The caller owns the
   /// returned plugin and must dispose it when finished.
+  /// Generated reasoning remains in Genkit history; incoming reasoning parts
+  /// are omitted from subsequent model prompts. See [LlamaModelDefinition].
   LlamaDartPlugin call({
     required List<LlamaModelDefinition> models,
     Iterable<llama.LlamaEngineObserver> observers = const [],

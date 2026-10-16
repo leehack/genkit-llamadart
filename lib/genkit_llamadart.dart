@@ -95,4 +95,8 @@ export 'src/api/media_model.dart'
 export 'src/integration/genkit/media_plugin.dart' show LlamaDartMediaPlugin;
 
 export 'src/api/runtime_owner.dart'
-    show LlamaDartRuntimePool, LlamaDartRuntimeOwner;
+    show
+        LlamaDartRuntimePool,
+        LlamaDartRuntimeOwner,
+        LlamaDartPromptCache,
+        LlamaDartRuntimePromptCache;

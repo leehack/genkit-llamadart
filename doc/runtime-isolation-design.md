@@ -4,8 +4,11 @@ This contract guides [#36](https://github.com/leehack/genkit-llamadart/issues/36
 and [#46](https://github.com/leehack/genkit-llamadart/issues/46).
 [Dedicated native owners](runtime-owners.md) now provide bounded raw generation,
 scoring, cancellation and cleanup. Live ordinary LoRA updates also use these owners, with
-[a pinned native pair qualification](live-lora-qualification.md). KV checkpoints
-remain deferred; #36 stays open for identity/storage/restore qualification. Applications can already configure load-time adapters through
+[a pinned native pair qualification](live-lora-qualification.md). The bounded
+first slice for #36 is now an opt-in [same-process raw-prompt cache](prompt-caches.md),
+with same-pool identity, bounded in-memory handles and no exported state files.
+The persistent/general-chat checkpoint requirements below remain deferred.
+Applications can already configure load-time adapters through
 `ModelParams.loras`; shared plugin runtimes expose no live adapter mutation.
 
 ## Why a separate owner is required
@@ -211,13 +214,15 @@ library reproduce the score changes exactly; see
 control and provenance. Single-token batches eliminate the observed difference.
 This does not identify a specific kernel or prove a corrupt state file.
 
+The new public raw-prompt cache proof is documented in [the cache guide](prompt-caches.md);
+it qualifies the current 0.13 native owner path separately from this historical proof.
 Broader chat checkpoints, sampler/RNG continuation, message-history recovery,
 model/build/adapter identity enforcement and transactional checkpoint storage
-remain unimplemented. Bounded native owners are available separately; they expose
-no state files or chat recovery. GPU, Web, other native
+remain unimplemented. Bounded native owners expose
+no public state files or chat recovery. GPU, Web, other native
 platforms and model families are unqualified. Live-LoRA qualification is recorded separately in
 [the native pair guide](live-lora-qualification.md); it makes no checkpoint
-continuation claim. Issue #36 remains open for persistence.
+continuation claim. Cross-process persistence remains beyond the same-process cache slice.
 
 ## Source evidence
 

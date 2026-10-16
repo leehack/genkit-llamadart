@@ -81,6 +81,9 @@ jobs:
         run: >-
           dart test -p chrome
           test/api/runtime_owner/browser_guard_test.dart
+          test/integration/genkit/plugin/bidi_browser_guard_test.dart
+          test/integration/genkit/plugin/reasoning_history_test.dart
+          test/integration/genkit/converters/constrained_value_validation_test.dart
           test/integration/genkit/media/browser_guards_test.dart
           test/integration/genkit/plugin/runtime_capabilities_test.dart
           test/integration/genkit/actions/model_action/inference_controls_test.dart
@@ -126,7 +129,7 @@ jobs:
 
       - name: Resolve lower-bound runtime dependencies
         if: steps.changes.outputs.runtime == 'true'
-        run: dart pub add genkit@1.0.0 llamadart@0.13.0 schemantic@1.0.0
+        run: dart pub add crypto@3.0.7 genkit@1.0.0 llamadart@0.13.0 schemantic@1.0.0
 
       - name: Analyze package
         if: steps.changes.outputs.runtime == 'true'

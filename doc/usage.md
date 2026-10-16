@@ -338,6 +338,13 @@ model sources and load options. Use `ComputeDevice` for device selection.
 
 ### Thinking and streaming performance
 
+Generated reasoning is emitted separately and retained in Genkit's message
+history. Incoming reasoning parts are deliberately omitted from later model
+prompts, including ordinary multi-turn, tool and interrupt/resume calls. Visible
+answers and tool history are preserved. This does not disable new thinking.
+There is no replay opt-in; see the [reasoning-history policy](reasoning-history.md)
+for model guidance and qualification limits.
+
 `thinkingBudget: ThinkingBudget(maxTokens: 32)` limits tokens in each reasoning
 block; zero closes the block immediately. Enable thinking separately with
 `enableThinking: true`. Chat and constrained JSON both resolve omitted

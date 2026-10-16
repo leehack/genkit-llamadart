@@ -7,6 +7,12 @@ import 'package:llamadart/llamadart.dart' show ModelParams;
 /// definition controls the model name, native loading parameters, optional
 /// multimodal projector path, and which Genkit capabilities are permitted.
 ///
+/// Genkit retains generated reasoning in conversation history, but incoming
+/// `ReasoningPart` values are omitted from model-facing messages in every role.
+/// Visible text and tool history are preserved. There is no reasoning replay
+/// option: it requires separate model/template qualification. This policy does
+/// not disable newly generated reasoning or the request's thinking controls.
+///
 /// ```dart
 /// const chatModel = LlamaModelDefinition(
 ///   name: 'local-chat',
