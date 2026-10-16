@@ -486,51 +486,58 @@ void main() {
     },
   );
 
-  test(
-    'failed cleanup stays observable and cannot release session admission',
-    () async {
-      final runtime = FakeRuntime()
-        ..capabilitySnapshot = _native
-        ..createChunks = [textChunk('valid'), stopChunk()]
-        ..disposeError = StateError('/SECRET/native-cleanup');
-      final plugin = LlamaDartBidiPlugin(
-        models: const [_model],
-        maxSessions: 1,
-        maxTurns: 1,
-        runtimeFactory: () => runtime,
-      );
-      final ai = Genkit(plugins: [plugin], isDevEnv: false);
-      addTearDown(ai.shutdown);
-      final session = await ai.generateBidi(model: 'llamadart-bidi/local');
-      final failed = expectLater(
-        session.stream.toList(),
-        throwsA(
-          predicate<Object>(
-            (e) => e is GenkitException && !e.toString().contains('SECRET'),
+  for (final failInitialization in [false, true]) {
+    test(
+      'failed cleanup keeps admission when initialization fails: $failInitialization',
+      () async {
+        final runtime = FakeRuntime()
+          ..initializeError = failInitialization
+              ? StateError('/SECRET/native-load')
+              : null
+          ..capabilitySnapshot = _native
+          ..createChunks = [textChunk('valid'), stopChunk()]
+          ..disposeError = StateError('/SECRET/native-cleanup');
+        final plugin = LlamaDartBidiPlugin(
+          models: const [_model],
+          maxSessions: 1,
+          maxTurns: 1,
+          runtimeFactory: () => runtime,
+        );
+        final ai = Genkit(plugins: [plugin], isDevEnv: false);
+        addTearDown(ai.shutdown);
+        final session = await ai.generateBidi(model: 'llamadart-bidi/local');
+        final failed = expectLater(
+          session.stream.toList(),
+          throwsA(
+            predicate<Object>(
+              (e) => e is GenkitException && !e.toString().contains('SECRET'),
+            ),
           ),
-        ),
-      );
-      session.send('first');
-      await failed;
-      await session.close();
-      expect(runtime.disposeCount, 1);
-      final replacement = await ai.generateBidi(model: 'llamadart-bidi/local');
-      await expectLater(
-        replacement.stream.toList(),
-        throwsA(
-          isA<GenkitException>().having(
-            (e) => e.status,
-            'status',
-            StatusCode.resourceExhausted,
+        );
+        session.send('first');
+        await failed;
+        await session.close();
+        expect(runtime.disposeCount, 1);
+        final replacement = await ai.generateBidi(
+          model: 'llamadart-bidi/local',
+        );
+        await expectLater(
+          replacement.stream.toList(),
+          throwsA(
+            isA<GenkitException>().having(
+              (e) => e.status,
+              'status',
+              StatusCode.resourceExhausted,
+            ),
           ),
-        ),
-      );
-      await replacement.close();
-      await expectLater(plugin.dispose(), throwsA(isA<ParallelWaitError>()));
-      await expectLater(plugin.dispose(), throwsA(isA<ParallelWaitError>()));
-      expect(runtime.disposeCount, 1);
-    },
-  );
+        );
+        await replacement.close();
+        await expectLater(plugin.dispose(), throwsA(isA<ParallelWaitError>()));
+        await expectLater(plugin.dispose(), throwsA(isA<ParallelWaitError>()));
+        expect(runtime.disposeCount, 1);
+      },
+    );
+  }
 }
 
 class _BlockedRuntime extends FakeRuntime {

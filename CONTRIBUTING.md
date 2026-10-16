@@ -41,6 +41,9 @@ test layout. End-user guides live under `doc/`; README is the pub.dev entrypoint
 - Test an observable contract or a plausible failure: conversion, request
   routing, unsupported input, resource ownership, cancellation or telemetry.
   A test should fail if that behavior is removed or miswired.
+- Lifecycle changes cover failed initialization, failed disposal and both failing
+  together. An uncertain native context retains admission and cannot be reused;
+  a later no-op disposal must not erase the original cleanup failure.
 - Do not test constructor field assignments or Dart's static type system.
   Remove duplicate tests when the same assertion is covered through a stronger
   production path; preserve that assertion in the retained test.

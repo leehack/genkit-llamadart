@@ -122,11 +122,13 @@ class _EngineEntry {
   Future<void> _tail = Future<void>.value();
   Future<LlamaRuntime>? _loading;
   LlamaRuntime? _runtime;
+  bool _initializationCleanupFailed = false;
 
   /// Cancels the runtime's in-flight generation directly, without going through
   /// the operation queue. Reads the loaded runtime field, so it is a no-op while
   /// the model is still loading or idle.
   void cancelGeneration() {
+    if (_initializationCleanupFailed) return;
     _runtime?.cancelGeneration();
   }
 
@@ -159,6 +161,8 @@ class _EngineEntry {
   Future<void> dispose() async {
     await _tail.catchError((Object _) {});
 
+    if (_initializationCleanupFailed) throw _failedInitializationCleanup();
+
     final runtime = _runtime;
     _runtime = null;
     _loading = null;
@@ -190,6 +194,7 @@ class _EngineEntry {
   }
 
   Future<LlamaRuntime> _ensureRuntime() async {
+    if (_initializationCleanupFailed) throw _failedInitializationCleanup();
     if (_runtime != null) {
       return _runtime!;
     }
@@ -207,7 +212,16 @@ class _EngineEntry {
         return runtime;
       } catch (_) {
         _runtime = null;
-        await runtime.dispose();
+        try {
+          await runtime.dispose();
+        } catch (_) {
+          // Cleanup may have partially released native resources. Retain the
+          // uncertain runtime and failure; neither retry nor admission release
+          // can be justified by a later no-op dispose.
+          _runtime = runtime;
+          _initializationCleanupFailed = true;
+          throw _failedInitializationCleanup();
+        }
         rethrow;
       } finally {
         _loading = null;
@@ -218,3 +232,8 @@ class _EngineEntry {
     return loadFuture;
   }
 }
+
+llama.LlamaStateException
+_failedInitializationCleanup() => llama.LlamaStateException(
+  'Runtime initialization cleanup failed. The context cannot be reused or replaced until native resources are checked.',
+);
