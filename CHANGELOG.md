@@ -1,12 +1,10 @@
-## Unreleased
+## 3.3.0 - 2026-10-15
 
 - Add opt-in same-process raw-prompt caches on dedicated native owners, with bounded handles and model-identity checks.
 - Add a separate experimental Genkit text-session plugin with isolated runtimes, bounded turns and deterministic cleanup.
 - Specify and test intentional reasoning-history omission while preserving streamed/final reasoning output.
 - Validate Genkit's standard output schemas locally without a remote draft-07 metadata fetch.
-
 - Preserve richer tool input schemas, including nullable values, enums, composition and length limits, on grammar-capable runtimes.
-
 - Upgrade to llamadart 0.13.0; Flutter Apple apps must use matching 0.13.x runtime companions.
 
 ## 3.2.1 - 2026-10-11
