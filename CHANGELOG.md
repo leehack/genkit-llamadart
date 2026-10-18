@@ -1,14 +1,11 @@
-## Unreleased
+## 3.4.0 - 2026-10-18
 
-- Verify the remaining LoRA, decision, transcription, speech and image CLIs with pinned real-model fixtures; add maintained CLI checks and correct model-card handling in the LoRA conversion recipe.
-- Give owner, prompt-cache, bidi, rich-tool, image-input and multimodal-embedding examples pinned Hugging Face defaults; accept Hugging Face/HTTPS model overrides, retain local files, simplify telemetry setup and add actual-CLI cache/source qualification.
-
-- Snapshot embedding input before queueing and reuse validated inline media during remote resolution, avoiding caller-mutation races and repeated data-URL decoding.
-
-- Add ordered image/audio/text embeddings through Genkit, with embedding-specific modality probes, optional custom-runtime support, metadata preservation and cooperative media cancellation.
-- Expose embedding modalities in model inspection and lazy discovery, add a GGUF/LiteRT-LM CPU example, and qualify native adapter results against direct core calls.
-
-- Upgrade to llamadart 0.15.0, matching 0.15.x Apple companions and updated dependency compatibility checks; native overrides must match the v0.7 ABI.
+- Upgrade to llamadart 0.15.0 and matching 0.15.x Apple companions; native overrides must match the v0.7 ABI.
+- Add ordered text, image and audio embeddings through Genkit, preserving one vector and metadata per document on compatible GGUF and native LiteRT-LM CPU embedding engines.
+- Expose embedding-specific modality probes in inspection and lazy discovery, with optional `LlamaRuntimeEmbeddingProvider` support for custom runtimes; existing custom text embedders retain their interface.
+- Add cooperative typed embedding cancellation, snapshot queued inputs to prevent caller-mutation races, and reuse decoded inline media during remote resolution.
+- Give runnable examples pinned Hugging Face model defaults and local/HTTPS overrides, simplify telemetry setup, and add a GGUF/LiteRT-LM multimodal embedding example.
+- Verify all 22 CLI entry points on macOS arm64 CPU with maintained opt-in tests, compare multimodal embeddings against direct llamadart calls, and correct the LoRA fixture conversion recipe for reproducible checksums.
 
 ## 3.3.0 - 2026-10-15
 
