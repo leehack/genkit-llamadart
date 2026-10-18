@@ -5,6 +5,8 @@
 Use `llamaDart.embedder(...)` with `ai.embed(...)` for single or multiple documents.
 Embeddings accept text, image and audio parts on compatible embedding models.
 Each document produces one vector; parts stay in order within that document.
+Text, media references, document order and top-level metadata are captured before
+queueing, so later caller edits do not change the accepted input.
 
 ```dart
 import 'package:genkit/genkit.dart';
@@ -518,7 +520,7 @@ are not exposed in request config.
 - call `prepared.cancelActiveGeneration()` to implement a stop button for a prepared model
 - call `plugin.cancelActiveGeneration(name)` for one registered model, or
   `plugin.cancelActiveGenerations()` to stop all currently loaded models
-- these helpers cancel only the active generation; a separately queued request
+- these helpers cancel active generation or typed embedding; a separately queued request
   can still start afterward
 - Genkit `ai.generate()` can return `finishReason: failed` or `aborted`;
   inspect the outcome and `error`/`cause` before using the result
@@ -526,7 +528,7 @@ are not exposed in request config.
 - Genkit's callable embedder action also accepts a cancellation token: cancelled
   queued calls skip initialization/evaluation without stopping another request.
   Active embedding on modality-aware runtimes signals cooperative cancellation
-  and drain before releasing the model queue. Legacy custom text embedding drains
+  and drains before releasing the model queue. Legacy custom text embedding drains
   without signalling the backend before reporting cancellation. Genkit 1.0's `ai.embed()` has no cancel parameter.
 - call `await plugin.dispose()` before process shutdown to release native state
 - plugin disposal is terminal; create a new plugin or prepared-model handle instead of reusing it

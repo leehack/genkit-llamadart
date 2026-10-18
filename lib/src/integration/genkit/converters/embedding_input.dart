@@ -3,6 +3,29 @@ import 'package:llamadart/llamadart.dart' as llama;
 
 import 'genkit_to_llama.dart';
 
+// Genkit values expose mutable JSON maps. Copy the consumed fields before an
+// operation waits in the queue; large media strings remain shared and immutable.
+List<genkit.DocumentData> snapshotEmbeddingDocuments(
+  List<genkit.DocumentData> documents,
+) => [
+  for (final document in documents)
+    genkit.DocumentData(
+      content: [
+        for (final part in document.content)
+          if (part.isText)
+            genkit.TextPart(text: part.text!)
+          else if (part.isMedia)
+            genkit.MediaPart(
+              media: genkit.Media(
+                url: part.media!.url,
+                contentType: part.media!.contentType,
+              ),
+            ),
+      ],
+      metadata: document.metadata == null ? null : Map.of(document.metadata!),
+    ),
+];
+
 // Validate the entire batch before model loading or remote media resolution.
 Set<llama.LlamaEmbeddingModality> embeddingModalities(
   List<genkit.DocumentData> documents,

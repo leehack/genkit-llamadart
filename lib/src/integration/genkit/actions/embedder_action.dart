@@ -37,6 +37,7 @@ genkit.Embedder<LlamaDartEmbedConfig> buildEmbedderAction({
 
       final config = LlamaDartEmbedConfig.fromJson(request.options);
       final modalities = embeddingModalities(request.input);
+      final documents = snapshotEmbeddingDocuments(request.input);
       final hasMedia = modalities.any(
         (m) => m != llama.LlamaEmbeddingModality.text,
       );
@@ -69,7 +70,7 @@ genkit.Embedder<LlamaDartEmbedConfig> buildEmbedderAction({
             );
           }
           final messages = await resolveLlamaMessages(
-            embeddingMessages(request.input),
+            embeddingMessages(documents),
             resolver: mediaResolver,
             cancel: context.cancel,
           );
@@ -97,7 +98,7 @@ genkit.Embedder<LlamaDartEmbedConfig> buildEmbedderAction({
         );
         try {
           return await runtime.embedBatch(
-            request.input.map(documentToPlainText).toList(growable: false),
+            documents.map(documentToPlainText).toList(growable: false),
             normalize:
                 config.normalize ?? LlamaDartEmbedConfig.defaultNormalize,
           );
@@ -106,7 +107,7 @@ genkit.Embedder<LlamaDartEmbedConfig> buildEmbedderAction({
         }
       }, beforeInitialize: context.cancel?.throwIfCancelled);
 
-      if (embeddings.length != request.input.length) {
+      if (embeddings.length != documents.length) {
         throw genkit.GenkitException(
           'Embedding runtime returned an unexpected vector count.',
           status: genkit.StatusCode.internal,
@@ -120,7 +121,7 @@ genkit.Embedder<LlamaDartEmbedConfig> buildEmbedderAction({
             .map((entry) {
               return genkit.Embedding(
                 embedding: entry.value,
-                metadata: request.input[entry.key].metadata,
+                metadata: documents[entry.key].metadata,
               );
             })
             .toList(growable: false),

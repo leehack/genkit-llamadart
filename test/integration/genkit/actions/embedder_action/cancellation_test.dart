@@ -45,6 +45,19 @@ void main() {
     expect(runtime.embedBatchCallCount, 0);
   });
 
+  test('legacy text is captured before initialization waits', () async {
+    runtime.blockInitialization = true;
+    final document = genkit.DocumentData(
+      content: [genkit.TextPart(text: 'original')],
+    );
+    final pending = action(genkit.EmbedRequest(input: [document]));
+    await runtime.initializationStarted.future;
+    document.content = [genkit.TextPart(text: 'changed')];
+    runtime.initializationRelease.complete();
+    await pending;
+    expect(runtime.lastTexts, ['original']);
+  });
+
   test('queued cancellation skips capability checks and embedding', () async {
     runtime.blockEmbedding = true;
     final first = action(request);
@@ -154,6 +167,7 @@ class _WaitingRuntime extends FakeRuntime {
   bool blockInitialization = false;
   bool blockEmbedding = false;
   bool failEmbedding = false;
+  List<String>? lastTexts;
 
   @override
   Future<void> initialize(LlamaModelDefinition definition) async {
@@ -170,6 +184,7 @@ class _WaitingRuntime extends FakeRuntime {
     List<String> texts, {
     bool normalize = true,
   }) async {
+    lastTexts = texts;
     await super.embedBatch(texts, normalize: normalize);
     if (blockEmbedding) {
       blockEmbedding = false;

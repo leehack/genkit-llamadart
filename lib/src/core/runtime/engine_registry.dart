@@ -94,10 +94,10 @@ class EngineRegistry {
     return entry.run(operation, beforeInitialize: beforeInitialize);
   }
 
-  /// Cancels the generation in flight for [modelName] without queueing behind
+  /// Cancels generation or typed embedding for [modelName] without queueing behind
   /// it. Throws [StateError] for a model name that was never registered
   /// (consistent with [withRuntime]); a no-op for a registered model whose
-  /// runtime hasn't loaded yet or isn't generating.
+  /// runtime hasn't loaded yet or has no cancellable backend work.
   void cancelActiveGeneration(String modelName) {
     if (!_definitions.containsKey(modelName)) {
       throw StateError('Unknown llamadart model: $modelName');
@@ -105,7 +105,7 @@ class EngineRegistry {
     _entries[modelName]?.cancelGeneration();
   }
 
-  /// Cancels every in-flight generation across loaded runtimes, bypassing the
+  /// Cancels generation and typed embedding across loaded runtimes, bypassing the
   /// per-model operation queue so a cancel never waits behind the run it stops.
   void cancelActiveGenerations() {
     for (final entry in _entries.values) {

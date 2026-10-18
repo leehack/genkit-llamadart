@@ -176,7 +176,10 @@ abstract class LlamaDartRuntime {
     bool normalize = true,
   });
 
-  /// Requests cooperative cancellation of the active generation, if any.
+  /// Requests cooperative cancellation of active generation or typed embedding.
+  ///
+  /// Implementations of [LlamaRuntimeEmbeddingProvider] must also signal an
+  /// active [LlamaRuntimeEmbeddingProvider.embedContentBatch] operation.
   ///
   /// Returns immediately; the active [create] or [generate] stream must settle
   /// without requiring another request to enter the operation queue.

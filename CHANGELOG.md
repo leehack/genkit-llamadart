@@ -1,5 +1,7 @@
 ## Unreleased
 
+- Snapshot embedding input before queueing and reuse validated inline media during remote resolution, avoiding caller-mutation races and repeated data-URL decoding.
+
 - Add ordered image/audio/text embeddings through Genkit, with embedding-specific modality probes, optional custom-runtime support, metadata preservation and cooperative media cancellation.
 - Expose embedding modalities in model inspection and lazy discovery, add a GGUF/LiteRT-LM CPU example, and qualify native adapter results against direct core calls.
 

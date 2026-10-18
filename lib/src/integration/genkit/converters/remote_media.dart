@@ -43,6 +43,8 @@ FutureOr<List<llama.LlamaChatMessage>> resolveLlamaMessages(
   final validated = toLlamaMessages(messages, mediaOverrides: overrides);
   if (pending.isEmpty) return validated;
   return () async {
+    final replacements =
+        Map<llama.LlamaContentPart, llama.LlamaContentPart>.identity();
     for (final entry in pending.entries) {
       if (cancel?.isCancelled ?? false) {
         throw genkit.CancelledException(token: cancel);
@@ -70,10 +72,20 @@ FutureOr<List<llama.LlamaChatMessage>> resolveLlamaMessages(
       if (cancel?.isCancelled ?? false) {
         throw genkit.CancelledException(token: cancel);
       }
-      overrides[entry.key] = entry.value.startsWith('image/')
+      replacements[overrides[entry.key]!] = entry.value.startsWith('image/')
           ? llama.LlamaImageContent(bytes: bytes)
           : llama.LlamaAudioContent(bytes: bytes);
     }
-    return toLlamaMessages(messages, mediaOverrides: overrides);
+    // Reuse validated text and decoded inline media instead of parsing mutable
+    // caller input again after awaiting downloads.
+    return [
+      for (final message in validated)
+        llama.LlamaChatMessage.withContent(
+          role: message.role,
+          content: [
+            for (final part in message.parts) replacements[part] ?? part,
+          ],
+        ),
+    ];
   }();
 }

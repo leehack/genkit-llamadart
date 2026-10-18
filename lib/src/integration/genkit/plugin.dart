@@ -187,17 +187,20 @@ class LlamaDartPlugin extends GenkitPlugin {
   Future<int> countTokens(String modelName, String text) async =>
       (await tokenize(modelName, text)).length;
 
-  /// Requests cancellation of [modelName]'s active generation.
+  /// Requests cancellation of [modelName]'s active generation or typed embedding.
   ///
-  /// Bypasses the operation queue, so it stops a running generation instead of
-  /// waiting behind it. No-op when nothing is generating for that model.
+  /// Bypasses the operation queue and requests cooperative backend cancellation.
+  /// Typed embeddings require `LlamaRuntimeEmbeddingProvider`; legacy custom
+  /// text embedding cannot be interrupted. No-op while loading or idle.
   /// Throws [StateError] for a name not registered on this plugin. Separately
   /// queued requests can still run afterward.
   void cancelActiveGeneration(String modelName) {
     _registry.cancelActiveGeneration(modelName);
   }
 
-  /// Cancels every in-flight generation across this plugin's runtimes.
+  /// Requests cancellation of active generations and typed embeddings.
+  ///
+  /// Uses the same runtime-dependent behavior as [cancelActiveGeneration].
   void cancelActiveGenerations() {
     _registry.cancelActiveGenerations();
   }

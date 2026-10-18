@@ -71,7 +71,7 @@ description: >-
   `response.error` / `response.cause`, before using `text` or `output`.
 - Cancel cooperatively by passing `cancel: controller.token` from a Genkit
   `CancellationController`. For a stop button, `plugin.cancelActiveGeneration(name)`
-  or `prepared.cancelActiveGeneration()` cancels only the active generation;
+  or `prepared.cancelActiveGeneration()` requests cancellation of active generation or typed embedding;
   queued requests still run.
 - Models load lazily on first use, and requests to the same model run one at a
   time. Call `prepared.warmUp(ai)` to load ahead of the first user request.
