@@ -419,7 +419,8 @@ LLAMADART_EXAMPLE_CACHE=/tmp/genkit-example-fresh-cache \
 The five specialty CLI proofs use the same checksum-pinned fixtures as the
 [LoRA qualification](doc/live-lora-qualification.md),
 [decision proof](test/integration/genkit/decision/real_model_decision_test.dart)
-and [speech/image proofs](test/integration/genkit/media/). They exercise the
+and [speech](test/integration/genkit/media/real_model_speech_test.dart) /
+[image](test/integration/genkit/media/real_model_image_test.dart) proofs. They exercise the
 actual entry points with local model overrides, without automatic downloads:
 
 ```bash
