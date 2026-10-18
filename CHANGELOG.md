@@ -1,5 +1,7 @@
 ## Unreleased
 
+- Give owner, prompt-cache, bidi, rich-tool, image-input and multimodal-embedding examples pinned Hugging Face defaults; accept Hugging Face/HTTPS model overrides, retain local files, simplify telemetry setup and add actual-CLI cache/source qualification.
+
 - Snapshot embedding input before queueing and reuse validated inline media during remote resolution, avoiding caller-mutation races and repeated data-URL decoding.
 
 - Add ordered image/audio/text embeddings through Genkit, with embedding-specific modality probes, optional custom-runtime support, metadata preservation and cooperative media cancellation.

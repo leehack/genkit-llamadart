@@ -11,7 +11,7 @@ import '../test_support/real_model_test_support.dart';
 
 void main() {
   test(
-    'runnable chat, stream, tools, JSON and retrieval use pinned Qwen3.5',
+    'runnable chat, stream, tools, JSON, inspection and retrieval use pinned Qwen3.5',
     () async {
       if (Platform.environment['LLAMADART_RUN_EXAMPLE_PROOF'] != '1') {
         markTestSkipped(
@@ -26,7 +26,7 @@ void main() {
           Platform.resolvedExecutable,
           ['run', 'example/genkit_llamadart_${name}_example.dart', ...args],
           environment: {
-            'LLAMADART_MODEL_PATH': path,
+            'LLAMADART_MODEL_SOURCE': path,
             'LLAMADART_PROMPT': name == 'agent'
                 ? 'What is the demo temperature in Seoul? Use the lookup tool.'
                 : 'Summarize this review: The battery lasts all day, but the speakers are weak.',
@@ -48,6 +48,7 @@ void main() {
       expect(chat.exitCode, 0, reason: '${chat.stdout}\n${chat.stderr}');
       expect(chat.stdout.toString().trim(), isNotEmpty);
       expect(await run('streaming'), isNotEmpty);
+      expect(await run('inspection'), contains('Raw text tokens'));
       final resources = await run('resources');
       expect(resources, contains('30'));
       expect(resources.toLowerCase(), contains('days'));

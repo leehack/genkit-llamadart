@@ -98,5 +98,5 @@ costs. GPU, other platforms and other model families are unqualified.
 ```bash
 LLAMADART_RUN_PROMPT_CACHE_PROOF=1 LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 \
 dart test test/integration/genkit/runtime/real_model_prompt_cache_test.dart -j 1
-dart run example/genkit_llamadart_prompt_cache_example.dart /models/chat.gguf
+dart run example/genkit_llamadart_prompt_cache_example.dart
 ```

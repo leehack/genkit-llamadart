@@ -1,19 +1,17 @@
-import 'dart:io';
-
 import 'package:genkit_llamadart/genkit_llamadart.dart';
 
+import 'support/model_downloads.dart';
+
 Future<void> main(List<String> args) async {
-  if (args.length != 1) {
-    stderr.writeln(
-      'Usage: dart run example/genkit_llamadart_prompt_cache_example.dart /models/chat.gguf',
-    );
-    exitCode = 64;
-    return;
-  }
+  if (args.length > 1) throw ArgumentError('Supply at most one model source.');
+  final modelPath = await resolveExampleModel(
+    args.firstOrNull ??
+        'hf://unsloth/SmolLM2-135M-Instruct-GGUF/SmolLM2-135M-Instruct-Q2_K.gguf?revision=9e6855bc4be717fca1ef21360a1db4b29d5c559a',
+  );
   final pool = LlamaDartRuntimePool(
     model: LlamaModelDefinition(
       name: 'raw',
-      modelPath: args.single,
+      modelPath: modelPath,
       modelParams: const ModelParams(
         device: ComputeDevice.cpu,
         contextSize: 512,

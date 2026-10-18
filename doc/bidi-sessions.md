@@ -107,5 +107,5 @@ and scope; it does not extend qualification to other devices or backends.
 ```bash
 LLAMADART_RUN_BIDI_PROOF=1 LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 \
 dart test test/integration/genkit/runtime/real_model_bidi_test.dart -j 1
-dart run example/genkit_llamadart_bidi_example.dart /models/chat.gguf
+dart run example/genkit_llamadart_bidi_example.dart
 ```

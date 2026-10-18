@@ -376,7 +376,7 @@ base/adapter pair proof and conversion provenance are in
 The [example index](example/README.md) documents native CLI setup. Fast retrieval
 tests verify ranking, context limits, metadata exclusion, unsupported input,
 Genkit routing, abstention and citation rejection. The optional example proof
-executes the actual chat, stream, agent, JSON and retrieval entry points with the
+executes the actual chat, stream, agent, JSON, inspection and retrieval entry points with the
 checksum-pinned Qwen3.5 fixture:
 
 ```bash
@@ -387,6 +387,34 @@ LLAMADART_RUN_EXAMPLE_PROOF=1 LLAMADART_AUTO_DOWNLOAD_QWEN35_MODEL=1 \
 Or supply `LLAMADART_INTEGRATION_QWEN35_MODEL_PATH` instead of opting into a
 download. This proof is skipped before cache access unless explicitly enabled;
 default CI downloads no additional weights for these examples.
+
+The source-default CLI proof uses an isolated cache seeded with verified local
+fixtures; the CLIs receive no model arguments and exercise their real `hf://`
+defaults, cache lookup, preparation and inference:
+
+```bash
+LLAMADART_RUN_SOURCE_EXAMPLE_PROOF=1 \
+LLAMADART_INTEGRATION_MODEL_PATH=/models/SmolLM2-135M-Instruct-Q2_K.gguf \
+LLAMADART_INTEGRATION_EMBED_MODEL_PATH=/models/jina-embeddings-v2-small-en-Q2_K.gguf \
+LLAMADART_INTEGRATION_TOOL_MODEL_PATH=/models/Qwen3-1.7B-Q4_K_M.gguf \
+LLAMADART_INTEGRATION_QWEN35_MODEL_PATH=/models/Qwen3.5-0.8B-Q4_K_M.gguf \
+GENKIT_EXAMPLE_VISION_PROJECTOR=/models/mmproj-F16.gguf \
+GENKIT_MULTIMODAL_EMBED_MODELS=/models/embeddinggemma-2 \
+  dart test test/integration/genkit/examples/real_model_source_examples_test.dart -j 1
+```
+
+Each fixture is independently optional and checksum-verified before cache access.
+The vision projector SHA-256 is
+`56e4c6cfe73b0c82e3e82bc518d7591997e61d81f723fc41a586f4fa69ea2453`, from
+the same pinned Qwen3.5 revision as the chat model. LiteRT EmbeddingGemma-2 is
+pinned at `24d962e906c7d332c6428e71c9676855024569e2`; its checksum is above.
+This test does not download new models in ordinary CI. A separate fresh-cache
+owner CLI run verifies the network path (about 88 MB):
+
+```bash
+LLAMADART_EXAMPLE_CACHE=/tmp/genkit-example-fresh-cache \
+  dart run example/genkit_llamadart_owner_example.dart
+```
 
 ## Rich tool schema qualification
 

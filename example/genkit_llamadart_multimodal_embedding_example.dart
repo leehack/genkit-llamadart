@@ -3,39 +3,54 @@ import 'dart:io';
 import 'package:genkit/genkit.dart';
 import 'package:genkit_llamadart/genkit_llamadart.dart';
 
-/// Embeds one ordered text/image/audio document with local model files.
+import 'support/model_downloads.dart';
+
+/// Embeds ordered text/image/audio, downloading a pinned embedding model once.
 ///
-/// GGUF: `dart run example/genkit_llamadart_multimodal_embedding_example.dart MODEL PROJECTOR IMAGE AUDIO`
-/// LiteRT CPU: use `--litert MODEL IMAGE AUDIO` instead (no projector).
+/// GGUF: `dart run example/genkit_llamadart_multimodal_embedding_example.dart IMAGE AUDIO`
+/// LiteRT CPU: add `--litert` before IMAGE AUDIO (no projector).
+/// To override weights, prepend MODEL PROJECTOR (GGUF), or MODEL (LiteRT).
 Future<void> main(List<String> args) async {
   final liteRt = args.isNotEmpty && args.first == '--litert';
   final paths = liteRt ? args.skip(1).toList() : args;
-  if (paths.length != (liteRt ? 3 : 4)) {
+  if (paths.length != 2 && paths.length != (liteRt ? 3 : 4)) {
     throw ArgumentError(
-      'Supply MODEL PROJECTOR IMAGE AUDIO, or --litert MODEL IMAGE AUDIO.',
+      'Supply IMAGE AUDIO, optionally preceded by --litert and/or model sources.',
     );
   }
-  final plugin = llamaDart(
-    models: [
-      LlamaModelDefinition(
-        name: 'media-embed',
-        modelPath: paths[0],
-        mmprojPath: liteRt ? null : paths[1],
-        modelParams: ModelParams(
-          device: ComputeDevice.cpu,
-          liteRtLmEmbeddingEngine: liteRt,
-          contextSize: 2048,
-          batchSize: liteRt ? 0 : 2048,
-          microBatchSize: liteRt ? 0 : 2048,
-        ),
-        supportsTools: false,
-        supportsConstrainedOutput: false,
-      ),
-    ],
+  final hasModelOverrides = paths.length > 2;
+  const ggufSource =
+      'hf://ggml-org/embeddinggemma-2-GGUF/embeddinggemma-2-BF16.gguf?revision=bfcd298762cc34d0357ece5ebdd31791a3a374d8';
+  const projectorSource =
+      'hf://ggml-org/embeddinggemma-2-GGUF/mmproj-embeddinggemma-2-BF16.gguf?revision=bfcd298762cc34d0357ece5ebdd31791a3a374d8';
+  const liteRtSource =
+      'hf://litert-community/embeddinggemma-2-740m-litert-lm/embeddinggemma-2-740m.litertlm?revision=24d962e906c7d332c6428e71c9676855024569e2';
+  final prepared = await llamaDart.prepareModel(
+    name: 'media-embed',
+    source: ModelSource.parse(
+      hasModelOverrides
+          ? paths[0]
+          : liteRt
+          ? liteRtSource
+          : ggufSource,
+    ),
+    mmprojSource: liteRt
+        ? null
+        : ModelSource.parse(hasModelOverrides ? paths[1] : projectorSource),
+    downloadManager: exampleDownloads,
+    modelParams: ModelParams(
+      device: ComputeDevice.cpu,
+      liteRtLmEmbeddingEngine: liteRt,
+      contextSize: 2048,
+      batchSize: liteRt ? 0 : 2048,
+      microBatchSize: liteRt ? 0 : 2048,
+    ),
+    supportsTools: false,
+    supportsConstrainedOutput: false,
   );
-  final ai = Genkit(plugins: [plugin], isDevEnv: false);
+  final ai = prepared.createGenkit(isDevEnv: false);
   try {
-    final inspection = await plugin.inspectModel('media-embed');
+    final inspection = await prepared.inspect();
     final modalities = inspection.embeddingCapabilities;
     if (modalities?.text != true ||
         modalities?.image != true ||
@@ -59,9 +74,9 @@ Future<void> main(List<String> args) async {
       document: DocumentData(
         content: [
           TextPart(text: 'Compare this scene '),
-          await mediaFile(paths[liteRt ? 1 : 2], 'image/png'),
+          await mediaFile(paths[paths.length - 2], 'image/png'),
           TextPart(text: ' with this sound '),
-          await mediaFile(paths[liteRt ? 2 : 3], 'audio/wav'),
+          await mediaFile(paths.last, 'audio/wav'),
         ],
         metadata: {'id': 'scene-and-sound'},
       ),
@@ -71,7 +86,7 @@ Future<void> main(List<String> args) async {
     stdout.writeln('Source: ${result.single.metadata?['id']}');
   } finally {
     try {
-      await plugin.dispose();
+      await prepared.dispose();
     } finally {
       await ai.shutdown();
     }

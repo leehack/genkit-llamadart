@@ -171,6 +171,10 @@ remain application responsibilities.
 
 ## Runnable examples
 
+Runnable examples download and cache pinned Hugging Face models by default.
+Overrides accept local paths, `hf://` sources or HTTPS URLs. Media input/output
+files remain local. The example index includes a verification matrix.
+
 Run the standalone [pub.dev quickstart](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_example.dart)
 from a checkout; its default downloads the pinned Qwen3.5 model:
 
@@ -183,7 +187,7 @@ provides commands, model sizes and setup for streaming, typed tool loops,
 structured JSON, embeddings, local retrieval, inspection/scoring, download UI,
 Laya decisions, dedicated owners, live LoRA, image input, transcription, WAV
 synthesis, PNG generation and telemetry. Most chat examples can reuse a local
-model through `LLAMADART_MODEL_PATH`.
+model through `LLAMADART_MODEL_SOURCE` (or the older `LLAMADART_MODEL_PATH`).
 
 For a small retrieval application, try the
 [local-text question-answering recipe](https://github.com/leehack/genkit-llamadart/blob/main/doc/local-retrieval.md).

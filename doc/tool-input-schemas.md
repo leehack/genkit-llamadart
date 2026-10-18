@@ -74,7 +74,7 @@ Run the [rich tool example](../example/genkit_llamadart_tool_schema_example.dart
 with a local Qwen3-1.7B-Q4_K_M GGUF:
 
 ```bash
-dart run example/genkit_llamadart_tool_schema_example.dart /models/Qwen3-1.7B-Q4_K_M.gguf
+dart run example/genkit_llamadart_tool_schema_example.dart
 ```
 
 The example uses nullable input, a numeric enum and a closed object. It runs

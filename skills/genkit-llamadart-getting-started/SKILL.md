@@ -113,6 +113,13 @@ description: >-
   [application recipe](../../doc/resource-input.md); direct generic parts remain
   unsupported. The recipe belongs in user input, not system instructions.
 
+Runnable examples use revision-pinned Hugging Face defaults where a suitable
+model pair exists. Model overrides accept local paths, `hf://` and HTTPS;
+owner/cache/bidi resolve sources before opening local runtimes. LoRA requires
+an explicit compatible base/adapter pair. Media input/output paths remain local.
+The [example index](../../example/README.md#what-is-verified) distinguishes static
+analysis, actual CLI execution, cached-source proofs and optional engine tests.
+
 ## Examples
 
 Register a local model file and stream a reply:
