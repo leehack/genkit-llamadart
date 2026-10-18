@@ -80,9 +80,20 @@ description: >-
   plugin instead of reusing one.
 - Embeddings use `llamaDart.embedder(name)` with `ai.embed(...)`, need an
   embedding model with `supportsEmbeddings: true`,
-  and accept text-only documents.
+  and accept ordered text/image/audio parts when embedding-specific probes allow
+  them. Each document produces one vector and retains its metadata. GGUF media
+  embeddings need the matching projector; native LiteRT-LM requires CPU and
+  `ModelParams(liteRtLmEmbeddingEngine: true)`. Web LiteRT-LM is unsupported.
+  Inspect `prepared.inspect()` / `plugin.inspectModel(name)` for
+  `embeddingCapabilities`; never infer these from chat vision/audio flags.
+  Media codecs/size limits remain runtime-specific; video is rejected.
+  LiteRT embedding media requires encoded PNG/JPEG and WAV data URLs or
+  resolver bytes; unresolved local paths/URLs are unsupported. Native remote
+  inputs use the explicit application-owned media resolver.
+  Custom text runtimes keep `embedBatch`; media needs `LlamaRuntimeEmbeddingProvider`.
 - Direct embedder actions accept Genkit cancellation tokens; queued calls skip
-  work and active embedding drains before cancellation is reported. Genkit 1.0
+  work. Embedding on modality-aware runtimes signals cancellation and drains before the queue
+  advances; legacy custom text embedding drains without signalling the backend. Genkit 1.0
   `ai.embed()` has no cancellation argument.
 - Final `usage` can include character/image/audio counts even when token counts
   are unavailable. Read individual token fields rather than treating a nonnull

@@ -21,6 +21,8 @@ confirmed. Metadata includes `llamadartCapabilities` with:
 - `generation`: `penalty`, `minP`, `presencePenalty`, `thinkingBudget`, `streamBatching`,
   `promptPrefixControl`, and `speculativeDecodingStrategies` from the last ready
   snapshot; false flags and an empty strategy list before verification
+- `embedding`: the last probed `text`, `image` and `audio` embedding modalities;
+  chat vision/audio support is never substituted for media embedding probes
 - `declared`: the definition's `tools`, `constrained`, and `embeddings` permissions
 
 After initialization, the plugin reads `LlamaEngine.capabilities` before every
@@ -78,15 +80,19 @@ runtime behavior to prevent unverified support claims.
   replay during a tool continuation is not qualified here; use the documented
   nonthinking tool flow when that distinction matters.
 - Resource/data parts need explicit [application normalization](resource-input.md).
-  Arbitrary custom parts, PDFs, video and multimodal embeddings are not accepted
-  simply because Genkit's generic schema can represent them.
+  Arbitrary custom parts, PDFs and video are not accepted simply because
+  Genkit's generic schema can represent them. Image/audio embeddings require
+  embedding-specific capability probes; see [embeddings](usage.md#multimodal-embeddings).
 - Genkit sessions do not own the plugin's model runtime. Load-time LoRA through
   `ModelParams.loras` is available; live source-based changes use
   [dedicated native owners](runtime-owners.md#live-lora), outside the shared
   registry. KV-state save/restore remains deferred under the
   [isolation design](runtime-isolation-design.md).
 - model paths are local filesystem paths after `ModelSource` resolution
-- embeddings are text-only
+- image/audio embeddings require a compatible embedding model and processors;
+  native LiteRT-LM uses an explicit CPU embedding engine with encoded PNG/JPEG
+  and WAV bytes rather than unresolved paths/URLs, while Web LiteRT-LM
+  and conversation engines reject embedding requests
 - LiteRT-LM `.litertlm` bundles can be used for chat and tool-call flows, but
   constrained JSON output currently requires a backend with grammar constraints;
   set `supportsConstrainedOutput: false` for `.litertlm` model definitions.

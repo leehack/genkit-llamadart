@@ -133,8 +133,12 @@ class LlamaDartPlugin extends GenkitPlugin {
           ? runtime as LlamaRuntimeInspectionProvider
           : null;
       final contextSize = await provider?.contextSize;
+      final embeddingCapabilities = capabilities?.isSupported == false
+          ? null
+          : await _registry.probeEmbeddingCapabilities(modelName, runtime);
       return LlamaModelInspection(
         capabilities: capabilities,
+        embeddingCapabilities: embeddingCapabilities,
         contextSize: contextSize != null && contextSize > 0
             ? contextSize
             : null,
@@ -214,7 +218,11 @@ class LlamaDartPlugin extends GenkitPlugin {
               mediaResolver: mediaResolver,
             ),
             if (definition.supportsEmbeddings)
-              buildEmbedderAction(definition: definition, registry: _registry),
+              buildEmbedderAction(
+                definition: definition,
+                registry: _registry,
+                mediaResolver: mediaResolver,
+              ),
             scorer(definition.name),
           ];
         })
@@ -240,7 +248,12 @@ class LlamaDartPlugin extends GenkitPlugin {
               modelInfo: modelInfoFor(definition, generation: generation),
               generation: generation,
             );
-            trackCapabilityMetadata(metadata, definition, _registry);
+            trackCapabilityMetadata(
+              metadata,
+              definition,
+              _registry,
+              generation: generation,
+            );
             return metadata;
           }
 

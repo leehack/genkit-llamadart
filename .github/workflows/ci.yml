@@ -90,6 +90,8 @@ jobs:
           test/api/generation_config/inference_controls_codec_test.dart
           test/integration/genkit/actions/scoring_action_test.dart
           test/core/runtime/llama_engine_runtime_test.dart
+          test/integration/genkit/actions/embedder_action/multimodal_embedding_test.dart
+          test/integration/genkit/actions/embedder_action/multimodal_cancellation_test.dart
           test/integration/genkit/converters/genkit_to_llama/rich_tool_schemas_test.dart
           test/integration/genkit/actions/model_action/rich_tool_schemas_test.dart
           test/integration/genkit/plugin/rich_tool_schema_loop_test.dart

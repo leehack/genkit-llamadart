@@ -40,6 +40,31 @@ abstract interface class LlamaRuntimeInspectionProvider {
   Future<List<int>> tokenize(String text, {bool addSpecial = false});
 }
 
+/// Optional ordered text, image and audio embedding support for custom runtimes.
+///
+/// Embedding modalities are independent of chat vision/audio support. Probe the
+/// loaded model and processors on every request; unknown modalities must be
+/// false. Implement [LlamaRuntimeCapabilityProvider] for general runtime status.
+/// Existing text-only runtimes can continue implementing only [LlamaDartRuntime.embedBatch].
+abstract interface class LlamaRuntimeEmbeddingProvider {
+  /// Available embedding modalities for the active model and backend.
+  ///
+  /// This runs inside the model queue, before resolving remote media or inference.
+  Future<llama.LlamaEmbeddingCapabilities> get embeddingCapabilities;
+
+  /// Embeds ordered parts, returning one vector per input in input order.
+  ///
+  /// Honor [normalize], preserve adjacent text verbatim, and reject unsupported
+  /// inputs without truncation. Do not apply chat templates or task prefixes.
+  /// The adapter retains buffers until this future settles. [LlamaDartRuntime.cancelGeneration]
+  /// requests cancellation of this operation; cleanup must settle before the
+  /// next queued request can start. Throw a typed [llama.LlamaException] on failure.
+  Future<List<List<double>>> embedContentBatch(
+    List<llama.LlamaEmbeddingInput> inputs, {
+    bool normalize = true,
+  });
+}
+
 /// Optional next-token scoring implementation for a loaded custom runtime.
 ///
 /// Implement [LlamaRuntimeCapabilityProvider] too, and report

@@ -8,7 +8,7 @@ Run local LLMs in [Genkit Dart](https://pub.dev/packages/genkit) applications.
 Use llama.cpp GGUF models or LiteRT-LM bundles through
 [`llamadart`](https://pub.dev/packages/llamadart) for offline, on-device AI in
 Dart and Flutter: chat, token streaming, tool calling, structured JSON output
-and text embeddings. Native preview models also provide batch transcription,
+and text/image/audio embeddings. Native preview models also provide batch transcription,
 WAV synthesis and PNG image generation.
 
 The model runs in your application's process. Download it once or supply a
@@ -144,7 +144,7 @@ For request cancellation, pass a Genkit `CancellationController` token. See
 | Offline chat and streaming | Instruct/chat model; [streaming example](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_streaming_example.dart) |
 | Tool calling and agent loops | Tool-capable model/runtime; richer [input schemas](https://github.com/leehack/genkit-llamadart/blob/main/doc/tool-input-schemas.md) require grammar support; [tool calling](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#tool-calling) |
 | Structured JSON output | Grammar-capable backend; [JSON with active tools](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#constrained-json-with-tools) requires native llama.cpp; [JSON guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#structured-json-output) |
-| Text embeddings for search / RAG | Embedding model; [embedding guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#embeddings) |
+| Text/image/audio embeddings for search / RAG | Compatible embedding model; [embedding guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#embeddings) |
 | Application resource/data input | Explicit allowlisted normalization before generation; [resource recipe](https://github.com/leehack/genkit-llamadart/blob/main/doc/resource-input.md) |
 | Next-token probabilities | Capability-enabled decoder runtime; [typed scoring action](https://github.com/leehack/genkit-llamadart/blob/main/doc/next-token-scoring.md) |
 | Image and audio input | Compatible multimodal model and runtime, matching projector when required; explicit resolver for native HTTP(S) input; [media guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#image-and-audio-input) |

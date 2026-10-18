@@ -129,6 +129,35 @@ Browser tests of the adapter guards use deterministic runtimes and can run with
 `dart test -p chrome test/integration/genkit/plugin/runtime_capabilities_test.dart`;
 they validate Web guards, not real Web inference or deployment.
 
+## Multimodal embedding qualification
+
+This opt-in uses existing local EmbeddingGemma-2 files and downloads nothing:
+
+```bash
+GENKIT_MULTIMODAL_EMBED_MODELS=/models/embeddinggemma-2 \
+  dart test test/integration/genkit/actions/embedder_action/real_model_multimodal_embedding_test.dart -j 1
+```
+
+The directory contains `gguf/embeddinggemma-2-BF16.gguf`,
+`gguf/mmproj-embeddinggemma-2-BF16.gguf`, and
+`litert/embeddinggemma-2-740m.litertlm`. The test verifies SHA-256 before loading:
+
+| File | SHA-256 |
+| --- | --- |
+| GGUF model | `68bae29d62fb8c7d23e98d21fd4662753ddd636e6b62b8a70dfe059a9844f216` |
+| GGUF projector | `d2033b3cd0223cfb2e7a2b50dc80a664c78c816d375f5b017ec3ef80ee0bc766` |
+| LiteRT-LM bundle | `e7a8a2204b91e0f96e92960e84a09a89212e1633dcb7575a9bf3378b4df77f4c` |
+
+The GGUF pair comes from `ggml-org/embeddinggemma-2-GGUF` revision
+`bfcd298762cc34d0357ece5ebdd31791a3a374d8`; the LiteRT-LM bundle is from
+`litert-community/embeddinggemma-2-740m-litert-lm`, identified here by its exact
+checksum. Synthetic PNG and one-second mono 16 kHz PCM WAV inputs exercise
+text, image, audio and interleaving. Genkit vectors must match direct core calls
+on the same CPU backend, with 768 finite dimensions, unit norm, input order and
+metadata preserved. Temporary LiteRT-LM caches are isolated from the model files.
+The tests are tagged `multimodal-embedding-model` and skip before filesystem/model
+access unless enabled. This does not qualify GPU, mobile or real Web embedding.
+
 ## Test Models
 
 The default auto-downloaded models are intentionally tiny and CPU-friendly:

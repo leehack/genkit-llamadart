@@ -9,6 +9,7 @@ class LlamaEngineRuntime
         LlamaRuntime,
         LlamaRuntimeCapabilityProvider,
         LlamaRuntimeInspectionProvider,
+        LlamaRuntimeEmbeddingProvider,
         LlamaRuntimeScoringProvider,
         LlamaRuntimeLoraProvider {
   LlamaEngineRuntime({
@@ -199,6 +200,16 @@ class LlamaEngineRuntime
   }) {
     return _engine.embedBatch(texts, normalize: normalize);
   }
+
+  @override
+  Future<llama.LlamaEmbeddingCapabilities> get embeddingCapabilities =>
+      _engine.embeddingCapabilities;
+
+  @override
+  Future<List<List<double>>> embedContentBatch(
+    List<llama.LlamaEmbeddingInput> inputs, {
+    bool normalize = true,
+  }) => _engine.embedContentBatch(inputs, normalize: normalize);
 
   @override
   void cancelGeneration() => _engine.cancelGeneration();

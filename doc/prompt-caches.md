@@ -85,6 +85,10 @@ and batch/microbatch 1. It verifies actual cached-token reuse after owner close
 and replacement, fresh-output parity under that control, independent owners,
 cancelled work, quotas, foreign/disposed handles and terminal cleanup.
 
+The same bounded proof passed again on 2026-10-18 with published llamadart
+0.15.0/native `v0.7.0-1` on macOS arm64 CPU. This retains the original fixture
+and scope; it does not extend qualification to other devices or backends.
+
 Native restore re-evaluates the final token for logits. Automatic batching is a
 numerical-tolerance contract and can change greedy output. Batch 1 is a test
 control, not a performance recommendation. Cache reuse is demonstrated; no

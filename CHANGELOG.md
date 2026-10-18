@@ -1,5 +1,8 @@
 ## Unreleased
 
+- Add ordered image/audio/text embeddings through Genkit, with embedding-specific modality probes, optional custom-runtime support, metadata preservation and cooperative media cancellation.
+- Expose embedding modalities in model inspection and lazy discovery, add a GGUF/LiteRT-LM CPU example, and qualify native adapter results against direct core calls.
+
 - Upgrade to llamadart 0.15.0, matching 0.15.x Apple companions and updated dependency compatibility checks; native overrides must match the v0.7 ABI.
 
 ## 3.3.0 - 2026-10-15

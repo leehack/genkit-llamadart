@@ -100,6 +100,10 @@ native `v0.6.0-3` on macOS arm64 CPU. It verifies two actual native chat calls w
 the first answer present in the second call. This is protocol/lifecycle evidence,
 not a model-quality claim or Web/mobile/GPU qualification.
 
+The same bounded proof passed again on 2026-10-18 with published llamadart
+0.15.0/native `v0.7.0-1` on macOS arm64 CPU. This retains the original fixture
+and scope; it does not extend qualification to other devices or backends.
+
 ```bash
 LLAMADART_RUN_BIDI_PROOF=1 LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 \
 dart test test/integration/genkit/runtime/real_model_bidi_test.dart -j 1
