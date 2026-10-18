@@ -416,6 +416,39 @@ LLAMADART_EXAMPLE_CACHE=/tmp/genkit-example-fresh-cache \
   dart run example/genkit_llamadart_owner_example.dart
 ```
 
+The five specialty CLI proofs use the same checksum-pinned fixtures as the
+[LoRA qualification](doc/live-lora-qualification.md),
+[decision proof](test/integration/genkit/decision/real_model_decision_test.dart)
+and [speech/image proofs](test/integration/genkit/media/). They exercise the
+actual entry points with local model overrides, without automatic downloads:
+
+```bash
+LLAMADART_RUN_SPECIALTY_EXAMPLE_PROOF=1 \
+LLAMADART_TEST_LORA_BASE=/models/Base-F32.gguf \
+LLAMADART_TEST_LORA_ADAPTER=/models/Lora-F32.gguf \
+GENKIT_DECISION_ENCODER=/models/laya-Q4_K_M.gguf \
+GENKIT_DECISION_HEAD=/models/laya-head.safetensors \
+GENKIT_ASR_MODEL=/models/Qwen3-ASR-0.6B-Q8_0.gguf \
+GENKIT_ASR_PROJECTOR=/models/mmproj-Qwen3-ASR-0.6B-Q8_0.gguf \
+GENKIT_TTS_MODEL=/models/Qwen3-TTS-12Hz-1.7B-Base-Q4_K_M.gguf \
+GENKIT_TTS_PROJECTOR=/models/mmproj-Qwen3-TTS-12Hz-1.7B-Base-Q8_0.gguf \
+GENKIT_IMAGE_MODEL=/models/sdxs-512-tinySDdistilled_Q8_0.gguf \
+  dart test test/integration/genkit/examples/real_model_specialty_examples_test.dart -j 1
+```
+
+Each test skips explicitly when its fixtures are missing. The image CLI requires
+the [stable_diffusion hook configuration](example/README.md#images-and-speech)
+in the consumer's `pubspec.yaml`. To keep that optional runtime out of this
+package's defaults, run the proof in a temporary repository copy with the hook
+enabled and run `dart pub get` there first.
+
+The maintained checks validate changed LoRA output, schema-valid decision JSON,
+the exact normalized JFK transcript, complete non-silent mono 24 kHz PCM WAV,
+and a decoded, nonuniform 256×256 PNG. The synthetic LoRA pair is a behavior
+control, not a language-quality sample. The macOS arm64 CPU qualification also
+visually checked the red apple image and transcribed synthesized speech back
+through the ASR CLI; those content checks are separate from file validity.
+
 ## Rich tool schema qualification
 
 ```bash

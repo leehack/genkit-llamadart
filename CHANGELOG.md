@@ -1,5 +1,6 @@
 ## Unreleased
 
+- Verify the remaining LoRA, decision, transcription, speech and image CLIs with pinned real-model fixtures; add maintained CLI checks and correct model-card handling in the LoRA conversion recipe.
 - Give owner, prompt-cache, bidi, rich-tool, image-input and multimodal-embedding examples pinned Hugging Face defaults; accept Hugging Face/HTTPS model overrides, retain local files, simplify telemetry setup and add actual-CLI cache/source qualification.
 
 - Snapshot embedding input before queueing and reuse validated inline media during remote resolution, avoiding caller-mutation races and repeated data-URL decoding.

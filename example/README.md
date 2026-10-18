@@ -112,7 +112,13 @@ compiled by the documentation test. Real-model execution is separate and opt-in:
 | Chat, streaming, agent, JSON, resources, retrieval, inspection | `real_model_examples_test.dart` executes the actual CLIs with checksum-pinned Qwen3.5 |
 | Owner, prompt-cache, bidi, source/preparation UI, text embeddings, rich tools, image input, multimodal embeddings | `real_model_source_examples_test.dart` executes their default Hugging Face sources using an isolated cache seeded with checksum-verified fixtures; no extra downloads |
 | Observability | `observability_example_test.dart` executes the CLI against a loopback collector and checks correlated spans, usage and privacy |
-| Native owner/cache/bidi/LoRA, decision and speech/image generation | Separate opt-in engine/adapter proofs in `test/integration/genkit/`; an engine proof does not by itself verify its CLI |
+| LoRA, decision, transcription, speech synthesis, image generation | `real_model_specialty_examples_test.dart` executes the actual CLIs with checksum-pinned local overrides; checks adapter output changes, decision JSON, the JFK transcript, PCM WAV and decoded PNG |
+
+All 22 CLI entry points have been executed on macOS arm64 CPU with llamadart
+0.15.0. The generated speech was also transcribed back as “Hello from Jen Kit.”;
+the generated image was visually checked for the requested red apple on blue.
+Separate engine/adapter proofs cover deeper owner/cache/bidi/LoRA and media
+behavior beyond these CLI checks.
 
 These are bounded native CPU checks, not model-quality benchmarks or Web/mobile
 qualification. Optional fixtures are skipped explicitly when absent; a skip is
