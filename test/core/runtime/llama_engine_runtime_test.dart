@@ -7,6 +7,50 @@ const bool _isWeb = bool.fromEnvironment('dart.library.js_interop');
 
 void main() {
   test(
+    'embedding provider delegates modalities, ordered inputs and normalization',
+    () async {
+      final engine = _EmbeddingEngine();
+      final runtime = LlamaEngineRuntime(engine: engine);
+      addTearDown(runtime.dispose);
+      expect(
+        await runtime.embeddingCapabilities,
+        same(engine.embeddingSnapshot),
+      );
+      final inputs = [
+        LlamaEmbeddingInput([
+          const llama.LlamaTextContent('prefix'),
+          llama.LlamaImageContent(path: '/image.png'),
+        ]),
+      ];
+      final vectors = await runtime.embedContentBatch(inputs, normalize: false);
+      expect(vectors, same(engine.vectors));
+      expect(engine.inputs, same(inputs));
+      expect(engine.normalize, false);
+    },
+  );
+
+  test(
+    'LiteRT embedding mode is forwarded explicitly during model loading',
+    () async {
+      final engine = _RecordingEngine();
+      final runtime = LlamaEngineRuntime(engine: engine);
+      addTearDown(runtime.dispose);
+      const params = ModelParams(
+        device: ComputeDevice.cpu,
+        liteRtLmEmbeddingEngine: true,
+      );
+      await runtime.initialize(
+        const LlamaModelDefinition(
+          name: 'embed',
+          modelPath: '/model.litertlm',
+          modelParams: params,
+        ),
+      );
+      expect(engine.params!.liteRtLmEmbeddingEngine, true);
+      expect(engine.params!.device, ComputeDevice.cpu);
+    },
+  );
+  test(
     'live LoRA probes loaded native runtime and delegates source controls',
     () async {
       final engine = _LoraEngine();
@@ -168,6 +212,30 @@ void main() {
       await run();
       expect(engine.kwargs, same(kwargs));
     });
+  }
+}
+
+class _EmbeddingEngine extends _RecordingEngine {
+  final embeddingSnapshot = const LlamaEmbeddingCapabilities(
+    text: true,
+    image: true,
+  );
+  final vectors = [
+    [1.0, 0.0],
+  ];
+  List<LlamaEmbeddingInput>? inputs;
+  bool? normalize;
+  @override
+  Future<LlamaEmbeddingCapabilities> get embeddingCapabilities async =>
+      embeddingSnapshot;
+  @override
+  Future<List<List<double>>> embedContentBatch(
+    List<LlamaEmbeddingInput> inputs, {
+    bool normalize = true,
+  }) async {
+    this.inputs = inputs;
+    this.normalize = normalize;
+    return vectors;
   }
 }
 

@@ -41,8 +41,9 @@ The nesting limit is checked before calling a resource action beyond it.
 Image/audio media stays typed. Media transport, payload limits and decoding
 remain governed by the compatible model and your application-owned
 [remote-media resolver](usage.md#resolving-remote-input-on-native-platforms).
-The recipe does not fetch media, extract PDFs, ingest video frames or provide
-multimodal embeddings. Embeddings remain text-only. Native video support is
+The recipe does not fetch media, extract PDFs or ingest video frames. Send
+normalized text/image/audio documents to a compatible
+[multimodal embedder](usage.md#multimodal-embeddings) explicitly. Native video support is
 tracked in [llamadart #320](https://github.com/leehack/llamadart/issues/320).
 
 Pass a Genkit cancellation token to normalization and subsequent generation.

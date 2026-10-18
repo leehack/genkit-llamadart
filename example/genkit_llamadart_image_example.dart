@@ -7,13 +7,13 @@ import 'package:llamadart/llamadart.dart' as llama;
 Future<void> main(List<String> args) async {
   if (args.length != 1 && args.length != 2) {
     throw ArgumentError(
-      'Supply a PNG output path, optionally followed by a local SDXS model path.',
+      'Supply a PNG output path, optionally followed by an SDXS model source (path, hf:// or HTTPS).',
     );
   }
   final engine = await llama.ImageGenerationEngine.load(
     llama.ImageGenerationModel(
       args.length == 2
-          ? ModelSource.path(args[1])
+          ? ModelSource.parse(args[1])
           : ModelSource.huggingFace(
               repoId: 'concedo/sdxs-512-tinySDdistilled-GGUF',
               revision: '3144d898d61492f8382ffcabec055733fc5b2a0e',

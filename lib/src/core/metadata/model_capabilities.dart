@@ -5,6 +5,8 @@ import '../../api/model_definition.dart';
 Map<String, dynamic> supportMetadataFor(
   LlamaModelDefinition definition, {
   llama.LlamaEngineCapabilities? capabilities,
+  llama.LlamaEmbeddingCapabilities? embeddingCapabilities,
+  bool generation = true,
 }) {
   final ready = capabilities?.isSupported == true;
   final tools =
@@ -12,7 +14,11 @@ Map<String, dynamic> supportMetadataFor(
   return <String, dynamic>{
     'multiturn': ready && capabilities!.supportsMultiTurnChat,
     'media':
-        ready && (capabilities!.supportsVision || capabilities.supportsAudio),
+        ready &&
+        (generation
+            ? (capabilities!.supportsVision || capabilities.supportsAudio)
+            : (embeddingCapabilities?.image == true ||
+                  embeddingCapabilities?.audio == true)),
     'tools': tools,
     'toolChoice': tools,
     'systemRole': ready && capabilities!.supportsMultiTurnChat,
@@ -31,6 +37,10 @@ Map<String, dynamic> supportMetadataFor(
     'embeddings':
         definition.supportsEmbeddings &&
         ready &&
-        capabilities!.supportsEmbeddings,
+        (embeddingCapabilities == null
+            ? capabilities!.supportsEmbeddings
+            : embeddingCapabilities.text ||
+                  embeddingCapabilities.image ||
+                  embeddingCapabilities.audio),
   };
 }

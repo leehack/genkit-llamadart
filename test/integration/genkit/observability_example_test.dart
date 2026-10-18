@@ -1,3 +1,7 @@
+@Tags(['real-model'])
+@TestOn('vm')
+library;
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -42,7 +46,7 @@ void main() {
         Platform.resolvedExecutable,
         ['run', 'example/genkit_llamadart_observability_example.dart'],
         environment: {
-          'LLAMADART_MODEL_PATH': model,
+          'LLAMADART_MODEL_SOURCE': model,
           'OTEL_EXPORTER_OTLP_ENDPOINT': 'http://127.0.0.1:${collector.port}',
           'OTEL_EXPORTER_OTLP_PROTOCOL': 'http/protobuf',
           'OTEL_LOG_LEVEL': 'fatal',

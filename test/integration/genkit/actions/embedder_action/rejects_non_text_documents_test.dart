@@ -5,7 +5,7 @@ import '../../../../core/runtime/test_support/fake_runtime.dart';
 import '../test_support/action_harness.dart';
 
 void main() {
-  test('embedder action rejects non-text documents', () async {
+  test('legacy runtime rejects media without an embedding provider', () async {
     final action = testEmbedderAction(runtime: FakeRuntime());
 
     expect(
@@ -29,7 +29,7 @@ void main() {
         isA<genkit.GenkitException>().having(
           (error) => error.status,
           'status',
-          genkit.StatusCode.invalidArgument,
+          genkit.StatusCode.unimplemented,
         ),
       ),
     );

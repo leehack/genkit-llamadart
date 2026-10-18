@@ -62,6 +62,15 @@ description: >-
 - Set `supportsEmbeddings`, `supportsTools` and `supportsConstrainedOutput` to
   match the model; they all default to `true`.
 
+For multimodal embeddings, load an embedding model, not a chat model. GGUF
+requires the matching projector source. Native LiteRT-LM uses
+`ModelParams(device: ComputeDevice.cpu, liteRtLmEmbeddingEngine: true)` and no
+projector. LiteRT embedding inputs need PNG/JPEG and WAV bytes (data URLs or
+resolved media), not unresolved file paths/URLs. Check `prepared.inspect()`'s `embeddingCapabilities` for each required
+modality; chat vision/audio flags do not establish embedding support. Set
+`supportsTools: false` and `supportsConstrainedOutput: false` for embedding-only
+models. See [embedding usage](../../doc/usage.md#multimodal-embeddings).
+
 ## Examples
 
 Prepare a model behind a loading screen with progress, cancel and warm-up.

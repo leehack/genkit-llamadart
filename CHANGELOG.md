@@ -1,3 +1,15 @@
+## Unreleased
+
+- Verify the remaining LoRA, decision, transcription, speech and image CLIs with pinned real-model fixtures; add maintained CLI checks and correct model-card handling in the LoRA conversion recipe.
+- Give owner, prompt-cache, bidi, rich-tool, image-input and multimodal-embedding examples pinned Hugging Face defaults; accept Hugging Face/HTTPS model overrides, retain local files, simplify telemetry setup and add actual-CLI cache/source qualification.
+
+- Snapshot embedding input before queueing and reuse validated inline media during remote resolution, avoiding caller-mutation races and repeated data-URL decoding.
+
+- Add ordered image/audio/text embeddings through Genkit, with embedding-specific modality probes, optional custom-runtime support, metadata preservation and cooperative media cancellation.
+- Expose embedding modalities in model inspection and lazy discovery, add a GGUF/LiteRT-LM CPU example, and qualify native adapter results against direct core calls.
+
+- Upgrade to llamadart 0.15.0, matching 0.15.x Apple companions and updated dependency compatibility checks; native overrides must match the v0.7 ABI.
+
 ## 3.3.0 - 2026-10-15
 
 - Add opt-in same-process raw-prompt caches on dedicated native owners, with bounded handles and model-identity checks.

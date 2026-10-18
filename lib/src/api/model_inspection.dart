@@ -11,10 +11,25 @@ class LlamaModelInspection {
   /// Creates an inspection snapshot, copying capability strategy collections.
   LlamaModelInspection({
     llama.LlamaEngineCapabilities? capabilities,
+    llama.LlamaEmbeddingCapabilities? embeddingCapabilities,
     this.contextSize,
   }) : capabilities = capabilities == null
            ? null
-           : _copyCapabilities(capabilities);
+           : _copyCapabilities(capabilities),
+       embeddingCapabilities = embeddingCapabilities == null
+           ? null
+           : llama.LlamaEmbeddingCapabilities(
+               text: embeddingCapabilities.text,
+               image: embeddingCapabilities.image,
+               audio: embeddingCapabilities.audio,
+             );
+
+  /// Embedding-specific modalities, independent of chat vision/audio support.
+  ///
+  /// Null for custom runtimes without `LlamaRuntimeEmbeddingProvider`. The
+  /// snapshot omits backend diagnostic reasons and input paths. Available
+  /// modalities do not guarantee every codec, model or input size is supported.
+  final llama.LlamaEmbeddingCapabilities? embeddingCapabilities;
 
   /// Loaded runtime capabilities, or null for an unverified custom runtime.
   ///

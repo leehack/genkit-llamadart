@@ -1,21 +1,19 @@
-import 'dart:io';
-
 import 'package:genkit/genkit.dart';
 import 'package:genkit/plugin.dart' as api;
 import 'package:genkit_llamadart/genkit_llamadart.dart';
 import 'package:schemantic/schemantic.dart';
 
+import 'support/model_downloads.dart';
+
 Future<void> main(List<String> args) async {
-  if (args.length != 1) {
-    stderr.writeln(
-      'Usage: dart run example/genkit_llamadart_tool_schema_example.dart /models/Qwen3-1.7B-Q4_K_M.gguf',
-    );
-    exitCode = 64;
-    return;
-  }
+  if (args.length > 1) throw ArgumentError('Supply at most one model source.');
   final prepared = await llamaDart.prepareModel(
     name: 'rich-tools',
-    source: ModelSource.path(args.single),
+    source: ModelSource.parse(
+      args.firstOrNull ??
+          'hf://unsloth/Qwen3-1.7B-GGUF/Qwen3-1.7B-Q4_K_M.gguf?revision=d7f544eead698dbd1f15126ef60b45a1e1933222',
+    ),
+    downloadManager: exampleDownloads,
     modelParams: const ModelParams(
       contextSize: 4096,
       device: ComputeDevice.cpu,

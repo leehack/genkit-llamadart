@@ -75,6 +75,41 @@ void main() {
   tearDown(() => plugin.dispose());
 
   test(
+    'remote resolution retains validated text and decoded inline media',
+    () async {
+      if (!native) return;
+      final release = Completer<void>();
+      resolver.started = Completer<void>();
+      resolver.gate = release.future;
+      addTearDown(() {
+        if (!release.isCompleted) release.complete();
+      });
+      final request = _request('audio/wav');
+      request.messages.single.content = [
+        genkit.TextPart(text: 'original'),
+        genkit.MediaPart(
+          media: genkit.Media(
+            url: 'data:image/png;base64,AQID',
+            contentType: 'image/png',
+          ),
+        ),
+        request.messages.single.content.last,
+      ];
+      final pending = model(request);
+      await resolver.started!.future;
+      request.messages.single.content = [genkit.TextPart(text: 'changed')];
+      release.complete();
+      await pending;
+      final parts = runtime.lastMessages!.single.parts;
+      expect(parts, hasLength(3));
+      expect((parts[0] as llama.LlamaTextContent).text, 'original');
+      expect((parts[1] as llama.LlamaImageContent).bytes, [1, 2, 3]);
+      expect((parts[2] as llama.LlamaAudioContent).bytes, [7, 8, 9]);
+      expect(resolver.calls, ['audio/wav']);
+    },
+  );
+
+  test(
     'native image/audio become bytes; Web images retain direct URL',
     () async {
       await model(_request('image/png'));

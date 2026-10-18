@@ -34,6 +34,9 @@ export 'package:llamadart/llamadart.dart'
         LlamaChatOperation,
         LlamaTextCompletionOperation,
         LlamaEmbeddingsOperation,
+        LlamaEmbeddingCapabilities,
+        LlamaEmbeddingInput,
+        LlamaEmbeddingModality,
         LlamaModelLoadOperation,
         LlamaGenerationUsage,
         LlamaException,
@@ -82,6 +85,7 @@ export 'src/core/runtime/llama_runtime.dart'
         LlamaDartRuntimeFactory,
         LlamaRuntimeCapabilityProvider,
         LlamaRuntimeInspectionProvider,
+        LlamaRuntimeEmbeddingProvider,
         LlamaRuntimeScoringProvider,
         LlamaRuntimeLoraProvider;
 export 'src/integration/genkit/plugin.dart' show LlamaDartPlugin;

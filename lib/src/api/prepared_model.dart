@@ -139,7 +139,10 @@ class LlamaPreparedModel {
   Future<int> countTokens(String text) =>
       plugin.countTokens(definition.name, text);
 
-  /// Requests cancellation of this model's active generation, if any.
+  /// Requests cancellation of this model's active generation or typed embedding.
+  ///
+  /// Typed embedding cancellation requires `LlamaRuntimeEmbeddingProvider`;
+  /// legacy custom text embedding drains without interruption.
   ///
   /// Bypasses the request queue and leaves separately queued requests intact.
   /// No-op while loading or idle; it does not cancel model downloads.

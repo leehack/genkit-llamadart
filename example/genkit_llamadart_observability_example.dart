@@ -8,47 +8,32 @@ import 'package:genkit_llamadart/genkit_llamadart.dart';
 import 'package:genkit_otel/genkit_otel.dart';
 
 import 'telemetry/runtime_timing_instrumentation.dart';
+import 'support/chat_model.dart';
 
 Future<void> main() async {
-  final modelPath = Platform.environment['LLAMADART_MODEL_PATH'];
-  if (modelPath == null) {
-    stderr.writeln('Set LLAMADART_MODEL_PATH to a local chat GGUF.');
-    exitCode = 64;
-    return;
-  }
-  await otel.OTel.initialize(
-    serviceName: 'genkit-llamadart-example',
-    enableLogs: false,
-    detectPlatformResources: false,
-  );
-  configureInstrumentation(
-    GenAiInstrumentation(
-      contentCapturingMode: ContentCapturingMode.noContent,
-      captureActionIO: false,
-    ),
-  );
-  configureInstrumentation(
-    RuntimeTimingInstrumentation(
-      meter: otel.OTel.meter('llamadart-runtime'),
-      tracer: otel.OTel.tracerProvider().getTracer('llamadart-runtime'),
-    ),
-  );
-  final plugin = llamaDart(
-    models: [
-      LlamaModelDefinition(
-        name: 'local',
-        modelPath: modelPath,
-        supportsEmbeddings: false,
-        modelParams: const ModelParams(
-          contextSize: 4096,
-          device: ComputeDevice.cpu,
-        ),
-      ),
-    ],
+  final prepared = await prepareExampleChat(
+    'local',
     observers: [OtelEngineObserver()],
   );
-  final ai = Genkit(plugins: [plugin], isDevEnv: false);
+  final ai = prepared.createGenkit(isDevEnv: false);
   try {
+    await otel.OTel.initialize(
+      serviceName: 'genkit-llamadart-example',
+      enableLogs: false,
+      detectPlatformResources: false,
+    );
+    configureInstrumentation(
+      GenAiInstrumentation(
+        contentCapturingMode: ContentCapturingMode.noContent,
+        captureActionIO: false,
+      ),
+    );
+    configureInstrumentation(
+      RuntimeTimingInstrumentation(
+        meter: otel.OTel.meter('llamadart-runtime'),
+        tracer: otel.OTel.tracerProvider().getTracer('llamadart-runtime'),
+      ),
+    );
     final response = await ai.generate(
       model: llamaDart.model('local'),
       prompt: 'Say hello briefly.',
@@ -67,7 +52,7 @@ Future<void> main() async {
     );
   } finally {
     try {
-      await plugin.dispose();
+      await prepared.dispose();
     } finally {
       try {
         await ai.shutdown();

@@ -40,7 +40,11 @@ genkit.ModelInfo modelInfoFor(
         (generation ? generationConfigSchema() : null),
     supports: <String, dynamic>{
       ...?provided?.supports,
-      ...supportMetadataFor(definition, capabilities: capabilities),
+      ...supportMetadataFor(
+        definition,
+        capabilities: capabilities,
+        generation: generation,
+      ),
     },
     stage: provided?.stage,
   );
@@ -49,8 +53,9 @@ genkit.ModelInfo modelInfoFor(
 void trackCapabilityMetadata(
   Map<String, dynamic> metadata,
   LlamaModelDefinition definition,
-  EngineRegistry registry,
-) {
+  EngineRegistry registry, {
+  bool generation = true,
+}) {
   void refresh() {
     final model = metadata['model'] as Map<String, dynamic>;
     model['supports'] = <String, dynamic>{
@@ -59,6 +64,10 @@ void trackCapabilityMetadata(
       ...supportMetadataFor(
         definition,
         capabilities: registry.capabilitiesFor(definition.name),
+        embeddingCapabilities: registry.embeddingCapabilitiesFor(
+          definition.name,
+        ),
+        generation: generation,
       ),
     };
     metadata['llamadartCapabilities'] = capabilityMetadataFor(
@@ -80,6 +89,18 @@ Map<String, dynamic> capabilityMetadataFor(
   return {
     'state': registry.capabilityStateFor(definition.name),
     'ready': capabilities != null,
+    'embedding': {
+      'text':
+          capabilities != null &&
+          (registry.embeddingCapabilitiesFor(definition.name)?.text ??
+              capabilities.supportsEmbeddings),
+      'image':
+          capabilities != null &&
+          registry.embeddingCapabilitiesFor(definition.name)?.image == true,
+      'audio':
+          capabilities != null &&
+          registry.embeddingCapabilitiesFor(definition.name)?.audio == true,
+    },
     'generation': {
       'penalty': capabilities?.supportsPenalty == true,
       'minP': capabilities?.supportsMinP == true,

@@ -8,7 +8,7 @@ Run local LLMs in [Genkit Dart](https://pub.dev/packages/genkit) applications.
 Use llama.cpp GGUF models or LiteRT-LM bundles through
 [`llamadart`](https://pub.dev/packages/llamadart) for offline, on-device AI in
 Dart and Flutter: chat, token streaming, tool calling, structured JSON output
-and text embeddings. Native preview models also provide batch transcription,
+and text/image/audio embeddings. Native preview models also provide batch transcription,
 WAV synthesis and PNG image generation.
 
 The model runs in your application's process. Download it once or supply a
@@ -30,8 +30,8 @@ platform setup. Apple apps using Swift Package Manager need the runtime
 companion matching their model family:
 
 ```bash
-flutter pub add 'llamadart_llama_cpp_flutter:^0.13.0'
-flutter pub add 'llamadart_litert_lm_flutter:^0.13.0'
+flutter pub add 'llamadart_llama_cpp_flutter:^0.15.0'
+flutter pub add 'llamadart_litert_lm_flutter:^0.15.0'
 ```
 
 Choose the GGUF companion, the LiteRT-LM companion, or both if your app uses
@@ -144,7 +144,7 @@ For request cancellation, pass a Genkit `CancellationController` token. See
 | Offline chat and streaming | Instruct/chat model; [streaming example](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_streaming_example.dart) |
 | Tool calling and agent loops | Tool-capable model/runtime; richer [input schemas](https://github.com/leehack/genkit-llamadart/blob/main/doc/tool-input-schemas.md) require grammar support; [tool calling](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#tool-calling) |
 | Structured JSON output | Grammar-capable backend; [JSON with active tools](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#constrained-json-with-tools) requires native llama.cpp; [JSON guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#structured-json-output) |
-| Text embeddings for search / RAG | Embedding model; [embedding guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#embeddings) |
+| Text/image/audio embeddings for search / RAG | Compatible embedding model; [embedding guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#embeddings) |
 | Application resource/data input | Explicit allowlisted normalization before generation; [resource recipe](https://github.com/leehack/genkit-llamadart/blob/main/doc/resource-input.md) |
 | Next-token probabilities | Capability-enabled decoder runtime; [typed scoring action](https://github.com/leehack/genkit-llamadart/blob/main/doc/next-token-scoring.md) |
 | Image and audio input | Compatible multimodal model and runtime, matching projector when required; explicit resolver for native HTTP(S) input; [media guide](https://github.com/leehack/genkit-llamadart/blob/main/doc/usage.md#image-and-audio-input) |
@@ -171,6 +171,10 @@ remain application responsibilities.
 
 ## Runnable examples
 
+Runnable examples download and cache pinned Hugging Face models by default.
+Overrides accept local paths, `hf://` sources or HTTPS URLs. Media input/output
+files remain local. The example index includes a verification matrix.
+
 Run the standalone [pub.dev quickstart](https://github.com/leehack/genkit-llamadart/blob/main/example/genkit_llamadart_example.dart)
 from a checkout; its default downloads the pinned Qwen3.5 model:
 
@@ -183,7 +187,7 @@ provides commands, model sizes and setup for streaming, typed tool loops,
 structured JSON, embeddings, local retrieval, inspection/scoring, download UI,
 Laya decisions, dedicated owners, live LoRA, image input, transcription, WAV
 synthesis, PNG generation and telemetry. Most chat examples can reuse a local
-model through `LLAMADART_MODEL_PATH`.
+model through `LLAMADART_MODEL_SOURCE` (or the older `LLAMADART_MODEL_PATH`).
 
 For a small retrieval application, try the
 [local-text question-answering recipe](https://github.com/leehack/genkit-llamadart/blob/main/doc/local-retrieval.md).

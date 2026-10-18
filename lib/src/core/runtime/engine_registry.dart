@@ -31,6 +31,28 @@ class EngineRegistry {
   llama.LlamaEngineCapabilities? capabilitiesFor(String modelName) =>
       _entries[modelName]?.capabilities;
 
+  llama.LlamaEmbeddingCapabilities? embeddingCapabilitiesFor(
+    String modelName,
+  ) => _entries[modelName]?.embeddingCapabilities;
+
+  // Call only inside this model's withRuntime operation, after initialization.
+  Future<llama.LlamaEmbeddingCapabilities?> probeEmbeddingCapabilities(
+    String modelName,
+    LlamaRuntime runtime,
+  ) async {
+    if (runtime is! LlamaRuntimeEmbeddingProvider) return null;
+    final llama.LlamaEmbeddingCapabilities snapshot;
+    try {
+      snapshot = await (runtime as LlamaRuntimeEmbeddingProvider)
+          .embeddingCapabilities;
+    } catch (_) {
+      throw llama.LlamaStateException('Unable to verify embedding modalities.');
+    }
+    _entries[modelName]!.embeddingCapabilities = snapshot;
+    _notifyCapabilities(modelName);
+    return snapshot;
+  }
+
   String capabilityStateFor(String modelName) {
     final entry = _entries[modelName];
     if (entry == null || !entry.capabilitiesChecked) return 'unloaded';
@@ -72,10 +94,10 @@ class EngineRegistry {
     return entry.run(operation, beforeInitialize: beforeInitialize);
   }
 
-  /// Cancels the generation in flight for [modelName] without queueing behind
+  /// Cancels generation or typed embedding for [modelName] without queueing behind
   /// it. Throws [StateError] for a model name that was never registered
   /// (consistent with [withRuntime]); a no-op for a registered model whose
-  /// runtime hasn't loaded yet or isn't generating.
+  /// runtime hasn't loaded yet or has no cancellable backend work.
   void cancelActiveGeneration(String modelName) {
     if (!_definitions.containsKey(modelName)) {
       throw StateError('Unknown llamadart model: $modelName');
@@ -83,7 +105,7 @@ class EngineRegistry {
     _entries[modelName]?.cancelGeneration();
   }
 
-  /// Cancels every in-flight generation across loaded runtimes, bypassing the
+  /// Cancels generation and typed embedding across loaded runtimes, bypassing the
   /// per-model operation queue so a cancel never waits behind the run it stops.
   void cancelActiveGenerations() {
     for (final entry in _entries.values) {
@@ -117,6 +139,7 @@ class _EngineEntry {
   final void Function() _onCapabilitiesChanged;
 
   llama.LlamaEngineCapabilities? capabilities;
+  llama.LlamaEmbeddingCapabilities? embeddingCapabilities;
   bool capabilitiesChecked = false;
 
   Future<void> _tail = Future<void>.value();
@@ -167,6 +190,7 @@ class _EngineEntry {
     _runtime = null;
     _loading = null;
     capabilities = null;
+    embeddingCapabilities = null;
     capabilitiesChecked = false;
     _onCapabilitiesChanged();
 
@@ -178,6 +202,7 @@ class _EngineEntry {
   Future<void> _readCapabilities(LlamaRuntime runtime) async {
     // Never reuse a snapshot if a custom runtime changes or unloads its model.
     capabilities = null;
+    embeddingCapabilities = null;
     capabilitiesChecked = true;
     _onCapabilitiesChanged();
     if (runtime is! LlamaRuntimeCapabilityProvider) return;

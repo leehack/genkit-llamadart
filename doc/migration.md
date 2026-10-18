@@ -1,16 +1,25 @@
 # Migration guide
 
-## Upgrading to llamadart 0.13
+## Upgrading to llamadart 0.15
 
-The current plugin requires llamadart `^0.13.0`. Genkit 1.0, Schemantic 1.0
+The current plugin requires llamadart `^0.15.0`. Genkit 1.0, Schemantic 1.0
 and the Dart 3.12 minimum are unchanged.
 
-Flutter iOS and macOS apps must use matching `^0.13.0` runtime companions:
+Flutter iOS and macOS apps must use matching `^0.15.0` runtime companions:
 `llamadart_llama_cpp_flutter`, `llamadart_litert_lm_flutter`, and, for image
 generation, `llamadart_stable_diffusion_flutter`. Core and companions now share
-the same minor version; pub rejects mismatched minors. See the
-[llamadart 0.13.0 release notes](https://pub.dev/packages/llamadart/versions/0.13.0/changelog)
-for runtime changes, including LiteRT-LM's default 1 GiB GPU program-cache limit.
+the same minor version; pub rejects mismatched minors. The 0.15 upgrade
+crosses 0.14's native ABI
+break: native v0.6.0 and older overrides are incompatible. Use the matching
+v0.7.0-1 llama.cpp runtime and upgrade every Apple companion to 0.15.x.
+LiteRT-LM native is v0.18.0-2; Web llama.cpp defaults to bridge v0.1.65.
+See the [0.15 release notes](https://pub.dev/packages/llamadart/versions/0.15.0/changelog).
+
+Raw response schemas now reject unsupported or shadowed assertions before
+inference. Handle typed unsupported/argument errors when supplying custom
+schemas or WebGPU options. Requalify application-specific tool/JSON requests
+and native prompt caches against the new runtime; previous 0.13 measurements
+in this documentation remain historical evidence.
 
 ## Upgrading to 3.0 (Genkit 1.0)
 

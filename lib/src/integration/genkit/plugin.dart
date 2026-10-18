@@ -133,8 +133,12 @@ class LlamaDartPlugin extends GenkitPlugin {
           ? runtime as LlamaRuntimeInspectionProvider
           : null;
       final contextSize = await provider?.contextSize;
+      final embeddingCapabilities = capabilities?.isSupported == false
+          ? null
+          : await _registry.probeEmbeddingCapabilities(modelName, runtime);
       return LlamaModelInspection(
         capabilities: capabilities,
+        embeddingCapabilities: embeddingCapabilities,
         contextSize: contextSize != null && contextSize > 0
             ? contextSize
             : null,
@@ -183,17 +187,20 @@ class LlamaDartPlugin extends GenkitPlugin {
   Future<int> countTokens(String modelName, String text) async =>
       (await tokenize(modelName, text)).length;
 
-  /// Requests cancellation of [modelName]'s active generation.
+  /// Requests cancellation of [modelName]'s active generation or typed embedding.
   ///
-  /// Bypasses the operation queue, so it stops a running generation instead of
-  /// waiting behind it. No-op when nothing is generating for that model.
+  /// Bypasses the operation queue and requests cooperative backend cancellation.
+  /// Typed embeddings require `LlamaRuntimeEmbeddingProvider`; legacy custom
+  /// text embedding cannot be interrupted. No-op while loading or idle.
   /// Throws [StateError] for a name not registered on this plugin. Separately
   /// queued requests can still run afterward.
   void cancelActiveGeneration(String modelName) {
     _registry.cancelActiveGeneration(modelName);
   }
 
-  /// Cancels every in-flight generation across this plugin's runtimes.
+  /// Requests cancellation of active generations and typed embeddings.
+  ///
+  /// Uses the same runtime-dependent behavior as [cancelActiveGeneration].
   void cancelActiveGenerations() {
     _registry.cancelActiveGenerations();
   }
@@ -214,7 +221,11 @@ class LlamaDartPlugin extends GenkitPlugin {
               mediaResolver: mediaResolver,
             ),
             if (definition.supportsEmbeddings)
-              buildEmbedderAction(definition: definition, registry: _registry),
+              buildEmbedderAction(
+                definition: definition,
+                registry: _registry,
+                mediaResolver: mediaResolver,
+              ),
             scorer(definition.name),
           ];
         })
@@ -240,7 +251,12 @@ class LlamaDartPlugin extends GenkitPlugin {
               modelInfo: modelInfoFor(definition, generation: generation),
               generation: generation,
             );
-            trackCapabilityMetadata(metadata, definition, _registry);
+            trackCapabilityMetadata(
+              metadata,
+              definition,
+              _registry,
+              generation: generation,
+            );
             return metadata;
           }
 

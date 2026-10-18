@@ -3,7 +3,10 @@
 ## Embeddings
 
 Use `llamaDart.embedder(...)` with `ai.embed(...)` for single or multiple documents.
-Embeddings currently accept text-only documents.
+Embeddings accept text, image and audio parts on compatible embedding models.
+Each document produces one vector; parts stay in order within that document.
+Text, media references, document order and top-level metadata are captured before
+queueing, so later caller edits do not change the accepted input.
 
 ```dart
 import 'package:genkit/genkit.dart';
@@ -39,6 +42,77 @@ Future<void> main() async {
   }
 }
 ```
+
+### Multimodal embeddings
+
+Use an embedding model with the required encoders. A chat model's vision/audio
+capabilities do not establish embedding support. Native GGUF needs a matching
+projector; native LiteRT-LM needs a dedicated CPU embedding engine selected with
+`ModelParams(device: ComputeDevice.cpu, liteRtLmEmbeddingEngine: true)` and no
+projector. Leave llama.cpp-only batch and batch-thread parameters at their
+defaults for LiteRT-LM. Conversation engines and Web LiteRT-LM do not support
+embeddings.
+Web llama.cpp requires compatible bridge assets (v0.1.64+; 0.15 defaults to
+v0.1.65). Real Web release qualification covers Chrome CPU wasm memory64;
+this adapter's browser tests establish routing/guards, not device parity.
+
+```dart
+import 'package:genkit/genkit.dart';
+import 'package:genkit_llamadart/genkit_llamadart.dart';
+
+Future<void> embedScene(Genkit ai, List<int> imageBytes, List<int> audioBytes) async {
+  final vectors = await ai.embed(
+    embedder: llamaDart.embedder('media-embed'),
+    document: DocumentData(
+      content: [
+        TextPart(text: 'A scene '),
+        MediaPart(media: Media(
+          url: UriData.fromBytes(imageBytes, mimeType: 'image/png').toString(),
+          contentType: 'image/png',
+        )),
+        TextPart(text: ' with this sound '),
+        MediaPart(media: Media(
+          url: UriData.fromBytes(audioBytes, mimeType: 'audio/wav').toString(),
+          contentType: 'audio/wav',
+        )),
+      ],
+      metadata: {'id': 'scene-1'},
+    ),
+    options: const LlamaDartEmbedConfig(normalize: true),
+  );
+  print(vectors.single.embedding.length);
+  print(vectors.single.metadata?['id']);
+}
+```
+
+Register `media-embed` with `supportsEmbeddings: true`, and disable tools and
+constrained output for an embedding-only model. See the
+[runnable GGUF/LiteRT example](../example/genkit_llamadart_multimodal_embedding_example.dart).
+Use `documents:` for a batch. The adapter preserves per-document metadata,
+concatenates adjacent text without separators, omits reasoning, and adds no
+chat template, task prefix, truncation or video frame extraction. Empty or
+reasoning-only documents retain the existing empty-text behavior.
+
+Native GGUF accepts local paths, file URLs and encoded data URLs. LiteRT-LM
+embeddings require PNG/JPEG image bytes and WAV audio bytes; use data URLs or
+the resolver, and read local files explicitly as the runnable example does.
+Unresolved paths and URLs are unsupported by LiteRT-LM embedding engines.
+Native HTTP(S) inputs require the explicitly installed
+[media resolver](#resolving-remote-input-on-native-platforms). Browser remote
+image URLs require an HTTP(S)-capable runtime; use encoded data URLs for browser
+audio. Codec and input-size support remains model/backend-specific.
+
+The snapshot from `await plugin.inspectModel(name)` exposes
+`embeddingCapabilities`, which reports embedding `text`, `image` and `audio` independently of chat support.
+Typed embedding requests probe every requested modality before downloading remote inputs
+or evaluating any document. Unsupported modalities fail with `UNIMPLEMENTED`;
+video, tools and other unsupported document parts fail with `INVALID_ARGUMENT`.
+Custom runtimes can implement `LlamaRuntimeEmbeddingProvider`; legacy custom
+text embedders retain `embedBatch` without changes. Probe errors are sanitized.
+Discovery stays lazy: embedder `model.supports.media` becomes true only after
+an embedding-specific probe, never from chat's vision/audio flags. The
+`llamadartCapabilities.embedding` metadata reports the last checked modalities;
+subsequent requests clear stale probes and check again.
 
 ## Structured JSON output
 
@@ -446,15 +520,16 @@ are not exposed in request config.
 - call `prepared.cancelActiveGeneration()` to implement a stop button for a prepared model
 - call `plugin.cancelActiveGeneration(name)` for one registered model, or
   `plugin.cancelActiveGenerations()` to stop all currently loaded models
-- these helpers cancel only the active generation; a separately queued request
+- these helpers cancel active generation or typed embedding; a separately queued request
   can still start afterward
 - Genkit `ai.generate()` can return `finishReason: failed` or `aborted`;
   inspect the outcome and `error`/`cause` before using the result
 - `LlamaPreparedModel.warmUp()` still throws on failure or cancellation
 - Genkit's callable embedder action also accepts a cancellation token: cancelled
   queued calls skip initialization/evaluation without stopping another request.
-  Active embedding cannot be interrupted through this adapter; it drains before
-  reporting cancellation. Genkit 1.0's `ai.embed()` has no cancel parameter.
+  Active embedding on modality-aware runtimes signals cooperative cancellation
+  and drains before releasing the model queue. Legacy custom text embedding drains
+  without signalling the backend before reporting cancellation. Genkit 1.0's `ai.embed()` has no cancel parameter.
 - call `await plugin.dispose()` before process shutdown to release native state
 - plugin disposal is terminal; create a new plugin or prepared-model handle instead of reusing it
 - if multiple runtimes fail during disposal, the returned `ParallelWaitError`

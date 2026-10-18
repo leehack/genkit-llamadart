@@ -41,7 +41,8 @@ venv/bin/pip install torch==2.11.0 transformers==4.57.6 numpy==2.2.6 \
 venv/bin/hf download ggml-org/lora-tests \
   --revision c26d5fb85b4070a9e9c4e65d132c783b98086890 \
   --include 'LlamaForCausalLM/hidden_size=64/base/*' \
-  'LlamaForCausalLM/hidden_size=64/lora/*' --local-dir source
+  'LlamaForCausalLM/hidden_size=64/lora/*' --exclude '**/README.md' \
+  --local-dir source
 venv/bin/python upstream/convert_hf_to_gguf.py \
   source/LlamaForCausalLM/hidden_size=64/base --outfile Base-F32.gguf --outtype f32
 venv/bin/python upstream/convert_lora_to_gguf.py \
@@ -49,6 +50,11 @@ venv/bin/python upstream/convert_lora_to_gguf.py \
   --base source/LlamaForCausalLM/hidden_size=64/base \
   --outfile Lora-F32.gguf --outtype f32
 ```
+
+Exclude the model cards to reproduce the hashes above. The adapter's README
+adds base-model provenance fields during conversion; including it produces
+different GGUF metadata and a different checksum even with identical tensors.
+Use a fresh source directory so a previously downloaded README is not retained.
 
 Then from this repository:
 

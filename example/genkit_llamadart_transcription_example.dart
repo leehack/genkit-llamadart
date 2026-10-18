@@ -7,21 +7,21 @@ import 'package:llamadart/llamadart.dart' as llama;
 Future<void> main(List<String> args) async {
   if (args.length != 1 && args.length != 3) {
     throw ArgumentError(
-      'Supply a WAV path, optionally followed by local model and projector paths.',
+      'Supply a WAV path, optionally followed by model and projector sources (paths, hf:// or HTTPS).',
     );
   }
   const revision = '928ab958557df9aa2ef1c93e0e83c7ad0933fae2';
   final engine = await llama.SpeechToTextEngine.load(
     llama.SpeechToTextModel(
       args.length == 3
-          ? ModelSource.path(args[1])
+          ? ModelSource.parse(args[1])
           : ModelSource.huggingFace(
               repoId: 'ggml-org/Qwen3-ASR-0.6B-GGUF',
               revision: revision,
               filePath: 'Qwen3-ASR-0.6B-Q8_0.gguf',
             ),
       projector: args.length == 3
-          ? ModelSource.path(args[2])
+          ? ModelSource.parse(args[2])
           : ModelSource.huggingFace(
               repoId: 'ggml-org/Qwen3-ASR-0.6B-GGUF',
               revision: revision,

@@ -85,6 +85,10 @@ and batch/microbatch 1. It verifies actual cached-token reuse after owner close
 and replacement, fresh-output parity under that control, independent owners,
 cancelled work, quotas, foreign/disposed handles and terminal cleanup.
 
+The same bounded proof passed again on 2026-10-18 with published llamadart
+0.15.0/native `v0.7.0-1` on macOS arm64 CPU. This retains the original fixture
+and scope; it does not extend qualification to other devices or backends.
+
 Native restore re-evaluates the final token for logits. Automatic batching is a
 numerical-tolerance contract and can change greedy output. Batch 1 is a test
 control, not a performance recommendation. Cache reuse is demonstrated; no
@@ -94,5 +98,5 @@ costs. GPU, other platforms and other model families are unqualified.
 ```bash
 LLAMADART_RUN_PROMPT_CACHE_PROOF=1 LLAMADART_AUTO_DOWNLOAD_TEST_MODELS=1 \
 dart test test/integration/genkit/runtime/real_model_prompt_cache_test.dart -j 1
-dart run example/genkit_llamadart_prompt_cache_example.dart /models/chat.gguf
+dart run example/genkit_llamadart_prompt_cache_example.dart
 ```

@@ -71,7 +71,7 @@ description: >-
   `response.error` / `response.cause`, before using `text` or `output`.
 - Cancel cooperatively by passing `cancel: controller.token` from a Genkit
   `CancellationController`. For a stop button, `plugin.cancelActiveGeneration(name)`
-  or `prepared.cancelActiveGeneration()` cancels only the active generation;
+  or `prepared.cancelActiveGeneration()` requests cancellation of active generation or typed embedding;
   queued requests still run.
 - Models load lazily on first use, and requests to the same model run one at a
   time. Call `prepared.warmUp(ai)` to load ahead of the first user request.
@@ -80,9 +80,20 @@ description: >-
   plugin instead of reusing one.
 - Embeddings use `llamaDart.embedder(name)` with `ai.embed(...)`, need an
   embedding model with `supportsEmbeddings: true`,
-  and accept text-only documents.
+  and accept ordered text/image/audio parts when embedding-specific probes allow
+  them. Each document produces one vector and retains its metadata. GGUF media
+  embeddings need the matching projector; native LiteRT-LM requires CPU and
+  `ModelParams(liteRtLmEmbeddingEngine: true)`. Web LiteRT-LM is unsupported.
+  Inspect `prepared.inspect()` / `plugin.inspectModel(name)` for
+  `embeddingCapabilities`; never infer these from chat vision/audio flags.
+  Media codecs/size limits remain runtime-specific; video is rejected.
+  LiteRT embedding media requires encoded PNG/JPEG and WAV data URLs or
+  resolver bytes; unresolved local paths/URLs are unsupported. Native remote
+  inputs use the explicit application-owned media resolver.
+  Custom text runtimes keep `embedBatch`; media needs `LlamaRuntimeEmbeddingProvider`.
 - Direct embedder actions accept Genkit cancellation tokens; queued calls skip
-  work and active embedding drains before cancellation is reported. Genkit 1.0
+  work. Embedding on modality-aware runtimes signals cancellation and drains before the queue
+  advances; legacy custom text embedding drains without signalling the backend. Genkit 1.0
   `ai.embed()` has no cancellation argument.
 - Final `usage` can include character/image/audio counts even when token counts
   are unavailable. Read individual token fields rather than treating a nonnull
@@ -101,6 +112,13 @@ description: >-
 - Normalize approved resource/data input explicitly using the
   [application recipe](../../doc/resource-input.md); direct generic parts remain
   unsupported. The recipe belongs in user input, not system instructions.
+
+Runnable examples use revision-pinned Hugging Face defaults where a suitable
+model pair exists. Model overrides accept local paths, `hf://` and HTTPS;
+owner/cache/bidi resolve sources before opening local runtimes. LoRA requires
+an explicit compatible base/adapter pair. Media input/output paths remain local.
+The [example index](../../example/README.md#what-is-verified) distinguishes static
+analysis, actual CLI execution, cached-source proofs and optional engine tests.
 
 ## Examples
 

@@ -131,6 +131,7 @@ void main() {
         expect(_state(metadata), {
           'state': 'unloaded',
           'ready': false,
+          'embedding': {'text': false, 'image': false, 'audio': false},
           'generation': {
             'penalty': false,
             'minP': false,
@@ -219,17 +220,19 @@ void main() {
         }
         expect(runtime.initializeCount, 1);
         expect(runtime.capabilityReadCount, 1);
-        for (final metadata in [
-          model.metadata,
-          embedder.metadata,
+        for (final (metadata, mediaSupported) in [
+          (model.metadata, true),
+          (embedder.metadata, false),
           ...(await plugin.list())
               .where((a) => a.actionType != LlamaDartPlugin.scoringActionType)
-              .map((a) => a.metadata),
+              .map(
+                (a) => (a.metadata, a.actionType == genkit.ActionType.model),
+              ),
         ]) {
           expect(_state(metadata)['state'], 'verified');
           expect(_state(metadata)['ready'], true);
           expect(_supports(metadata)['tools'], true);
-          expect(_supports(metadata)['media'], true);
+          expect(_supports(metadata)['media'], mediaSupported);
           expect(_supports(metadata)['embeddings'], true);
           expect(_supports(metadata)['constrainedWithTools'], false);
         }

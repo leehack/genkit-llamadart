@@ -36,6 +36,9 @@ For a directly constructed `LlamaDartPlugin`, use
   speculative strategies, including sampling, grammar, tools and media support.
   It can be null for custom runtimes without capability probing. Strategy sets
   are immutable; later runtime changes do not mutate an earlier snapshot.
+- `embeddingCapabilities` reports `text`, `image` and `audio` for embeddings,
+  separately from chat vision/audio support. It is null for custom runtimes
+  without `LlamaRuntimeEmbeddingProvider`. Diagnostic reasons are omitted.
 - Backend names are restricted to recognized CPU/GPU, WebGPU/WASM and LiteRT-LM
   labels; unknown labels remain null. Arbitrary failure text, paths and model
   metadata are excluded.

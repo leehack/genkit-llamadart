@@ -123,11 +123,40 @@ verify the downloaded bytes reach native chat input. The HTTP fixture server
 and caller-owned client are closed in teardown. Native
 runtime setup follows llamadart's platform instructions. For a standalone Dart
 validation override, point `LLAMADART_LITERT_LM_LIB_DIR` to the verified pinned
-runtime bundle; llamadart 0.13.0 uses `litert-lm-native` v0.18.0-1.
+runtime bundle; llamadart 0.15.0 uses `litert-lm-native` v0.18.0-2.
 Without these three fixture paths this targeted test is explicitly skipped.
 Browser tests of the adapter guards use deterministic runtimes and can run with
 `dart test -p chrome test/integration/genkit/plugin/runtime_capabilities_test.dart`;
 they validate Web guards, not real Web inference or deployment.
+
+## Multimodal embedding qualification
+
+This opt-in uses existing local EmbeddingGemma-2 files and downloads nothing:
+
+```bash
+GENKIT_MULTIMODAL_EMBED_MODELS=/models/embeddinggemma-2 \
+  dart test test/integration/genkit/actions/embedder_action/real_model_multimodal_embedding_test.dart -j 1
+```
+
+The directory contains `gguf/embeddinggemma-2-BF16.gguf`,
+`gguf/mmproj-embeddinggemma-2-BF16.gguf`, and
+`litert/embeddinggemma-2-740m.litertlm`. The test verifies SHA-256 before loading:
+
+| File | SHA-256 |
+| --- | --- |
+| GGUF model | `68bae29d62fb8c7d23e98d21fd4662753ddd636e6b62b8a70dfe059a9844f216` |
+| GGUF projector | `d2033b3cd0223cfb2e7a2b50dc80a664c78c816d375f5b017ec3ef80ee0bc766` |
+| LiteRT-LM bundle | `e7a8a2204b91e0f96e92960e84a09a89212e1633dcb7575a9bf3378b4df77f4c` |
+
+The GGUF pair comes from `ggml-org/embeddinggemma-2-GGUF` revision
+`bfcd298762cc34d0357ece5ebdd31791a3a374d8`; the LiteRT-LM bundle is from
+`litert-community/embeddinggemma-2-740m-litert-lm`, identified here by its exact
+checksum. Synthetic PNG and one-second mono 16 kHz PCM WAV inputs exercise
+text, image, audio and interleaving. Genkit vectors must match direct core calls
+on the same CPU backend, with 768 finite dimensions, unit norm, input order and
+metadata preserved. Temporary LiteRT-LM caches are isolated from the model files.
+The tests are tagged `multimodal-embedding-model` and skip before filesystem/model
+access unless enabled. This does not qualify GPU, mobile or real Web embedding.
 
 ## Test Models
 
@@ -347,7 +376,7 @@ base/adapter pair proof and conversion provenance are in
 The [example index](example/README.md) documents native CLI setup. Fast retrieval
 tests verify ranking, context limits, metadata exclusion, unsupported input,
 Genkit routing, abstention and citation rejection. The optional example proof
-executes the actual chat, stream, agent, JSON and retrieval entry points with the
+executes the actual chat, stream, agent, JSON, inspection and retrieval entry points with the
 checksum-pinned Qwen3.5 fixture:
 
 ```bash
@@ -358,6 +387,68 @@ LLAMADART_RUN_EXAMPLE_PROOF=1 LLAMADART_AUTO_DOWNLOAD_QWEN35_MODEL=1 \
 Or supply `LLAMADART_INTEGRATION_QWEN35_MODEL_PATH` instead of opting into a
 download. This proof is skipped before cache access unless explicitly enabled;
 default CI downloads no additional weights for these examples.
+
+The source-default CLI proof uses an isolated cache seeded with verified local
+fixtures; the CLIs receive no model arguments and exercise their real `hf://`
+defaults, cache lookup, preparation and inference:
+
+```bash
+LLAMADART_RUN_SOURCE_EXAMPLE_PROOF=1 \
+LLAMADART_INTEGRATION_MODEL_PATH=/models/SmolLM2-135M-Instruct-Q2_K.gguf \
+LLAMADART_INTEGRATION_EMBED_MODEL_PATH=/models/jina-embeddings-v2-small-en-Q2_K.gguf \
+LLAMADART_INTEGRATION_TOOL_MODEL_PATH=/models/Qwen3-1.7B-Q4_K_M.gguf \
+LLAMADART_INTEGRATION_QWEN35_MODEL_PATH=/models/Qwen3.5-0.8B-Q4_K_M.gguf \
+GENKIT_EXAMPLE_VISION_PROJECTOR=/models/mmproj-F16.gguf \
+GENKIT_MULTIMODAL_EMBED_MODELS=/models/embeddinggemma-2 \
+  dart test test/integration/genkit/examples/real_model_source_examples_test.dart -j 1
+```
+
+Each fixture is independently optional and checksum-verified before cache access.
+The vision projector SHA-256 is
+`56e4c6cfe73b0c82e3e82bc518d7591997e61d81f723fc41a586f4fa69ea2453`, from
+the same pinned Qwen3.5 revision as the chat model. LiteRT EmbeddingGemma-2 is
+pinned at `24d962e906c7d332c6428e71c9676855024569e2`; its checksum is above.
+This test does not download new models in ordinary CI. A separate fresh-cache
+owner CLI run verifies the network path (about 88 MB):
+
+```bash
+LLAMADART_EXAMPLE_CACHE=/tmp/genkit-example-fresh-cache \
+  dart run example/genkit_llamadart_owner_example.dart
+```
+
+The five specialty CLI proofs use the same checksum-pinned fixtures as the
+[LoRA qualification](doc/live-lora-qualification.md),
+[decision proof](test/integration/genkit/decision/real_model_decision_test.dart)
+and [speech](test/integration/genkit/media/real_model_speech_test.dart) /
+[image](test/integration/genkit/media/real_model_image_test.dart) proofs. They exercise the
+actual entry points with local model overrides, without automatic downloads:
+
+```bash
+LLAMADART_RUN_SPECIALTY_EXAMPLE_PROOF=1 \
+LLAMADART_TEST_LORA_BASE=/models/Base-F32.gguf \
+LLAMADART_TEST_LORA_ADAPTER=/models/Lora-F32.gguf \
+GENKIT_DECISION_ENCODER=/models/laya-Q4_K_M.gguf \
+GENKIT_DECISION_HEAD=/models/laya-head.safetensors \
+GENKIT_ASR_MODEL=/models/Qwen3-ASR-0.6B-Q8_0.gguf \
+GENKIT_ASR_PROJECTOR=/models/mmproj-Qwen3-ASR-0.6B-Q8_0.gguf \
+GENKIT_TTS_MODEL=/models/Qwen3-TTS-12Hz-1.7B-Base-Q4_K_M.gguf \
+GENKIT_TTS_PROJECTOR=/models/mmproj-Qwen3-TTS-12Hz-1.7B-Base-Q8_0.gguf \
+GENKIT_IMAGE_MODEL=/models/sdxs-512-tinySDdistilled_Q8_0.gguf \
+  dart test test/integration/genkit/examples/real_model_specialty_examples_test.dart -j 1
+```
+
+Each test skips explicitly when its fixtures are missing. The image CLI requires
+the [stable_diffusion hook configuration](example/README.md#images-and-speech)
+in the consumer's `pubspec.yaml`. To keep that optional runtime out of this
+package's defaults, run the proof in a temporary repository copy with the hook
+enabled and run `dart pub get` there first.
+
+The maintained checks validate changed LoRA output, schema-valid decision JSON,
+the exact normalized JFK transcript, complete non-silent mono 24 kHz PCM WAV,
+and a decoded, nonuniform 256×256 PNG. The synthetic LoRA pair is a behavior
+control, not a language-quality sample. The macOS arm64 CPU qualification also
+visually checked the red apple image and transcribed synthesized speech back
+through the ASR CLI; those content checks are separate from file validity.
 
 ## Rich tool schema qualification
 

@@ -9,7 +9,7 @@ The [runnable flow example](../example/genkit_llamadart_owner_example.dart) uses
 raw text completion. It accepts a local GGUF path:
 
 ```bash
-dart run example/genkit_llamadart_owner_example.dart /models/chat.gguf
+dart run example/genkit_llamadart_owner_example.dart
 ```
 
 ```dart

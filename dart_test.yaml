@@ -1,5 +1,6 @@
 tags:
   real-model:
+  multimodal-embedding-model:
   tool-model:
   inference-controls:
   speech-model:
