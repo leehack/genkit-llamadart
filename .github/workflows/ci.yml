@@ -129,7 +129,7 @@ jobs:
 
       - name: Resolve lower-bound runtime dependencies
         if: steps.changes.outputs.runtime == 'true'
-        run: dart pub add crypto@3.0.7 genkit@1.0.0 llamadart@0.13.0 schemantic@1.0.0
+        run: dart pub add crypto@3.0.7 genkit@1.0.0 llamadart@0.15.0 schemantic@1.0.0
 
       - name: Analyze package
         if: steps.changes.outputs.runtime == 'true'

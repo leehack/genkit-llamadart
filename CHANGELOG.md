@@ -1,3 +1,7 @@
+## Unreleased
+
+- Upgrade to llamadart 0.15.0, matching 0.15.x Apple companions and updated dependency compatibility checks; native overrides must match the v0.7 ABI.
+
 ## 3.3.0 - 2026-10-15
 
 - Add opt-in same-process raw-prompt caches on dedicated native owners, with bounded handles and model-identity checks.
