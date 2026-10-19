@@ -1,5 +1,12 @@
 # genkit_llamadart
 
+> **Development has moved to [llamadart/packages/genkit_llamadart](https://github.com/leehack/llamadart/tree/main/packages/genkit_llamadart).**
+>
+> Use the [current documentation](https://github.com/leehack/llamadart/blob/main/packages/genkit_llamadart/README.md)
+> and [issue tracker](https://github.com/leehack/llamadart/issues) for active development.
+> This repository retains historical source, tags, releases and discussions.
+> The documentation below describes the former standalone project.
+
 [![pub package](https://img.shields.io/pub/v/genkit_llamadart.svg)](https://pub.dev/packages/genkit_llamadart)
 [![pub points](https://img.shields.io/pub/points/genkit_llamadart)](https://pub.dev/packages/genkit_llamadart/score)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/leehack/genkit-llamadart/blob/main/LICENSE)
